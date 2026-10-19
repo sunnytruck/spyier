@@ -1,0 +1,1059 @@
+.run-hud {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  margin-left: auto;
+  margin-right: 18px;
+  min-width: 0;
+}
+.run-hud > span,
+.run-hud > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: monospace;
+  color: #b0b394;
+  font-size: 11px;
+  white-space: nowrap;
+  padding: 0;
+}
+.run-hud small {
+  font-size: 8px;
+  color: #7f896c;
+}
+.run-hud b {
+  font-weight: 400;
+}
+.run-hud .hud-floor {
+  gap: 5px;
+  padding-right: 15px;
+  border-right: 1px solid var(--line);
+}
+.hud-floor b {
+  font-family: var(--serif);
+  font-size: 23px;
+  color: #c4ad76;
+}
+.run-hud .hud-health {
+  color: #a7b88d;
+}
+.run-hud .hud-gold {
+  color: #ccb075;
+}
+.run-hud .hud-gold > span {
+  font-size: 17px;
+  margin-right: 0;
+}
+.run-hud > button:hover {
+  color: #efd399;
+}
+.hud-potions {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding-left: 14px;
+  margin-left: 0;
+  border-left: 1px solid var(--line);
+}
+.potion-slot {
+  width: 26px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  color: #88916f;
+  padding: 0;
+}
+.potion-slot.is-filled {
+  color: #c2ae70;
+}
+.potion-slot:disabled {
+  opacity: 0.35;
+}
+.potion-slot.is-filled:disabled {
+  opacity: 0.72;
+  cursor: help;
+}
+.potion-slot > span {
+  font-family: monospace;
+  position: absolute;
+  bottom: -3px;
+  right: 0;
+  font-size: 7px;
+  line-height: 1;
+  color: #7a8366;
+}
+.potion-slot.is-filled:hover:not(:disabled) {
+  color: #f0d78f;
+  filter: drop-shadow(0 0 5px #c2ae7055);
+}
+.practice-start {
+  padding: 4px 0;
+  justify-content: flex-start;
+  color: #a79e80;
+  font-size: 11px;
+  letter-spacing: 1px;
+  gap: 10px;
+}
+.practice-resume {
+  justify-content: flex-start;
+  padding: 0;
+  font-size: 9px;
+  color: #7f886b;
+  margin-top: -3px;
+}
+.relic-collection {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.relic-collection article {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.relic-collection article > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--serif);
+  font-size: 25px;
+  min-width: 45px;
+  height: 48px;
+  background: #a6954b0b;
+  border: 1px solid #b79d5533;
+  color: #d1b471;
+}
+.relic-collection h3 {
+  font-size: 12px;
+  color: #d5c393;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+.relic-collection p {
+  font-size: 10px;
+  line-height: 1.9;
+  color: #a5ad8c;
+  margin-top: 6px;
+}
+.enemy-target {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  cursor: crosshair;
+  transition: filter 0.2s;
+}
+.enemy-target:before {
+  content: '';
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  width: 120px;
+  height: 24px;
+  transform: translateX(-50%);
+  border: 1px solid transparent;
+  border-radius: 50%;
+  z-index: 0;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+.enemy-target.is-targeted:before {
+  border-color: #d3b87959;
+  box-shadow: 0 0 18px #d3b87918;
+}
+.target-label {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: #d9c08a;
+  background: #20271aeb;
+  padding: 3px 7px;
+  border: 1px solid #a9945b55;
+  white-space: nowrap;
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.enemy-target:hover .target-label,
+.enemy-target:focus-visible .target-label {
+  opacity: 1;
+}
+.enemy-target:hover .character-art {
+  filter: drop-shadow(0 12px 8px #0005) brightness(1.13);
+}
+.multi-enemy .battle-arena {
+  grid-template-columns: 0.85fr 100px 1.65fr;
+}
+.multi-enemy .combatant--player {
+  margin-left: 24px;
+  margin-right: 16px;
+}
+.enemy-formation {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-evenly;
+  align-self: stretch;
+  gap: 17px;
+  padding: 0 22px 23px 5px;
+  min-width: 0;
+}
+.formation-enemy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  max-width: 260px;
+  align-self: flex-end;
+}
+.formation-enemy .character-stage {
+  height: 270px;
+  width: 100%;
+}
+.formation-enemy .character-art {
+  width: 228px;
+  height: 260px;
+  max-width: 115%;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.formation-enemy .enemy-intent {
+  left: 50%;
+  top: 3px;
+  min-width: 0;
+  width: max-content;
+  max-width: 180px;
+  padding: 8px 10px;
+  gap: 7px;
+  transform: translateX(-50%);
+}
+.formation-enemy .enemy-intent:after {
+  left: 50%;
+}
+.formation-enemy .intent-eyebrow {
+  font-size: 6px;
+}
+.formation-enemy .enemy-intent b {
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  margin: 3px 0 2px;
+}
+.formation-enemy .enemy-intent small {
+  font-size: 8px;
+  line-height: 1.6;
+}
+.formation-enemy .health-info {
+  width: 95%;
+  max-width: 220px;
+}
+.formation-enemy .actor-name {
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.formation-enemy .actor-name > span {
+  display: none;
+}
+.formation-enemy .actor-name h2 {
+  font-size: 11px;
+  letter-spacing: 0.7px;
+  white-space: nowrap;
+}
+.formation-enemy .health-value {
+  min-width: 40px;
+  font-size: 11px;
+}
+.formation-enemy .health-value b {
+  font-size: 13px;
+}
+.formation-enemy .health-value > span {
+  font-size: 8px;
+}
+.formation-enemy .health-line {
+  gap: 5px;
+}
+.formation-enemy .health-line > .icon {
+  width: 12px;
+}
+.formation-enemy .enemy-status {
+  right: 0;
+  left: auto;
+  top: 78px;
+  z-index: 8;
+}
+.formation-enemy .status-chips {
+  justify-content: flex-end;
+  max-width: 100px;
+  flex-wrap: wrap;
+}
+.formation-enemy .block-value {
+  left: 0;
+  top: -22px;
+  transform: none;
+}
+.formation-enemy .block-value > .icon {
+  width: 12px;
+}
+.formation-enemy .block-value > b {
+  font-size: 11px;
+}
+.enemy-tone-1 .character-art {
+  filter: drop-shadow(0 12px 8px #0005) hue-rotate(-20deg);
+}
+.enemy-tone-2 .character-art {
+  filter: drop-shadow(0 12px 8px #0005) hue-rotate(25deg) saturate(0.75);
+}
+.enemy-selected .target-label {
+  opacity: 1;
+}
+.enemy-selected .enemy-target:before {
+  border-color: #d9bc6f77;
+}
+.enemy-defeated .character-art {
+  filter: grayscale(1);
+  opacity: 0.27;
+  transform: translateX(-50%) rotate(8deg) scale(0.85);
+}
+.enemy-defeated .enemy-intent {
+  opacity: 0.5;
+}
+.enemy-defeated .character-stage:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.enemy-defeated .health-info {
+  opacity: 0.5;
+}
+.enemy-defeated .target-label {
+  display: none;
+}
+.multi-enemy .arena-center {
+  padding-top: 30px;
+}
+.multi-enemy .arena-quote {
+  white-space: normal;
+  line-height: 1.9;
+  font-size: 8px;
+}
+.multi-enemy .jitto-medallion {
+  width: 88px;
+  height: 88px;
+}
+.multi-enemy .medallion-symbol {
+  font-size: 34px;
+}
+.multi-enemy .jitto-medallion > small {
+  font-size: 6px;
+  letter-spacing: 2px;
+}
+.multi-enemy .combatant--player .health-info {
+  width: 95%;
+}
+.screen-notice {
+  font-size: 10px;
+  color: #9aaa85;
+  line-height: 1.8;
+}
+@media (min-width: 1600px) and (min-height: 950px) {
+  .formation-enemy .character-stage {
+    height: 297px;
+  }
+  .formation-enemy .character-art {
+    width: 255px;
+    height: 285px;
+  }
+  .formation-enemy .enemy-intent {
+    top: 12px;
+    max-width: 205px;
+    padding: 10px 12px;
+  }
+  .formation-enemy .enemy-intent b {
+    font-size: 11px;
+  }
+  .formation-enemy .enemy-intent small {
+    font-size: 9px;
+  }
+  .formation-enemy .enemy-status {
+    top: 90px;
+  }
+}
+@media (min-width: 1051px) and (max-height: 850px) {
+  .formation-enemy .character-stage {
+    height: 175px;
+  }
+  .formation-enemy .character-art {
+    width: 155px;
+    height: 167px;
+    max-width: 100%;
+  }
+  .enemy-formation {
+    padding-bottom: 19px;
+    gap: 15px;
+  }
+  .formation-enemy .enemy-intent {
+    top: -16px;
+    padding: 6px 8px;
+    gap: 5px;
+    max-width: 165px;
+  }
+  .formation-enemy .enemy-intent b {
+    font-size: 9px;
+  }
+  .formation-enemy .enemy-intent small {
+    font-size: 7px;
+  }
+  .formation-enemy .intent-eyebrow {
+    font-size: 5px;
+  }
+  .formation-enemy .enemy-intent .icon {
+    width: 15px;
+    height: 15px;
+  }
+  .formation-enemy .enemy-status {
+    top: 48px;
+  }
+  .formation-enemy .actor-name h2 {
+    font-size: 11px;
+  }
+  .formation-enemy .health-value b {
+    font-size: 12px;
+  }
+  .formation-enemy .health-value > span {
+    font-size: 7px;
+  }
+  .formation-enemy .health-track {
+    height: 4px;
+  }
+  .formation-enemy .actor-name {
+    margin-bottom: 9px;
+  }
+  .formation-enemy .target-label {
+    bottom: 1px;
+    font-size: 6px;
+    padding: 2px 5px;
+  }
+  .formation-enemy .enemy-target:before {
+    width: 100px;
+    bottom: 3px;
+  }
+  .multi-enemy .arena-center {
+    padding-top: 8px;
+  }
+  .multi-enemy .jitto-medallion {
+    width: 75px;
+    height: 75px;
+  }
+  .multi-enemy .medallion-symbol {
+    font-size: 30px;
+  }
+  .run-hud {
+    gap: 13px;
+    margin-right: 12px;
+  }
+  .hud-floor b {
+    font-size: 21px;
+  }
+}
+@media (max-width: 1250px) {
+  .run-hud {
+    gap: 12px;
+    margin-right: 5px;
+  }
+  .run-hud > span,
+  .run-hud > button {
+    font-size: 10px;
+  }
+  .run-hud .hud-floor {
+    padding-right: 11px;
+  }
+  .hud-potions {
+    gap: 3px;
+    padding-left: 10px;
+  }
+  .potion-slot {
+    width: 24px;
+  }
+  .topbar:has(.run-hud) nav {
+    gap: 15px;
+  }
+  .topbar:has(.run-hud) .brand-title {
+    font-size: 17px;
+    letter-spacing: 1.5px;
+  }
+  .topbar:has(.run-hud) .brand {
+    gap: 10px;
+  }
+  .formation-enemy .character-stage {
+    height: 235px;
+  }
+  .formation-enemy .character-art {
+    width: 195px;
+    height: 222px;
+  }
+  .formation-enemy .enemy-intent {
+    max-width: 158px;
+  }
+  .enemy-formation {
+    gap: 13px;
+    padding-right: 18px;
+  }
+  .formation-enemy .actor-name h2 {
+    font-size: 10px;
+    letter-spacing: 0.3px;
+  }
+  .formation-enemy .health-value {
+    min-width: 35px;
+  }
+  .formation-enemy .health-value b {
+    font-size: 11px;
+  }
+}
+@media (min-width: 1051px) and (max-width: 1250px) and (max-height: 850px) {
+  .formation-enemy .character-stage {
+    height: 175px;
+  }
+  .formation-enemy .character-art {
+    width: 150px;
+    height: 167px;
+  }
+}
+@media (max-width: 1050px) {
+  .topbar:has(.run-hud) {
+    gap: 15px;
+  }
+  .run-hud {
+    gap: 10px;
+    margin-right: 0;
+  }
+  .run-hud .hud-floor {
+    padding-right: 8px;
+  }
+  .run-hud small {
+    font-size: 7px;
+  }
+  .run-hud .hud-relics {
+    display: none;
+  }
+  .hud-potions {
+    padding-left: 8px;
+    gap: 1px;
+  }
+  .potion-slot {
+    width: 23px;
+  }
+  .topbar:has(.run-hud) .brand-title {
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+  .topbar:has(.run-hud) .brand-mark {
+    width: 30px;
+    height: 34px;
+  }
+  .topbar:has(.run-hud) .brand-mark > .icon {
+    width: 23px;
+  }
+  .topbar:has(.run-hud) nav {
+    gap: 12px;
+  }
+  .topbar:has(.run-hud) .nav-button > span {
+    display: none;
+  }
+  .enemy-formation {
+    gap: 11px;
+    padding-right: 14px;
+    padding-bottom: 23px;
+  }
+  .formation-enemy .character-stage {
+    height: 240px;
+  }
+  .formation-enemy .character-art {
+    width: 175px;
+    height: 210px;
+  }
+  .formation-enemy .enemy-intent {
+    top: 8px;
+    padding: 7px 8px;
+    max-width: 137px;
+  }
+  .formation-enemy .enemy-intent b {
+    font-size: 8px;
+  }
+  .formation-enemy .enemy-intent small {
+    font-size: 7px;
+  }
+  .formation-enemy .enemy-intent .icon {
+    width: 15px;
+    height: 15px;
+  }
+  .formation-enemy .intent-eyebrow {
+    font-size: 5px;
+  }
+  .formation-enemy .enemy-status {
+    top: 76px;
+  }
+  .formation-enemy .health-value {
+    min-width: 32px;
+  }
+  .formation-enemy .health-value > span {
+    font-size: 7px;
+  }
+  .formation-enemy .health-line {
+    gap: 4px;
+  }
+  .formation-enemy .health-line > .icon {
+    width: 10px;
+  }
+  .formation-enemy .health-track {
+    height: 4px;
+  }
+  .formation-enemy .actor-name h2 {
+    font-size: 9px;
+  }
+  .multi-enemy .battle-arena {
+    grid-template-columns: 0.8fr 65px 1.8fr;
+  }
+  .multi-enemy .combatant--player {
+    margin-left: 13px;
+    margin-right: 7px;
+  }
+  .multi-enemy .combatant--player .character-art {
+    width: 225px;
+    height: 243px;
+  }
+  .multi-enemy .jitto-medallion {
+    width: 60px;
+    height: 60px;
+  }
+  .multi-enemy .medallion-symbol {
+    font-size: 27px;
+  }
+  .multi-enemy .jitto-medallion > small {
+    display: none;
+  }
+  .multi-enemy .arena-quote {
+    font-size: 7px;
+  }
+  .multi-enemy .target-label {
+    font-size: 6px;
+    letter-spacing: 0.3px;
+    padding: 3px 5px;
+  }
+}
+@media (max-width: 800px) {
+  .topbar:has(.run-hud) {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    height: 111px;
+    padding-top: 11px;
+    padding-bottom: 10px;
+    gap: 10px;
+  }
+  .topbar:has(.run-hud) .brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .topbar:has(.run-hud) nav {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 17px;
+  }
+  .run-hud {
+    grid-column: 1/-1;
+    grid-row: 2;
+    margin: 0;
+    justify-content: space-between;
+    gap: 13px;
+    width: 100%;
+    min-height: 31px;
+  }
+  .run-hud .hud-relics {
+    display: inline-flex;
+  }
+  .run-hud .hud-floor {
+    padding-right: 13px;
+  }
+  .run-hud .hud-floor b {
+    font-size: 20px;
+  }
+  .hud-potions {
+    padding-left: 13px;
+  }
+  .potion-slot {
+    height: 26px;
+  }
+  .potion-slot > svg {
+    width: 17px;
+    height: 20px;
+  }
+  .potion-slot > span {
+    font-size: 6px;
+    bottom: -1px;
+  }
+  .multi-enemy .battle-arena {
+    grid-template-columns: 1fr 80px;
+    height: 565px;
+    grid-template-rows: 255px 1fr;
+  }
+  .multi-enemy .combatant--player {
+    grid-column: 1;
+    grid-row: 1;
+    width: 230px;
+    justify-self: center;
+    margin-left: 30px;
+    margin-top: 5px;
+    align-self: end;
+    padding-bottom: 15px;
+  }
+  .multi-enemy .combatant--player .character-stage {
+    height: 180px;
+  }
+  .multi-enemy .combatant--player .character-art {
+    height: 225px;
+    width: 215px;
+  }
+  .multi-enemy .combatant--player .actor-name {
+    flex-direction: row;
+  }
+  .multi-enemy .arena-center {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 0 12px 0 0;
+    margin-left: -70px;
+    align-self: center;
+  }
+  .multi-enemy .jitto-medallion {
+    width: 76px;
+    height: 76px;
+  }
+  .multi-enemy .medallion-symbol {
+    font-size: 33px;
+  }
+  .multi-enemy .arena-quote {
+    display: none;
+  }
+  .multi-enemy .versus-label {
+    margin-bottom: 14px;
+  }
+  .enemy-formation {
+    grid-column: 1/-1;
+    grid-row: 2;
+    align-self: stretch;
+    padding: 0 18px 23px;
+    gap: 18px;
+  }
+  .formation-enemy {
+    align-self: flex-end;
+  }
+  .formation-enemy .character-stage {
+    height: 218px;
+  }
+  .formation-enemy .character-art {
+    height: 205px;
+    width: 181px;
+    max-width: 115%;
+  }
+  .formation-enemy .enemy-intent {
+    top: -12px;
+    max-width: 180px;
+    padding: 7px 9px;
+    left: 50%;
+  }
+  .formation-enemy .enemy-intent b {
+    font-size: 9px;
+  }
+  .formation-enemy .enemy-intent small {
+    font-size: 8px;
+  }
+  .formation-enemy .enemy-status {
+    top: 47px;
+  }
+  .formation-enemy .actor-name h2 {
+    font-size: 10px;
+  }
+  .formation-enemy .health-value b {
+    font-size: 12px;
+  }
+  .formation-enemy .health-value > span {
+    font-size: 7px;
+  }
+  .formation-enemy .target-label {
+    bottom: 2px;
+  }
+  .formation-enemy .enemy-target:before {
+    width: 100px;
+    bottom: 5px;
+  }
+  .multi-enemy .arena-label {
+    top: 14px;
+  }
+  .multi-enemy .arena-floor {
+    height: 200px;
+    bottom: -80px;
+  }
+  .multi-enemy .temple-arch {
+    height: 530px;
+    width: 500px;
+  }
+  .multi-enemy .temple-seal {
+    top: 65px;
+  }
+  .multi-enemy .temple-column {
+    height: 500px;
+  }
+}
+@media (max-width: 600px) {
+  .run-hud {
+    gap: 7px;
+  }
+  .run-hud > span,
+  .run-hud > button {
+    font-size: 9px;
+    gap: 4px;
+  }
+  .run-hud small {
+    font-size: 6px;
+  }
+  .run-hud > button > .icon {
+    width: 15px;
+  }
+  .run-hud .hud-floor {
+    padding-right: 9px;
+    gap: 4px;
+  }
+  .run-hud .hud-floor b {
+    font-size: 20px;
+  }
+  .hud-potions {
+    padding-left: 8px;
+    gap: 1px;
+  }
+  .potion-slot {
+    width: 21px;
+  }
+  .run-hud .hud-health > .icon {
+    width: 12px;
+  }
+  .run-hud .hud-gold > span {
+    font-size: 14px;
+  }
+  .topbar:has(.run-hud) {
+    padding-top: 9px;
+    height: 107px;
+    gap: 7px 10px;
+  }
+  .topbar:has(.run-hud) .brand-title {
+    font-size: 15px;
+    letter-spacing: 1.5px;
+  }
+  .topbar:has(.run-hud) nav {
+    gap: 13px;
+  }
+  .practice-start {
+    font-size: 10px;
+    padding-top: 5px;
+  }
+  .practice-resume {
+    font-size: 8px;
+  }
+  .multi-enemy .battle-arena {
+    height: 516px;
+    grid-template-rows: 242px 1fr;
+    grid-template-columns: 1fr 80px;
+  }
+  .multi-enemy .combatant--player {
+    width: 176px;
+    margin-left: 28px;
+    padding-bottom: 12px;
+  }
+  .multi-enemy .combatant--player .character-stage {
+    height: 173px;
+  }
+  .multi-enemy .combatant--player .character-art {
+    height: 209px;
+    width: 195px;
+  }
+  .multi-enemy .combatant--player .actor-name {
+    flex-direction: column;
+    gap: 5px;
+  }
+  .multi-enemy .combatant--player .actor-status {
+    top: 9px;
+    left: -18px;
+  }
+  .multi-enemy .arena-center {
+    margin-left: -34px;
+    padding-right: 14px;
+  }
+  .multi-enemy .jitto-medallion {
+    width: 65px;
+    height: 65px;
+  }
+  .multi-enemy .medallion-symbol {
+    font-size: 29px;
+  }
+  .multi-enemy .versus-label {
+    margin-bottom: 10px;
+  }
+  .enemy-formation {
+    padding: 0 9px 21px;
+    gap: 9px;
+  }
+  .formation-enemy .character-stage {
+    height: 198px;
+  }
+  .formation-enemy .character-art {
+    height: 177px;
+    width: 149px;
+    max-width: 130%;
+    bottom: 0;
+  }
+  .formation-enemy .enemy-intent {
+    max-width: 117px;
+    padding: 6px 6px;
+    gap: 4px;
+    top: -7px;
+    min-height: 47px;
+  }
+  .formation-enemy .enemy-intent b {
+    font-size: 8px;
+    letter-spacing: 0.1px;
+    white-space: normal;
+    line-height: 1.2;
+  }
+  .formation-enemy .enemy-intent small {
+    font-size: 6px;
+    line-height: 1.4;
+    max-width: 80px;
+  }
+  .formation-enemy .intent-eyebrow {
+    font-size: 4px;
+    letter-spacing: 0.1px;
+  }
+  .formation-enemy .enemy-intent .icon {
+    width: 13px;
+    height: 13px;
+  }
+  .formation-enemy .actor-name h2 {
+    font-size: 9px;
+    letter-spacing: 0.1px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.5;
+    min-height: 27px;
+    display: flex;
+    align-items: center;
+  }
+  .formation-enemy .health-info {
+    width: 100%;
+  }
+  .formation-enemy .actor-name {
+    margin-bottom: 5px;
+  }
+  .formation-enemy .health-line {
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .formation-enemy .health-line > .icon {
+    display: none;
+  }
+  .formation-enemy .health-value {
+    font-size: 8px;
+    min-width: 0;
+  }
+  .formation-enemy .health-value b {
+    font-size: 10px;
+  }
+  .formation-enemy .health-value > span {
+    font-size: 6px;
+  }
+  .formation-enemy .health-track {
+    flex: 1;
+    height: 3px;
+    min-width: 22px;
+    outline-offset: 1px;
+  }
+  .formation-enemy .enemy-status {
+    top: 48px;
+    right: 1px;
+  }
+  .formation-enemy .status-chips {
+    max-width: 65px;
+    gap: 2px;
+  }
+  .formation-enemy .status-chip {
+    font-size: 7px;
+    gap: 2px;
+    padding: 1px 2px;
+    min-width: 19px;
+  }
+  .formation-enemy .status-chip b {
+    font-size: 8px;
+  }
+  .formation-enemy .target-label {
+    font-size: 5px;
+    padding: 2px 4px;
+    letter-spacing: 0.2px;
+    bottom: 0;
+  }
+  .formation-enemy .enemy-target:before {
+    width: 70px;
+    height: 18px;
+    bottom: 1px;
+  }
+  .formation-enemy .block-value {
+    top: -18px;
+    left: 0;
+  }
+  .formation-enemy .block-value .icon {
+    width: 10px;
+  }
+  .formation-enemy .block-value b {
+    font-size: 9px;
+  }
+  .multi-enemy .combat-float {
+    font-size: 22px;
+  }
+  .multi-enemy .float-gauge,
+  .multi-enemy .float-power,
+  .multi-enemy .float-block {
+    font-size: 15px;
+  }
+  .relic-collection p {
+    font-size: 9px;
+  }
+  .relic-collection h3 {
+    font-size: 11px;
+  }
+}
+
+/* The global header owns persistent resources on every room screen. */
+.run-status-strip {
+  display: none;
+}
+@media (min-width: 1051px) and (max-height: 850px) {
+  .run-screen--map {
+    padding-bottom: 14px;
+  }
+  .run-map-chapter > p {
+    display: none;
+  }
+  .run-map-next {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .run-map-legend {
+    margin-top: 15px;
+  }
+}
