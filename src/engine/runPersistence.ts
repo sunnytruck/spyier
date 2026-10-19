@@ -1,7 +1,8 @@
 import { CARD_DEFINITIONS } from '../data/cards';
 import { EVENT_DEFINITIONS } from '../data/events';
+import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { POTION_DEFINITIONS } from '../data/potions';
-import { RELIC_DEFINITIONS } from '../data/relics';
+import { RELIC_DEFINITIONS, RELIC_IDS } from '../data/relics';
 import type { CombatState } from '../types/game';
 import type { FloorMap, RunState } from '../types/run';
 import { normalizeCombatState } from './index';
@@ -54,6 +55,7 @@ export function isValidRunState(value: unknown): value is RunState {
       'reward',
       'relic',
       'event',
+      'eventResult',
       'shop',
       'rest',
       'upgrade',
@@ -106,7 +108,7 @@ export function isValidRunState(value: unknown): value is RunState {
   )
     return false;
   if (
-    !unique(value.relicIds, (id) => known(id, RELIC_DEFINITIONS), 10) ||
+    !unique(value.relicIds, (id) => known(id, RELIC_DEFINITIONS), RELIC_IDS.length) ||
     !Array.isArray(value.potions) ||
     value.potions.length !== 3 ||
     !value.potions.every((id) => id === null || known(id, POTION_DEFINITIONS))
@@ -169,6 +171,55 @@ export function isValidRunState(value: unknown): value is RunState {
     if (!value.shop.purchased.every((id) => allowedPurchases.includes(id))) return false;
   }
   if (value.eventId !== null && !known(value.eventId, EVENT_DEFINITIONS)) return false;
+  if (typeof value.eventId === 'string') {
+    const classes = EVENT_DEFINITIONS[value.eventId].classIds;
+    if (classes && (!value.classId || !classes.includes(value.classId as NonNullable<RunState['classId']>))) return false;
+  }
+  if (value.eventHistory !== undefined && (
+    !Array.isArray(value.eventHistory) || value.eventHistory.length > 12 ||
+    !value.eventHistory.every((id) => known(id, EVENT_DEFINITIONS))
+  )) return false;
+  if (value.eventCombat !== undefined && value.eventCombat !== null) {
+    if (!record(value.eventCombat) || !known(value.eventCombat.eventId, EVENT_DEFINITIONS) ||
+      value.eventCombat.eventId !== value.eventId || !int(value.eventCombat.bonusGold) ||
+      typeof value.eventCombat.relicOnVictory !== 'boolean' || current?.type !== 'event' ||
+      !['combat', 'reward', 'relic', 'defeat'].includes(value.screen)) return false;
+    const battle = EVENT_DEFINITIONS[value.eventCombat.eventId].choices.flatMap((choice) => choice.effects)
+      .find((effect) => effect.type === 'battle');
+    if (!battle || battle.type !== 'battle' || battle.bonusGold !== value.eventCombat.bonusGold ||
+      battle.relicOnVictory !== value.eventCombat.relicOnVictory) return false;
+  }
+  if (value.eventResult !== undefined && value.eventResult !== null) {
+    const result = value.eventResult;
+    const cardList = (v: unknown): v is RunState['deck'] => Array.isArray(v) && v.length <= 1000 &&
+      v.every((card) => record(card) && text(card.uid, 100) && known(card.cardId, CARD_DEFINITIONS) && typeof card.upgraded === 'boolean') &&
+      new Set(v.map((card) => card.uid)).size === v.length;
+    if (!record(result) || !known(result.eventId, EVENT_DEFINITIONS) || result.eventId !== value.eventId ||
+      !int(result.choiceIndex, 0, 20) || !EVENT_DEFINITIONS[result.eventId].choices[result.choiceIndex] ||
+      !text(result.choiceLabel, 256) || !text(result.description, 4000) ||
+      !int(result.hpChange, -1_000_000) || !int(result.goldChange, -1_000_000) ||
+      !cardList(result.upgradedCards) || !cardList(result.addedCards) || !cardList(result.removedCards) ||
+      !unique(result.relicIds, (id) => known(id, RELIC_DEFINITIONS), RELIC_IDS.length) ||
+      !Array.isArray(result.potionIds) || result.potionIds.length > 3 || !result.potionIds.every((id) => known(id, POTION_DEFINITIONS)) ||
+      value.screen !== 'eventResult' || value.combat !== null || value.eventCombat != null) return false;
+    const deck = value.deck as RunState['deck'];
+    if (result.upgradedCards.some((card) => !card.upgraded || !deck.some((c) => c.uid === card.uid && c.cardId === card.cardId && c.upgraded))) return false;
+    if (result.addedCards.some((card) => !deck.some((c) => c.uid === card.uid && c.cardId === card.cardId && c.upgraded === card.upgraded))) return false;
+    if (result.removedCards.some((card) => deck.some((c) => c.uid === card.uid))) return false;
+    if (!result.relicIds.every((id) => (value.relicIds as string[]).includes(id))) return false;
+    if (result.combatEnemyIds !== undefined && (
+      !Array.isArray(result.combatEnemyIds) || result.combatEnemyIds.length < 1 || result.combatEnemyIds.length > 3 ||
+      !result.combatEnemyIds.every((id) => known(id, ENEMY_DEFINITIONS)) ||
+      !record(result.combatReward) || !int(result.combatReward.gold) || typeof result.combatReward.relic !== 'boolean'
+    )) return false;
+    if (result.combatReward !== undefined && result.combatEnemyIds === undefined) return false;
+    const battle = EVENT_DEFINITIONS[result.eventId].choices[result.choiceIndex].effects.find((effect) => effect.type === 'battle');
+    if (battle) {
+      if (JSON.stringify(result.combatEnemyIds) !== JSON.stringify(battle.enemyIds) ||
+        !record(result.combatReward) || result.combatReward.gold !== battle.bonusGold ||
+        result.combatReward.relic !== battle.relicOnVictory) return false;
+    } else if (result.combatEnemyIds !== undefined || result.combatReward !== undefined) return false;
+  }
   if (value.combat !== null) {
     if (
       !isValidCombatState(value.combat) ||
@@ -197,7 +248,8 @@ export function isValidRunState(value: unknown): value is RunState {
     }
   }
 
-  const battleNode = current && ['battle', 'elite', 'boss'].includes(current.type);
+  const battleNode = current && (['battle', 'elite', 'boss'].includes(current.type) ||
+    (current.type === 'event' && value.eventCombat != null));
   if (
     value.screen === 'combat' &&
     (!battleNode || !value.combat || value.combat.phase !== 'player')
@@ -228,11 +280,13 @@ export function isValidRunState(value: unknown): value is RunState {
     (!record(value.reward) ||
       value.reward.relicId === null ||
       (current?.type !== 'treasure' && current?.type !== 'elite' &&
+        !(current?.type === 'event' && record(value.eventCombat) && value.eventCombat.relicOnVictory) &&
         !(current?.type === 'boss' && value.reward.completesRun === true)))
   )
     return false;
   if (value.screen === 'event' && (current?.type !== 'event' || value.eventId === null))
     return false;
+  if (value.screen === 'eventResult' && (current?.type !== 'event' || value.eventId === null || !value.eventResult)) return false;
   if (value.screen === 'shop' && (current?.type !== 'shop' || value.shop === null)) return false;
   if (['rest', 'upgrade'].includes(value.screen) && current?.type !== 'rest') return false;
   if (value.screen !== 'defeat' && value.hp === 0) return false;
@@ -241,7 +295,7 @@ export function isValidRunState(value: unknown): value is RunState {
     (value.combat !== null ||
       value.reward !== null ||
       value.shop !== null ||
-      value.eventId !== null)
+      value.eventId !== null || value.eventResult != null || value.eventCombat != null)
   )
     return false;
   return true;

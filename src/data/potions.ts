@@ -14,7 +14,7 @@ export const POTION_DEFINITIONS: Record<string, PotionDefinition> = {
   magma_flask: {
     id: 'magma_flask',
     name: '溶岩の小瓶',
-    description: '選んだ敵に基礎20ダメージ。筋力・弱体・脆弱の影響を受ける。',
+    description: '選んだ敵に基礎20ダメージ。対象の脆弱で増加し、筋力・弱体の影響は受けない。',
     glyph: '炎',
     target: 'enemy',
     effects: [{ type: 'damage', amount: 20 }],

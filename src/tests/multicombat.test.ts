@@ -279,7 +279,12 @@ describe('finite consumables and relic trigger counts', () => {
     expect(cards.filter((card) => card.type === 'attack')).toHaveLength(12);
     expect(cards.filter((card) => card.type === 'skill')).toHaveLength(12);
     expect(cards.filter((card) => card.type === 'power')).toHaveLength(6);
-    expect(Object.keys(RELIC_DEFINITIONS)).toHaveLength(10);
+    const originalRelics = [
+      'warm_pebble', 'gate_fragment', 'prayer_knuckle', 'fossil_bookmark', 'amber_spark',
+      'sacred_chalk', 'layered_charm', 'morning_bell', 'first_vow', 'pilgrim_cup',
+    ];
+    expect(originalRelics.map((id) => RELIC_DEFINITIONS[id]?.id)).toEqual(originalRelics);
+    expect(Object.keys(RELIC_DEFINITIONS).length).toBeGreaterThanOrEqual(25);
     expect(Object.keys(POTION_DEFINITIONS)).toHaveLength(5);
   });
 });

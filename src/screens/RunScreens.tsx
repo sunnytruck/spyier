@@ -6,7 +6,7 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import { POTION_DEFINITIONS } from '../data/potions';
 import { EVENT_DEFINITIONS } from '../data/events';
 import { CLASS_DEFINITIONS } from '../data/classes';
-import { canChooseEvent, getAvailableNodes, previewRunEventChoice, SHOP_PRICES } from '../engine/run';
+import { canChooseEvent, getAvailableNodes, SHOP_PRICES } from '../engine/run';
 import { CardView } from '../components/CardView';
 import { CardUpgradePreview } from '../components/CardUpgradePreview';
 import { canUpgradeCard } from '../presentation/cardUpgrade';
@@ -556,12 +556,8 @@ function RelicScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAct
 
 function EventScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAction'>) {
   const event = state.eventId ? EVENT_DEFINITIONS[state.eventId] : null;
-  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-  const closePreview = useCallback(() => setPreviewIndex(null), []);
-  const preview = previewIndex === null ? null : previewRunEventChoice(state, previewIndex);
-  const previewChoice = previewIndex === null ? null : event?.choices[previewIndex];
   return (
-    <><div className="run-facility-screen">
+    <div className="run-facility-screen">
       <ScreenHeading
         kicker="A STRANGE ENCOUNTER"
         title={event?.title ?? '塔の出来事'}
@@ -588,15 +584,13 @@ function EventScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAct
                   key={index}
                   className="run-event-choice"
                   disabled={!allowed}
-                  onClick={() => needsUpgrade
-                    ? setPreviewIndex(index)
-                    : onAction({ type: 'eventChoice', index })}
+                  onClick={() => onAction({ type: 'eventChoice', index })}
                 >
                   <span className="run-choice-number">{String(index + 1).padStart(2, '0')}</span>
                   <span>
                     <b>{choice.label}</b>
                     <small>{state.classId ? (choice.classDescription ?? choice.description) : choice.description}</small>
-                    {allowed && needsUpgrade && <em className="run-choice-preview-hint">対象と強化内容を確認してから確定</em>}
+                    {allowed && needsUpgrade && <em className="run-choice-preview-hint">選ぶとランダムな対象を強化し、結果を表示します</em>}
                     {!allowed && <em>{disabledReason}</em>}
                   </span>
                   <Icon name="arrow" size={17} />
@@ -607,17 +601,46 @@ function EventScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAct
         </div>
       </div>
     </div>
-    {preview && previewChoice && previewIndex !== null && (
-      <Modal title="教えを磨く前に" subtitle={event?.title} onClose={closePreview} className="card-upgrade-modal">
-        <p className="card-upgrade-context">{state.classId ? (previewChoice.classDescription ?? previewChoice.description) : previewChoice.description}</p>
-        <p className="card-upgrade-context">この出来事で強化されるカードです。対象は旅のシードで決まり、開き直しても変わりません。</p>
-        {preview.upgrades.map(({ before }) => <CardUpgradePreview key={before.uid} card={before} />)}
-        <div className="card-upgrade-actions">
-          <button className="secondary-button" onClick={closePreview}>選択肢に戻る</button>
-          <button className="primary-button" onClick={() => onAction({ type: 'eventChoice', index: previewIndex })}>強化を確定する <Icon name="flame" size={17} /></button>
+  );
+}
+
+function EventResultScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAction'>) {
+  const result = state.eventResult;
+  const event = result ? EVENT_DEFINITIONS[result.eventId] : null;
+  const cardGroups = result ? [
+    { title: '磨き上げられた教え', cards: result.upgradedCards, kind: 'upgraded' },
+    { title: '新しく得た教え', cards: result.addedCards, kind: 'added' },
+    { title: '手放した教え', cards: result.removedCards, kind: 'removed' },
+  ] : [];
+  return (
+    <div className="run-event-result">
+      <ScreenHeading kicker="THE CHOICE IS MADE" title={event?.title ?? '出来事の結果'} text="選択の結果は保存されています。" />
+      <section className="event-result-summary" aria-label="選択の結果">
+        <span className="section-kicker">RESULT</span>
+        <h2>{result?.choiceLabel ?? '次の石段へ'}</h2>
+        {result?.description && <p>{result.description}</p>}
+        <div className="event-result-deltas">
+          {result && result.hpChange !== 0 && <span className={result.hpChange < 0 ? 'is-loss' : 'is-gain'}><Icon name="heart" size={18} /> HP {result.hpChange > 0 ? '+' : ''}{result.hpChange}</span>}
+          {result && result.goldChange !== 0 && <span className={result.goldChange < 0 ? 'is-loss' : 'is-gain'}>◎ ゴールド {result.goldChange > 0 ? '+' : ''}{result.goldChange}</span>}
         </div>
-      </Modal>
-    )}</>
+        {!!result?.relicIds.length && <div className="event-result-relics">{result.relicIds.map((id) => <RelicBadge key={id} id={id} />)}</div>}
+        {!!result?.potionIds.length && <div className="event-result-potions">{result.potionIds.map((id, index) => {
+          const potion = POTION_DEFINITIONS[id];
+          return potion ? <article key={`${id}-${index}`}><b>{potion.name}</b><p>{potion.description}</p></article> : null;
+        })}</div>}
+      </section>
+      {cardGroups.filter((group) => group.cards.length > 0).map((group) => (
+        <section className={`event-result-card-section event-result-${group.kind}`} key={group.kind}>
+          <h2>{group.title}</h2>
+          {group.kind === 'upgraded' && <p className="run-small-note">以下は強化が完了したカードです。コスト・効果はこの状態でデッキに反映されています。</p>}
+          <div className="event-result-card-grid">{group.cards.map((card) => <CardView key={card.uid} card={card} inspect showUpgradePreview={false} />)}</div>
+        </section>
+      ))}
+      {result?.combatEnemyIds?.length ? <p className="event-result-battle-note">この先で特別な戦闘が始まります。敵の行動予告を見て、備えましょう。</p> : null}
+      <div className="event-result-actions">
+        <button className="primary-button" onClick={() => onAction({ type: 'continueEvent' })}>{result?.combatEnemyIds?.length ? '試練の戦闘へ' : 'マップへ進む'} <Icon name="arrow" size={18} /></button>
+      </div>
+    </div>
   );
 }
 
@@ -804,6 +827,7 @@ function RestScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onActi
 
 function UpgradeScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAction'>) {
   const cards = state.deck.filter(canUpgradeCard);
+  const [showUpgraded, setShowUpgraded] = useState(false);
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
   const selectedCard = cards.find((card) => card.uid === selectedUid);
   const closePreview = useCallback(() => setSelectedUid(null), []);
@@ -812,16 +836,23 @@ function UpgradeScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onA
       <ScreenHeading
         kicker="REFINE YOUR TEACHING"
         title="ひとつの教えを、さらに深く。"
-        text="強化するカードを選び、強化前と強化後を切り替えて確認できます。確定するまでは変更されません。"
+        text="一覧の表示を切り替えて、磨く教えを選びましょう。確定するまでは変更されません。"
       >
         <button className="secondary-button" onClick={() => onAction({ type: 'leaveNode' })}>
           休憩所に戻る
         </button>
       </ScreenHeading>
+      <div className="run-upgrade-list-toolbar">
+        <label className="run-upgrade-list-toggle">
+          <input type="checkbox" checked={showUpgraded} onChange={(event) => setShowUpgraded(event.target.checked)} />
+          <span>強化後を表示</span>
+        </label>
+        <p>{showUpgraded ? '一覧は強化後のプレビューです。デッキはまだ変更されていません。' : '一覧は現在の状態です。チェックするとすべての強化後を比較できます。'}</p>
+      </div>
       <div className="run-upgrade-grid">
         {cards.map((card) => (
           <div key={card.uid} className="run-card-choice">
-            <CardView card={card} inspect showUpgradePreview={false} />
+            <CardView card={showUpgraded ? { ...card, upgraded: true } : card} inspect showUpgradePreview={false} />
             <button
               className="secondary-button"
               onClick={() => setSelectedUid(card.uid)}
@@ -954,6 +985,9 @@ export function RunScreens({ state, onAction, onNewRun, onReplay, onTitle }: Run
       break;
     case 'event':
       screen = <EventScreen state={state} onAction={onAction} />;
+      break;
+    case 'eventResult':
+      screen = <EventResultScreen state={state} onAction={onAction} />;
       break;
     case 'shop':
       screen = <ShopScreen state={state} onAction={onAction} onRemove={() => setRemoving(true)} />;

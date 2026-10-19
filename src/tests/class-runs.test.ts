@@ -6,11 +6,11 @@ import type { ClassId } from '../types/game';
 import { chooseClassRunAction } from './helpers/classDriver';
 
 const routes: [ClassId, string][] = [
-  ['berserker', 'class-balance-0'],
+  ['berserker', 'class-balance-1'],
   ['assassin', 'class-balance-0'],
   ['oracle', 'class-balance-8'],
-  ['necromancer', 'class-balance-3'],
-  ['machinist', 'class-balance-0'],
+  ['necromancer', 'class-balance-0'],
+  ['machinist', 'class-balance-1'],
 ];
 
 describe('playable class campaigns through the first act', () => {

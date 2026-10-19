@@ -84,6 +84,10 @@ export interface CardDefinition {
   upgradedRetain?: boolean;
   ethereal?: boolean;
   innate?: boolean;
+  /** Curses/status cards may be deliberate draw burdens rather than playable effects. */
+  unplayable?: boolean;
+  unupgradable?: boolean;
+  curse?: boolean;
 }
 
 export interface CardInstance {
@@ -113,10 +117,24 @@ export interface EnemyIntent {
   block?: number;
   strength?: number;
   weak?: number;
+  vulnerable?: number;
+  poison?: number;
+  /** Support affects the other living enemies, never the source itself. */
+  alliesBlock?: number;
+  alliesStrength?: number;
+  /** A field-wide strike hits the player and their summon independently. */
+  allTargets?: boolean;
 }
 
 export interface EnemyDefinition extends Actor {
   intents: EnemyIntent[];
+  description?: string;
+  gimmick?: string;
+  reaction?: { cardType: CardType; block?: number; strength?: number };
+  phases?: {
+    trigger: { type: 'turn'; at: number } | { type: 'hpBelow'; ratio: number };
+    intents: EnemyIntent[];
+  }[];
 }
 
 export interface EnemyState extends Actor {
@@ -124,6 +142,8 @@ export interface EnemyState extends Actor {
   intentIndex: number;
   intent: EnemyIntent;
   doom?: number;
+  /** Absent for legacy patterns; phase changes are announced for the next turn. */
+  intentPhase?: number;
 }
 
 /** Original IWASON keyword rules; absent on legacy battles and saves. */

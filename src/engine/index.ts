@@ -9,6 +9,7 @@ import { findEnemy, getEnemies, getEnemyKey, normalizeInto } from './combat/targ
 import { triggerRelics } from './combat/relics';
 import { resolveEffects } from './effects/resolve';
 import { createClassResources } from './combat/resources';
+import { reactToPlayerCard } from './combat/enemyAI';
 import { seedToState, shuffle } from './random';
 import { emitCombatCue, inheritCombatTrace, withCombatTraceContext } from '../presentation/trace';
 
@@ -29,7 +30,9 @@ export function createCombat(
     const definition = getEnemyDefinition(id);
     if (!definition || definition.intents.length === 0)
       throw new RangeError(`敵「${id}」の定義または行動パターンがありません。`);
-    const { intents, ...actor } = definition;
+    const { id: actorId, name, hp, maxHp, block, strength, weak, vulnerable, poison } = definition;
+    const actor = { id: actorId, name, hp, maxHp, block, strength, weak, vulnerable, poison };
+    const { intents } = definition;
     return {
       ...actor,
       intentIndex: 0,
@@ -111,6 +114,7 @@ export function createCombat(
 
 export function getCardCost(card: CardInstance, state?: CombatState): number {
   const definition = CARD_DEFINITIONS[card.cardId];
+  if (definition?.unplayable) return Infinity;
   if (definition?.xCost) return state?.energy ?? 0;
   return definition
     ? card.upgraded
@@ -264,6 +268,8 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
   appendLog(next, `「${definition.name}${card.upgraded ? '+' : ''}」を使用。`);
   emitCombatCue(next, { kind: 'cardPlay', sourceId: 'player', targetId, card, fromZone: 'hand', toZone: 'played', label: definition.name });
   withCombatTraceContext(next, { sourceId: 'player', card }, () => {
+    reactToPlayerCard(next, definition.type);
+    triggerRelics(next, 'cardPlayed', { card });
     if (definition.type === 'attack') {
       triggerRelics(next, 'firstAttack');
       if (next.powerStacks?.blockOnAttack) gainBlock(next, 'player', next.powerStacks.blockOnAttack);
@@ -294,5 +300,5 @@ export function isDeified(state: CombatState): boolean {
   return state.jitto === 100;
 }
 export function upgradeCard(card: CardInstance): CardInstance {
-  return { ...card, upgraded: true };
+  return { ...card, upgraded: !CARD_DEFINITIONS[card.cardId]?.unupgradable || card.upgraded };
 }

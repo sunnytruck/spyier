@@ -18,6 +18,7 @@ export type RunScreen =
   | 'reward'
   | 'relic'
   | 'event'
+  | 'eventResult'
   | 'shop'
   | 'rest'
   | 'upgrade'
@@ -37,6 +38,27 @@ export interface ShopState {
   potionId: string | null;
   purchased: string[];
   removed: boolean;
+}
+/** An event is committed before this presentation is shown; continuing never rerolls it. */
+export interface EventResult {
+  eventId: string;
+  choiceIndex: number;
+  choiceLabel: string;
+  description: string;
+  hpChange: number;
+  goldChange: number;
+  upgradedCards: CardInstance[];
+  addedCards: CardInstance[];
+  removedCards: CardInstance[];
+  relicIds: string[];
+  potionIds: string[];
+  combatEnemyIds?: string[];
+  combatReward?: { gold: number; relic: boolean };
+}
+export interface EventCombat {
+  eventId: string;
+  bonusGold: number;
+  relicOnVictory: boolean;
 }
 export interface RunState {
   version: 2;
@@ -59,6 +81,10 @@ export interface RunState {
   reward: RunReward | null;
   shop: ShopState | null;
   eventId: string | null;
+  /** Optional extensions keep version-2 saves from before the event expansion valid. */
+  eventHistory?: string[];
+  eventResult?: EventResult | null;
+  eventCombat?: EventCombat | null;
   nextCardId: number;
   stats: { battlesWon: number; elitesDefeated: number; cardsAdded: number };
   log: string[];
@@ -75,5 +101,6 @@ export type RunAction =
   | { type: 'rest'; choice: 'heal' | 'upgrade' }
   | { type: 'upgradeCard'; cardUid: string }
   | { type: 'eventChoice'; index: number }
+  | { type: 'continueEvent' }
   | { type: 'leaveNode' }
   | { type: 'usePotion'; slot: number; targetId?: string };

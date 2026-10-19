@@ -96,7 +96,11 @@ describe('combat initialization and stable content', () => {
     for (const id of STARTER_DECK) expect(CARD_DEFINITIONS[id]?.id).toBe(id);
     for (const definition of definitions) {
       expect(CARD_DEFINITIONS[definition.id]).toBe(definition);
-      expect(definition.upgradedEffects.length).toBeGreaterThan(0);
+      if (definition.unplayable) {
+        expect(definition.curse).toBe(true);
+        expect(definition.unupgradable).toBe(true);
+        expect(definition.rewardEligible).toBe(false);
+      } else expect(definition.upgradedEffects.length).toBeGreaterThan(0);
     }
   });
 

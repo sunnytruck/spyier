@@ -1,6 +1,7 @@
 import { CARD_DEFINITIONS } from '../../data/cards';
 import { EVENT_DEFINITIONS } from '../../data/events';
 import { POTION_DEFINITIONS } from '../../data/potions';
+import { canUpgradeCard } from '../../presentation/cardUpgrade';
 import {
   canPlayCard,
   getEnemies,
@@ -50,9 +51,10 @@ export function chooseCombatAction(state: CombatState): CombatAction {
     return { type: 'usePotion', slot, targetId };
   }
   const beforeThreat = Math.max(0, incoming(state) - state.player.block);
-  const options = state.hand
-    .filter((card) => canPlayCard(state, card.uid, targetId))
-    .map((card) => {
+  const options = state.hand.flatMap((card) => living
+    .filter((enemy) => canPlayCard(state, card.uid, getEnemyKey(enemy)))
+    .map((enemy) => {
+      const targetId = getEnemyKey(enemy);
       const after = reduceCombat(state, { type: 'playCard', cardId: card.uid, targetId });
       const definition = CARD_DEFINITIONS[card.cardId];
       const damage = getEnemies(state).reduce(
@@ -63,7 +65,9 @@ export function chooseCombatAction(state: CombatState): CombatAction {
       const threatReduction = beforeThreat - Math.max(0, incoming(after) - after.player.block);
       let score = damage * 1.3 + killed * 70 + threatReduction * 2.5;
       score += (after.player.strength - state.player.strength) * (state.turn < 4 ? 9 : 4);
-      score += (after.hand.length - state.hand.length + 1) * (after.energy > 0 ? 12 : 2);
+      // Drawing into an already full hand is less useful than removing a real threat.
+      score += (after.hand.length - state.hand.length + 1) *
+        (after.energy > 0 ? Math.max(1, 12 - state.hand.length) : 1);
       score += (after.energy - state.energy) * 12;
       score += (after.jitto - state.jitto) * 0.12;
       score += getEnemies(after).reduce(
@@ -75,11 +79,11 @@ export function chooseCombatAction(state: CombatState): CombatAction {
       if (definition.type === 'power') score += state.turn < 4 ? 45 : 12;
       if (card.cardId === 'battle_liturgy') score += 25;
       if (after.phase === 'victory') score += 1000;
-      return { card, score };
-    });
+      return { card, score, targetId };
+    }));
   options.sort((left, right) => right.score - left.score);
   return options.length
-    ? { type: 'playCard', cardId: options[0].card.uid, targetId }
+    ? { type: 'playCard', cardId: options[0].card.uid, targetId: options[0].targetId }
     : { type: 'endTurn' };
 }
 
@@ -180,13 +184,13 @@ export function createRunDriver(strategic = true): (state: RunState) => RunActio
       action = {
         type: 'rest',
         choice: strategic
-          ? state.hp < 63
+          ? state.hp < 63 || !state.deck.some(canUpgradeCard)
             ? 'heal'
             : 'upgrade'
-          : sample(['heal', 'upgrade'] as const),
+          : state.deck.some(canUpgradeCard) ? sample(['heal', 'upgrade'] as const) : 'heal',
       };
     else if (state.screen === 'upgrade') {
-      const choices = state.deck.filter((card) => !card.upgraded);
+      const choices = state.deck.filter(canUpgradeCard);
       const card = strategic
         ? [...choices].sort((a, b) => cardValue(b.cardId) - cardValue(a.cardId))[0]
         : sample(choices);
@@ -221,7 +225,8 @@ export function createRunDriver(strategic = true): (state: RunState) => RunActio
           ? [...choices].sort((a, b) => value(b.index) - value(a.index))[0].index
           : sample(choices).index,
       };
-    } else if (state.screen === 'shop') {
+    } else if (state.screen === 'eventResult') action = { type: 'continueEvent' };
+    else if (state.screen === 'shop') {
       const shop = state.shop!;
       const best = [...shop.cardIds]
         .filter((id) => !shop.purchased.includes(`card:${id}`))

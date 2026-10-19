@@ -1,0 +1,1654 @@
+{
+  "legacyMap": {
+    "version": 2,
+    "run": {
+      "version": 2,
+      "seed": "pre-expansion-legacy-map",
+      "rngState": 294268438,
+      "screen": "map",
+      "floor": 0,
+      "currentNodeId": null,
+      "map": {
+        "floors": 12,
+        "nodes": [
+          {
+            "id": "floor-1-0",
+            "floor": 1,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-2-0",
+              "floor-2-1"
+            ]
+          },
+          {
+            "id": "floor-1-1",
+            "floor": 1,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-2-1",
+              "floor-2-0",
+              "floor-2-2"
+            ]
+          },
+          {
+            "id": "floor-1-2",
+            "floor": 1,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-2-2",
+              "floor-2-1"
+            ]
+          },
+          {
+            "id": "floor-2-0",
+            "floor": 2,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-3-0",
+              "floor-3-1"
+            ]
+          },
+          {
+            "id": "floor-2-1",
+            "floor": 2,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-3-1",
+              "floor-3-0",
+              "floor-3-2"
+            ]
+          },
+          {
+            "id": "floor-2-2",
+            "floor": 2,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-3-2"
+            ]
+          },
+          {
+            "id": "floor-3-0",
+            "floor": 3,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-4-0",
+              "floor-4-1"
+            ]
+          },
+          {
+            "id": "floor-3-1",
+            "floor": 3,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-4-1"
+            ]
+          },
+          {
+            "id": "floor-3-2",
+            "floor": 3,
+            "lane": 2,
+            "type": "event",
+            "connections": [
+              "floor-4-2",
+              "floor-4-1"
+            ]
+          },
+          {
+            "id": "floor-4-0",
+            "floor": 4,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-5-0",
+              "floor-5-1"
+            ]
+          },
+          {
+            "id": "floor-4-1",
+            "floor": 4,
+            "lane": 1,
+            "type": "shop",
+            "connections": [
+              "floor-5-1",
+              "floor-5-0",
+              "floor-5-2"
+            ]
+          },
+          {
+            "id": "floor-4-2",
+            "floor": 4,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-5-2",
+              "floor-5-1"
+            ]
+          },
+          {
+            "id": "floor-5-0",
+            "floor": 5,
+            "lane": 0,
+            "type": "event",
+            "connections": [
+              "floor-6-0"
+            ]
+          },
+          {
+            "id": "floor-5-1",
+            "floor": 5,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-6-1",
+              "floor-6-2"
+            ]
+          },
+          {
+            "id": "floor-5-2",
+            "floor": 5,
+            "lane": 2,
+            "type": "elite",
+            "connections": [
+              "floor-6-2",
+              "floor-6-1"
+            ]
+          },
+          {
+            "id": "floor-6-0",
+            "floor": 6,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-7-0",
+              "floor-7-1"
+            ]
+          },
+          {
+            "id": "floor-6-1",
+            "floor": 6,
+            "lane": 1,
+            "type": "treasure",
+            "connections": [
+              "floor-7-1",
+              "floor-7-2"
+            ]
+          },
+          {
+            "id": "floor-6-2",
+            "floor": 6,
+            "lane": 2,
+            "type": "treasure",
+            "connections": [
+              "floor-7-2",
+              "floor-7-1"
+            ]
+          },
+          {
+            "id": "floor-7-0",
+            "floor": 7,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-8-0",
+              "floor-8-1"
+            ]
+          },
+          {
+            "id": "floor-7-1",
+            "floor": 7,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-8-1",
+              "floor-8-0",
+              "floor-8-2"
+            ]
+          },
+          {
+            "id": "floor-7-2",
+            "floor": 7,
+            "lane": 2,
+            "type": "shop",
+            "connections": [
+              "floor-8-2"
+            ]
+          },
+          {
+            "id": "floor-8-0",
+            "floor": 8,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-9-0",
+              "floor-9-1"
+            ]
+          },
+          {
+            "id": "floor-8-1",
+            "floor": 8,
+            "lane": 1,
+            "type": "elite",
+            "connections": [
+              "floor-9-1",
+              "floor-9-0",
+              "floor-9-2"
+            ]
+          },
+          {
+            "id": "floor-8-2",
+            "floor": 8,
+            "lane": 2,
+            "type": "event",
+            "connections": [
+              "floor-9-2",
+              "floor-9-1"
+            ]
+          },
+          {
+            "id": "floor-9-0",
+            "floor": 9,
+            "lane": 0,
+            "type": "treasure",
+            "connections": [
+              "floor-10-0",
+              "floor-10-1"
+            ]
+          },
+          {
+            "id": "floor-9-1",
+            "floor": 9,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-10-1"
+            ]
+          },
+          {
+            "id": "floor-9-2",
+            "floor": 9,
+            "lane": 2,
+            "type": "shop",
+            "connections": [
+              "floor-10-2",
+              "floor-10-1"
+            ]
+          },
+          {
+            "id": "floor-10-0",
+            "floor": 10,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-11-0"
+            ]
+          },
+          {
+            "id": "floor-10-1",
+            "floor": 10,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-11-1",
+              "floor-11-0",
+              "floor-11-2"
+            ]
+          },
+          {
+            "id": "floor-10-2",
+            "floor": 10,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-11-2",
+              "floor-11-1"
+            ]
+          },
+          {
+            "id": "floor-11-0",
+            "floor": 11,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-1",
+            "floor": 11,
+            "lane": 1,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-2",
+            "floor": 11,
+            "lane": 2,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-12-1",
+            "floor": 12,
+            "lane": 1,
+            "type": "boss",
+            "connections": []
+          }
+        ]
+      },
+      "visited": [],
+      "hp": 80,
+      "maxHp": 80,
+      "gold": 90,
+      "deck": [
+        {
+          "uid": "card-1",
+          "cardId": "stone_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-2",
+          "cardId": "still_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-3",
+          "cardId": "pebble_rain",
+          "upgraded": false
+        },
+        {
+          "uid": "card-4",
+          "cardId": "shared_screen",
+          "upgraded": false
+        },
+        {
+          "uid": "card-5",
+          "cardId": "morning_chant",
+          "upgraded": false
+        },
+        {
+          "uid": "card-6",
+          "cardId": "deep_breath",
+          "upgraded": false
+        },
+        {
+          "uid": "card-7",
+          "cardId": "divine_fist",
+          "upgraded": false
+        },
+        {
+          "uid": "card-8",
+          "cardId": "poison_moss",
+          "upgraded": false
+        },
+        {
+          "uid": "card-9",
+          "cardId": "stillness",
+          "upgraded": false
+        },
+        {
+          "uid": "card-10",
+          "cardId": "stone_training",
+          "upgraded": false
+        }
+      ],
+      "relicIds": [
+        "warm_pebble"
+      ],
+      "potions": [
+        "spring_water",
+        null,
+        null
+      ],
+      "combat": null,
+      "reward": null,
+      "shop": null,
+      "eventId": null,
+      "nextCardId": 11,
+      "stats": {
+        "battlesWon": 0,
+        "elitesDefeated": 0,
+        "cardsAdded": 0
+      },
+      "log": [
+        "岩尊けいと、第一階層へ。「ほいっと〜」。予告と手札を見て、進む道を選ぼう。"
+      ]
+    }
+  },
+  "legacyCombat": {
+    "version": 2,
+    "run": {
+      "version": 2,
+      "seed": "pre-expansion-legacy-combat",
+      "rngState": 4084556240,
+      "screen": "combat",
+      "floor": 1,
+      "currentNodeId": "floor-1-0",
+      "map": {
+        "floors": 12,
+        "nodes": [
+          {
+            "id": "floor-1-0",
+            "floor": 1,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-2-0"
+            ]
+          },
+          {
+            "id": "floor-1-1",
+            "floor": 1,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-2-1"
+            ]
+          },
+          {
+            "id": "floor-1-2",
+            "floor": 1,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-2-2",
+              "floor-2-1"
+            ]
+          },
+          {
+            "id": "floor-2-0",
+            "floor": 2,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-3-0",
+              "floor-3-1"
+            ]
+          },
+          {
+            "id": "floor-2-1",
+            "floor": 2,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-3-1",
+              "floor-3-0",
+              "floor-3-2"
+            ]
+          },
+          {
+            "id": "floor-2-2",
+            "floor": 2,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-3-2",
+              "floor-3-1"
+            ]
+          },
+          {
+            "id": "floor-3-0",
+            "floor": 3,
+            "lane": 0,
+            "type": "event",
+            "connections": [
+              "floor-4-0",
+              "floor-4-1"
+            ]
+          },
+          {
+            "id": "floor-3-1",
+            "floor": 3,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-4-1",
+              "floor-4-0"
+            ]
+          },
+          {
+            "id": "floor-3-2",
+            "floor": 3,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-4-2",
+              "floor-4-1"
+            ]
+          },
+          {
+            "id": "floor-4-0",
+            "floor": 4,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-5-0",
+              "floor-5-1"
+            ]
+          },
+          {
+            "id": "floor-4-1",
+            "floor": 4,
+            "lane": 1,
+            "type": "shop",
+            "connections": [
+              "floor-5-1",
+              "floor-5-0",
+              "floor-5-2"
+            ]
+          },
+          {
+            "id": "floor-4-2",
+            "floor": 4,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-5-2",
+              "floor-5-1"
+            ]
+          },
+          {
+            "id": "floor-5-0",
+            "floor": 5,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-6-0"
+            ]
+          },
+          {
+            "id": "floor-5-1",
+            "floor": 5,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-6-1",
+              "floor-6-0",
+              "floor-6-2"
+            ]
+          },
+          {
+            "id": "floor-5-2",
+            "floor": 5,
+            "lane": 2,
+            "type": "elite",
+            "connections": [
+              "floor-6-2",
+              "floor-6-1"
+            ]
+          },
+          {
+            "id": "floor-6-0",
+            "floor": 6,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-7-0",
+              "floor-7-1"
+            ]
+          },
+          {
+            "id": "floor-6-1",
+            "floor": 6,
+            "lane": 1,
+            "type": "treasure",
+            "connections": [
+              "floor-7-1",
+              "floor-7-0",
+              "floor-7-2"
+            ]
+          },
+          {
+            "id": "floor-6-2",
+            "floor": 6,
+            "lane": 2,
+            "type": "treasure",
+            "connections": [
+              "floor-7-2",
+              "floor-7-1"
+            ]
+          },
+          {
+            "id": "floor-7-0",
+            "floor": 7,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-8-0"
+            ]
+          },
+          {
+            "id": "floor-7-1",
+            "floor": 7,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-8-1",
+              "floor-8-0",
+              "floor-8-2"
+            ]
+          },
+          {
+            "id": "floor-7-2",
+            "floor": 7,
+            "lane": 2,
+            "type": "shop",
+            "connections": [
+              "floor-8-2"
+            ]
+          },
+          {
+            "id": "floor-8-0",
+            "floor": 8,
+            "lane": 0,
+            "type": "elite",
+            "connections": [
+              "floor-9-0",
+              "floor-9-1"
+            ]
+          },
+          {
+            "id": "floor-8-1",
+            "floor": 8,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-9-1",
+              "floor-9-2"
+            ]
+          },
+          {
+            "id": "floor-8-2",
+            "floor": 8,
+            "lane": 2,
+            "type": "event",
+            "connections": [
+              "floor-9-2"
+            ]
+          },
+          {
+            "id": "floor-9-0",
+            "floor": 9,
+            "lane": 0,
+            "type": "shop",
+            "connections": [
+              "floor-10-0",
+              "floor-10-1"
+            ]
+          },
+          {
+            "id": "floor-9-1",
+            "floor": 9,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-10-1",
+              "floor-10-2"
+            ]
+          },
+          {
+            "id": "floor-9-2",
+            "floor": 9,
+            "lane": 2,
+            "type": "treasure",
+            "connections": [
+              "floor-10-2",
+              "floor-10-1"
+            ]
+          },
+          {
+            "id": "floor-10-0",
+            "floor": 10,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-11-0",
+              "floor-11-1"
+            ]
+          },
+          {
+            "id": "floor-10-1",
+            "floor": 10,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-11-1",
+              "floor-11-0",
+              "floor-11-2"
+            ]
+          },
+          {
+            "id": "floor-10-2",
+            "floor": 10,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-11-2"
+            ]
+          },
+          {
+            "id": "floor-11-0",
+            "floor": 11,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-1",
+            "floor": 11,
+            "lane": 1,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-2",
+            "floor": 11,
+            "lane": 2,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-12-1",
+            "floor": 12,
+            "lane": 1,
+            "type": "boss",
+            "connections": []
+          }
+        ]
+      },
+      "visited": [
+        "floor-1-0"
+      ],
+      "hp": 80,
+      "maxHp": 80,
+      "gold": 90,
+      "deck": [
+        {
+          "uid": "card-1",
+          "cardId": "stone_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-2",
+          "cardId": "still_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-3",
+          "cardId": "pebble_rain",
+          "upgraded": false
+        },
+        {
+          "uid": "card-4",
+          "cardId": "shared_screen",
+          "upgraded": false
+        },
+        {
+          "uid": "card-5",
+          "cardId": "morning_chant",
+          "upgraded": false
+        },
+        {
+          "uid": "card-6",
+          "cardId": "deep_breath",
+          "upgraded": false
+        },
+        {
+          "uid": "card-7",
+          "cardId": "divine_fist",
+          "upgraded": false
+        },
+        {
+          "uid": "card-8",
+          "cardId": "poison_moss",
+          "upgraded": false
+        },
+        {
+          "uid": "card-9",
+          "cardId": "stillness",
+          "upgraded": false
+        },
+        {
+          "uid": "card-10",
+          "cardId": "stone_training",
+          "upgraded": false
+        }
+      ],
+      "relicIds": [
+        "warm_pebble"
+      ],
+      "potions": [
+        "spring_water",
+        null,
+        null
+      ],
+      "combat": {
+        "version": 1,
+        "seed": "iajnqx:floor-1-0:117223784",
+        "rngState": 1715987671,
+        "turn": 1,
+        "phase": "player",
+        "player": {
+          "id": "iwason_keito",
+          "name": "岩尊けいと",
+          "hp": 80,
+          "maxHp": 80,
+          "block": 0,
+          "strength": 0,
+          "weak": 0,
+          "vulnerable": 0,
+          "poison": 0
+        },
+        "enemy": {
+          "id": "quarry_crab",
+          "name": "採石ガニ",
+          "hp": 38,
+          "maxHp": 38,
+          "block": 0,
+          "strength": 0,
+          "weak": 0,
+          "vulnerable": 0,
+          "poison": 0,
+          "intentIndex": 0,
+          "intent": {
+            "kind": "attack",
+            "label": "石ばさみ",
+            "description": "基礎9ダメージ。",
+            "damage": 9,
+            "hits": 1
+          }
+        },
+        "energy": 3,
+        "maxEnergy": 3,
+        "jitto": 0,
+        "deck": [
+          {
+            "uid": "card-1",
+            "cardId": "stone_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-2",
+            "cardId": "still_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-3",
+            "cardId": "pebble_rain",
+            "upgraded": false
+          },
+          {
+            "uid": "card-4",
+            "cardId": "shared_screen",
+            "upgraded": false
+          },
+          {
+            "uid": "card-5",
+            "cardId": "morning_chant",
+            "upgraded": false
+          },
+          {
+            "uid": "card-6",
+            "cardId": "deep_breath",
+            "upgraded": false
+          },
+          {
+            "uid": "card-7",
+            "cardId": "divine_fist",
+            "upgraded": false
+          },
+          {
+            "uid": "card-8",
+            "cardId": "poison_moss",
+            "upgraded": false
+          },
+          {
+            "uid": "card-9",
+            "cardId": "stillness",
+            "upgraded": false
+          },
+          {
+            "uid": "card-10",
+            "cardId": "stone_training",
+            "upgraded": false
+          }
+        ],
+        "hand": [
+          {
+            "uid": "card-7",
+            "cardId": "divine_fist",
+            "upgraded": false
+          },
+          {
+            "uid": "card-3",
+            "cardId": "pebble_rain",
+            "upgraded": false
+          },
+          {
+            "uid": "card-6",
+            "cardId": "deep_breath",
+            "upgraded": false
+          },
+          {
+            "uid": "card-4",
+            "cardId": "shared_screen",
+            "upgraded": false
+          },
+          {
+            "uid": "card-9",
+            "cardId": "stillness",
+            "upgraded": false
+          }
+        ],
+        "drawPile": [
+          {
+            "uid": "card-5",
+            "cardId": "morning_chant",
+            "upgraded": false
+          },
+          {
+            "uid": "card-8",
+            "cardId": "poison_moss",
+            "upgraded": false
+          },
+          {
+            "uid": "card-1",
+            "cardId": "stone_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-10",
+            "cardId": "stone_training",
+            "upgraded": false
+          },
+          {
+            "uid": "card-2",
+            "cardId": "still_guard",
+            "upgraded": false
+          }
+        ],
+        "discardPile": [],
+        "exhaustPile": [],
+        "powers": [],
+        "stillness": 0,
+        "cardsPlayedThisTurn": 0,
+        "stats": {
+          "cardsPlayed": 0,
+          "damageDealt": 0
+        },
+        "log": [
+          {
+            "id": 1,
+            "turn": 1,
+            "text": "岩尊けいと、入塔。「ほいっと〜」 採石ガニが立ちはだかる。",
+            "kind": "info"
+          }
+        ],
+        "events": [],
+        "nextId": 2,
+        "relicIds": [
+          "warm_pebble"
+        ],
+        "relicCounters": {},
+        "potions": [
+          "spring_water",
+          null,
+          null
+        ]
+      },
+      "reward": null,
+      "shop": null,
+      "eventId": null,
+      "nextCardId": 11,
+      "stats": {
+        "battlesWon": 0,
+        "elitesDefeated": 0,
+        "cardsAdded": 0
+      },
+      "log": [
+        "岩尊けいと、第一階層へ。「ほいっと〜」。予告と手札を見て、進む道を選ぼう。",
+        "1階：敵との戦闘。"
+      ]
+    }
+  },
+  "assassinCombat": {
+    "version": 2,
+    "run": {
+      "version": 2,
+      "seed": "pre-expansion-assassin-combat",
+      "classId": "assassin",
+      "rngState": 4010509786,
+      "screen": "combat",
+      "floor": 1,
+      "currentNodeId": "floor-1-0",
+      "map": {
+        "floors": 12,
+        "nodes": [
+          {
+            "id": "floor-1-0",
+            "floor": 1,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-2-0"
+            ]
+          },
+          {
+            "id": "floor-1-1",
+            "floor": 1,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-2-1",
+              "floor-2-2"
+            ]
+          },
+          {
+            "id": "floor-1-2",
+            "floor": 1,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-2-2"
+            ]
+          },
+          {
+            "id": "floor-2-0",
+            "floor": 2,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-3-0",
+              "floor-3-1"
+            ]
+          },
+          {
+            "id": "floor-2-1",
+            "floor": 2,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-3-1",
+              "floor-3-0",
+              "floor-3-2"
+            ]
+          },
+          {
+            "id": "floor-2-2",
+            "floor": 2,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-3-2",
+              "floor-3-1"
+            ]
+          },
+          {
+            "id": "floor-3-0",
+            "floor": 3,
+            "lane": 0,
+            "type": "event",
+            "connections": [
+              "floor-4-0",
+              "floor-4-1"
+            ]
+          },
+          {
+            "id": "floor-3-1",
+            "floor": 3,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-4-1",
+              "floor-4-0",
+              "floor-4-2"
+            ]
+          },
+          {
+            "id": "floor-3-2",
+            "floor": 3,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-4-2",
+              "floor-4-1"
+            ]
+          },
+          {
+            "id": "floor-4-0",
+            "floor": 4,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-5-0",
+              "floor-5-1"
+            ]
+          },
+          {
+            "id": "floor-4-1",
+            "floor": 4,
+            "lane": 1,
+            "type": "shop",
+            "connections": [
+              "floor-5-1",
+              "floor-5-0",
+              "floor-5-2"
+            ]
+          },
+          {
+            "id": "floor-4-2",
+            "floor": 4,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-5-2",
+              "floor-5-1"
+            ]
+          },
+          {
+            "id": "floor-5-0",
+            "floor": 5,
+            "lane": 0,
+            "type": "elite",
+            "connections": [
+              "floor-6-0",
+              "floor-6-1"
+            ]
+          },
+          {
+            "id": "floor-5-1",
+            "floor": 5,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-6-1",
+              "floor-6-0",
+              "floor-6-2"
+            ]
+          },
+          {
+            "id": "floor-5-2",
+            "floor": 5,
+            "lane": 2,
+            "type": "event",
+            "connections": [
+              "floor-6-2",
+              "floor-6-1"
+            ]
+          },
+          {
+            "id": "floor-6-0",
+            "floor": 6,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-7-0"
+            ]
+          },
+          {
+            "id": "floor-6-1",
+            "floor": 6,
+            "lane": 1,
+            "type": "treasure",
+            "connections": [
+              "floor-7-1",
+              "floor-7-0"
+            ]
+          },
+          {
+            "id": "floor-6-2",
+            "floor": 6,
+            "lane": 2,
+            "type": "treasure",
+            "connections": [
+              "floor-7-2"
+            ]
+          },
+          {
+            "id": "floor-7-0",
+            "floor": 7,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-8-0",
+              "floor-8-1"
+            ]
+          },
+          {
+            "id": "floor-7-1",
+            "floor": 7,
+            "lane": 1,
+            "type": "shop",
+            "connections": [
+              "floor-8-1",
+              "floor-8-2"
+            ]
+          },
+          {
+            "id": "floor-7-2",
+            "floor": 7,
+            "lane": 2,
+            "type": "event",
+            "connections": [
+              "floor-8-2",
+              "floor-8-1"
+            ]
+          },
+          {
+            "id": "floor-8-0",
+            "floor": 8,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-9-0",
+              "floor-9-1"
+            ]
+          },
+          {
+            "id": "floor-8-1",
+            "floor": 8,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-9-1",
+              "floor-9-0",
+              "floor-9-2"
+            ]
+          },
+          {
+            "id": "floor-8-2",
+            "floor": 8,
+            "lane": 2,
+            "type": "elite",
+            "connections": [
+              "floor-9-2"
+            ]
+          },
+          {
+            "id": "floor-9-0",
+            "floor": 9,
+            "lane": 0,
+            "type": "treasure",
+            "connections": [
+              "floor-10-0",
+              "floor-10-1"
+            ]
+          },
+          {
+            "id": "floor-9-1",
+            "floor": 9,
+            "lane": 1,
+            "type": "shop",
+            "connections": [
+              "floor-10-1",
+              "floor-10-0",
+              "floor-10-2"
+            ]
+          },
+          {
+            "id": "floor-9-2",
+            "floor": 9,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-10-2",
+              "floor-10-1"
+            ]
+          },
+          {
+            "id": "floor-10-0",
+            "floor": 10,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-11-0",
+              "floor-11-1"
+            ]
+          },
+          {
+            "id": "floor-10-1",
+            "floor": 10,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-11-1",
+              "floor-11-0"
+            ]
+          },
+          {
+            "id": "floor-10-2",
+            "floor": 10,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-11-2"
+            ]
+          },
+          {
+            "id": "floor-11-0",
+            "floor": 11,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-1",
+            "floor": 11,
+            "lane": 1,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-2",
+            "floor": 11,
+            "lane": 2,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-12-1",
+            "floor": 12,
+            "lane": 1,
+            "type": "boss",
+            "connections": []
+          }
+        ]
+      },
+      "visited": [
+        "floor-1-0"
+      ],
+      "hp": 72,
+      "maxHp": 72,
+      "gold": 90,
+      "deck": [
+        {
+          "uid": "card-1",
+          "cardId": "assassin_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-2",
+          "cardId": "assassin_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-3",
+          "cardId": "assassin_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-4",
+          "cardId": "assassin_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-5",
+          "cardId": "assassin_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-6",
+          "cardId": "assassin_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-7",
+          "cardId": "assassin_survivor",
+          "upgraded": false
+        },
+        {
+          "uid": "card-8",
+          "cardId": "assassin_leading_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-9",
+          "cardId": "assassin_poison_sting",
+          "upgraded": false
+        },
+        {
+          "uid": "card-10",
+          "cardId": "assassin_preparation",
+          "upgraded": false
+        }
+      ],
+      "relicIds": [
+        "fossil_bookmark"
+      ],
+      "potions": [
+        "spring_water",
+        null,
+        null
+      ],
+      "combat": {
+        "version": 1,
+        "seed": "1jkiq53:floor-1-0:4044979367",
+        "rngState": 1346080380,
+        "turn": 1,
+        "phase": "player",
+        "player": {
+          "id": "iwason_keito",
+          "name": "岩尊けいと",
+          "hp": 72,
+          "maxHp": 72,
+          "block": 0,
+          "strength": 0,
+          "weak": 0,
+          "vulnerable": 0,
+          "poison": 0
+        },
+        "enemy": {
+          "id": "sleepless_monk",
+          "name": "夜更かし石僧",
+          "hp": 42,
+          "maxHp": 42,
+          "block": 0,
+          "strength": 0,
+          "weak": 0,
+          "vulnerable": 0,
+          "poison": 0,
+          "intentIndex": 0,
+          "intent": {
+            "kind": "attack",
+            "label": "寝ぼけの掌",
+            "description": "基礎10ダメージ。",
+            "damage": 10,
+            "hits": 1
+          }
+        },
+        "energy": 3,
+        "maxEnergy": 3,
+        "jitto": 0,
+        "deck": [
+          {
+            "uid": "card-1",
+            "cardId": "assassin_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-2",
+            "cardId": "assassin_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-3",
+            "cardId": "assassin_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-4",
+            "cardId": "assassin_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-5",
+            "cardId": "assassin_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-6",
+            "cardId": "assassin_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-7",
+            "cardId": "assassin_survivor",
+            "upgraded": false
+          },
+          {
+            "uid": "card-8",
+            "cardId": "assassin_leading_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-9",
+            "cardId": "assassin_poison_sting",
+            "upgraded": false
+          },
+          {
+            "uid": "card-10",
+            "cardId": "assassin_preparation",
+            "upgraded": false
+          }
+        ],
+        "hand": [
+          {
+            "uid": "card-3",
+            "cardId": "assassin_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-7",
+            "cardId": "assassin_survivor",
+            "upgraded": false
+          },
+          {
+            "uid": "card-5",
+            "cardId": "assassin_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-10",
+            "cardId": "assassin_preparation",
+            "upgraded": false
+          },
+          {
+            "uid": "card-9",
+            "cardId": "assassin_poison_sting",
+            "upgraded": false
+          },
+          {
+            "uid": "card-1",
+            "cardId": "assassin_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-2",
+            "cardId": "assassin_strike",
+            "upgraded": false
+          }
+        ],
+        "drawPile": [
+          {
+            "uid": "card-4",
+            "cardId": "assassin_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-6",
+            "cardId": "assassin_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-8",
+            "cardId": "assassin_leading_strike",
+            "upgraded": false
+          }
+        ],
+        "discardPile": [],
+        "exhaustPile": [],
+        "powers": [],
+        "stillness": 0,
+        "cardsPlayedThisTurn": 0,
+        "stats": {
+          "cardsPlayed": 0,
+          "damageDealt": 0
+        },
+        "log": [
+          {
+            "id": 1,
+            "turn": 1,
+            "text": "岩尊けいと、入塔。「ほいっと〜」 夜更かし石僧が立ちはだかる。",
+            "kind": "info"
+          },
+          {
+            "id": 2,
+            "turn": 1,
+            "text": "レリック「化石のしおり」が発動。",
+            "kind": "info"
+          }
+        ],
+        "events": [],
+        "nextId": 3,
+        "classId": "assassin",
+        "classResources": {
+          "stars": 0,
+          "starsGainedThisTurn": 0,
+          "forge": 0,
+          "ostyHp": 0,
+          "focus": 0,
+          "temporaryFocus": 0,
+          "orbs": [],
+          "nextTurnEnergy": 0
+        },
+        "relicIds": [
+          "fossil_bookmark"
+        ],
+        "relicCounters": {
+          "fossil_bookmark": 1
+        },
+        "potions": [
+          "spring_water",
+          null,
+          null
+        ]
+      },
+      "reward": null,
+      "shop": null,
+      "eventId": null,
+      "nextCardId": 11,
+      "stats": {
+        "battlesWon": 0,
+        "elitesDefeated": 0,
+        "cardsAdded": 0
+      },
+      "log": [
+        "岩尊けいと、第一階層へ。「ほいっと〜」。予告と手札を見て、進む道を選ぼう。",
+        "1階：敵との戦闘。"
+      ]
+    }
+  }
+}

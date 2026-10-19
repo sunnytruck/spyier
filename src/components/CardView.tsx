@@ -77,7 +77,7 @@ export function CardView({
   useEffect(() => setShowAfter(false), [card.uid, card.cardId, card.upgraded]);
   const definition = CARD_DEFINITIONS[card.cardId];
   if (!definition) return null;
-  const canToggle = inspect && showUpgradePreview && !card.upgraded;
+  const canToggle = inspect && showUpgradePreview && !card.upgraded && !definition.unupgradable;
   const shownCard = canToggle && showAfter ? { ...card, upgraded: true } : card;
   const presentation = getCardPresentation(shownCard)!;
   const preview = getCardUpgradePreview(card)!;
@@ -91,7 +91,7 @@ export function CardView({
   const playable = !!state && canPlayCard(state, card.uid) && !disabled;
   const label = presentation.name;
   const text = presentation.description;
-  const cost = definition.xCost ? 'X' : getCardCost(shownCard, state);
+  const cost = definition.unplayable ? '—' : definition.xCost ? 'X' : getCardCost(shownCard, state);
   const rarity = definition.rarity === 'rare' ? 'レア' : definition.rarity === 'uncommon' ? 'アンコモン' : 'コモン';
   const owner = definition.classId && definition.classId !== 'colorless'
     ? CLASS_DEFINITIONS[definition.classId].displayName

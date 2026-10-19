@@ -35,6 +35,8 @@ function keywordsFor(definition: CardDefinition, upgraded: boolean): string[] {
     result.push('保留');
   if (definition.ethereal) result.push('エセリアル');
   if (definition.innate) result.push('天賦');
+  if (definition.curse) result.push('呪い');
+  if (definition.unplayable) result.push('使用不可');
   return result;
 }
 
@@ -55,7 +57,7 @@ export function getCardPresentation(card: CardInstance): CardPresentation | null
 }
 
 export function canUpgradeCard(card: CardInstance): boolean {
-  return !!CARD_DEFINITIONS[card.cardId] && !card.upgraded;
+  return !!CARD_DEFINITIONS[card.cardId] && !CARD_DEFINITIONS[card.cardId].unupgradable && !card.upgraded;
 }
 
 /** Pure presentation data: previewing never changes the supplied card or its definition. */

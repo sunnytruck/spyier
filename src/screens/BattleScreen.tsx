@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Actor, CombatState, EnemyState, GameSettings } from '../types/game';
+import type { Actor, CombatState, EnemyIntent, EnemyState, GameSettings } from '../types/game';
 import type { CombatCue } from '../presentation/types';
 import { getEnemies, getEnemyKey, predictEnemyDamage } from '../engine';
 import { Icon } from '../components/Icon';
@@ -8,6 +8,7 @@ import { BattleHand } from '../components/BattleHand';
 import { Modal } from '../components/Modal';
 import { RockDeity, StoneSentinel } from '../components/CharacterArt';
 import { CLASS_DEFINITIONS } from '../data/classes';
+import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { BattleEffects } from '../components/BattleEffects';
 import { CardFlights } from '../components/CardFlights';
 
@@ -34,6 +35,20 @@ interface BattleProps {
     skip: () => void;
     busy: boolean;
   };
+}
+
+/** Secondary effects come from the same saved intent that the engine executes. */
+function intentExtras(intent: EnemyIntent): string {
+  return [
+    intent.weak ? `弱体${intent.weak}` : '',
+    intent.vulnerable ? `脆弱${intent.vulnerable}` : '',
+    intent.poison ? `毒${intent.poison}` : '',
+    intent.block ? `自分に${intent.block}ブロック` : '',
+    intent.strength ? `自分に筋力${intent.strength}` : '',
+    intent.alliesBlock ? `他の敵に${intent.alliesBlock}ブロック` : '',
+    intent.alliesStrength ? `他の敵に筋力${intent.alliesStrength}` : '',
+    intent.allTargets ? '岩霊にも攻撃' : '',
+  ].filter(Boolean).join(' / ');
 }
 
 function StatusChips({ actor, stillness = 0 }: { actor: Actor; stillness?: number }) {
@@ -163,10 +178,12 @@ export function BattleScreen({
   const enemy = enemies[0];
   const selectedId =
     state.selectedEnemyId ?? getEnemyKey(enemies.find((actor) => actor.hp > 0) ?? enemy);
+  const selectedEnemy = enemies.find((actor) => getEnemyKey(actor) === selectedId) ?? enemy;
+  const selectedDefinition = ENEMY_DEFINITIONS[selectedEnemy.id];
   const damage = predictEnemyDamage(state, getEnemyKey(enemy));
   const intentDescription =
     enemy.intent.damage !== undefined
-      ? `${damage}ダメージ${(enemy.intent.hits ?? 1) > 1 ? `を${enemy.intent.hits}回` : ''}。現在の筋力・弱体・脆弱を反映した予測値。ブロックで軽減できます。`
+      ? `${damage}ダメージ${(enemy.intent.hits ?? 1) > 1 ? `を${enemy.intent.hits}回` : ''}。現在の筋力・弱体・脆弱を反映した予測値。ブロックで軽減できます。${intentExtras(enemy.intent)}`
       : enemy.intent.description;
   const intentIcon =
     enemy.intent.damage !== undefined
@@ -229,6 +246,12 @@ export function BattleScreen({
         {state.classId === 'machinist' && <><span title="集中力はライトニングとフロストの効果量を増減します。一時集中力はターン終了時に失われます。">集中力 <b>{state.classResources.focus}</b></span><span className="orb-resource-list" title="オーブは最大3個。上限を超えると右端を解放します。">オーブ {state.classResources.orbs.length ? state.classResources.orbs.map((orb, index) => <b className={`orb-resource orb-${orb}`} key={index}>{orb === 'lightning' ? '⚡' : '❄'}</b>) : <small>なし</small>}</span></>}
         {state.classResources.nextTurnEnergy > 0 && <span>次ターン ⚡+{state.classResources.nextTurnEnergy}</span>}
       </section>}
+
+      {(selectedDefinition?.description || selectedDefinition?.gimmick) && <aside className="enemy-field-guide" aria-label="選択中の敵の特徴">
+        <div><span>敵の特徴</span><b>{selectedEnemy.name}</b>{selectedEnemy.intentPhase !== undefined && <span className="enemy-phase-label">行動変化済み</span>}</div>
+        <p>{selectedDefinition.gimmick ?? selectedDefinition.description}</p>
+        {selectedDefinition.gimmick && selectedDefinition.description && <details><summary>この守り手について</summary><p>{selectedDefinition.description}</p></details>}
+      </aside>}
 
       <section className="battle-arena" aria-label="戦闘フィールド">
         <div className="arena-scenery" aria-hidden="true">
@@ -310,7 +333,7 @@ export function BattleScreen({
                     className={`enemy-intent intent-${actor.intent.kind}`}
                     title={
                       actor.intent.damage !== undefined
-                        ? `${incoming}ダメージ × ${actor.intent.hits ?? 1}。筋力・状態異常を反映、ブロックで軽減。`
+                        ? `${incoming}ダメージ × ${actor.intent.hits ?? 1}。筋力・状態異常を反映、ブロックで軽減。${intentExtras(actor.intent)}`
                         : actor.intent.description
                     }
                     tabIndex={0}
@@ -339,6 +362,7 @@ export function BattleScreen({
                             ? `${incoming}${(actor.intent.hits ?? 1) > 1 ? ` × ${actor.intent.hits}` : ''} ダメージ`
                             : actor.intent.description}
                       </small>
+                      {!dead && actor.intent.damage !== undefined && intentExtras(actor.intent) && <small className="intent-extra-effects">{intentExtras(actor.intent)}</small>}
                     </div>
                   </div>
                   <div className="actor-status enemy-status">
@@ -383,12 +407,13 @@ export function BattleScreen({
                         {damage}
                         {(enemy.intent.hits ?? 1) > 1 ? ` × ${enemy.intent.hits}` : ''}
                       </strong>{' '}
-                      ダメージ{enemy.intent.weak ? ` / 弱体${enemy.intent.weak}` : ''}
+                      ダメージ
                     </>
                   ) : (
                     enemy.intent.description
                   )}
                 </small>
+                {enemy.intent.damage !== undefined && intentExtras(enemy.intent) && <small className="intent-extra-effects">{intentExtras(enemy.intent)}</small>}
               </div>
             </div>
             <div className="actor-status enemy-status">

@@ -1,6 +1,7 @@
 import type { BattleLog, CombatEvent, CombatState, EnemyState, Target } from '../../types/game';
 import { findEnemy, getEnemies, getEnemyKey, normalizeInto } from './targets';
 import { emitCombatCue, traceCombatDeaths } from '../../presentation/trace';
+import { triggerRelics } from './relics';
 
 /** Internal helpers deliberately mutate a reducer-owned clone, never live UI state. */
 export function appendLog(
@@ -79,6 +80,7 @@ export function dealDamage(
   amount: number,
   bypassBlock = false,
   enemy?: EnemyState,
+  options: { bypassSummon?: boolean } = {},
 ): number {
   const actor = target === 'player' ? state.player : (enemy ?? findEnemy(state));
   if (!actor || actor.hp <= 0) return 0;
@@ -89,7 +91,7 @@ export function dealDamage(
   actor.block -= blocked;
   let remaining = raw - blocked;
   let absorbedBySummon = 0;
-  if (target === 'player' && !bypassBlock && state.classResources && state.classResources.ostyHp > 0) {
+  if (target === 'player' && !bypassBlock && !options.bypassSummon && state.classResources && state.classResources.ostyHp > 0) {
     const absorbed = Math.min(state.classResources.ostyHp, remaining);
     absorbedBySummon = absorbed;
     state.classResources.ostyHp -= absorbed;
@@ -116,6 +118,8 @@ export function dealDamage(
   normalizeInto(state);
   emitCombatCue(state, { kind: 'impact', targetId, amount: damage, blocked,
     ...(absorbedBySummon > 0 ? { absorbed: absorbedBySummon } : {}) });
+  if (target === 'enemy' && actor.hp === 0)
+    triggerRelics(state, 'enemyKilled', { enemyId: targetId });
   finishIfNeeded(state);
   return damage;
 }

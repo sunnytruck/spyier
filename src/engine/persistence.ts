@@ -41,9 +41,13 @@ function card(value: unknown): value is CombatState['hand'][number] {
 function enemy(value: unknown): boolean {
   if (!actor(value) || !record(value)) return false;
   const definition = getEnemyDefinition(value.id as string);
+  if (value.intentPhase !== undefined &&
+      (!integer(value.intentPhase, 0) || !definition?.phases?.[value.intentPhase]?.intents.length)) return false;
+  const pattern = value.intentPhase === undefined ? definition?.intents : definition?.phases?.[value.intentPhase as number]?.intents;
   if (
     !definition ||
-    !integer(value.intentIndex, 0, definition.intents.length - 1) ||
+    !pattern ||
+    !integer(value.intentIndex, 0, pattern.length - 1) ||
     !record(value.intent) ||
     (value.instanceId !== undefined && !text(value.instanceId, 100)) ||
     (value.doom !== undefined && !integer(value.doom))
@@ -56,10 +60,11 @@ function enemy(value: unknown): boolean {
     !text(intent.description)
   )
     return false;
-  for (const key of ['damage', 'block', 'strength', 'weak']) {
+  for (const key of ['damage', 'block', 'strength', 'weak', 'vulnerable', 'poison', 'alliesBlock', 'alliesStrength']) {
     if (intent[key] !== undefined && !integer(intent[key], 0, 10_000)) return false;
   }
   return (
+    (intent.allTargets === undefined || typeof intent.allTargets === 'boolean') &&
     (intent.hits === undefined || integer(intent.hits, 1, 20)) &&
     (intent.kind !== 'attack' || integer(intent.damage))
   );

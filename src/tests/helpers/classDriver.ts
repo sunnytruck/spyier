@@ -2,6 +2,7 @@ import { CARD_DEFINITIONS } from '../../data/cards';
 import { POTION_DEFINITIONS } from '../../data/potions';
 import { canPlayCard, getEnemies, getEnemyKey, predictEnemyDamage, reduceCombat } from '../../engine';
 import { SHOP_PRICES } from '../../engine/run';
+import { canUpgradeCard } from '../../presentation/cardUpgrade';
 import type { CardInstance, CombatAction, CombatState } from '../../types/game';
 import type { RunAction, RunState } from '../../types/run';
 import { chooseRunAction } from './runDriver';
@@ -50,6 +51,21 @@ function incoming(state: CombatState): number {
   );
 }
 
+/** All-target attacks hit the summoner even while the spirit is still alive. */
+function expectedHpLoss(state: CombatState): number {
+  let spiritHp = state.classResources?.ostyHp ?? 0;
+  let directDamage = 0;
+  for (const enemy of getEnemies(state).filter((entry) => entry.hp > 0)) {
+    const damage = predictEnemyDamage(state, getEnemyKey(enemy));
+    for (let hit = 0; hit < (enemy.intent.hits ?? 1); hit++) {
+      const absorbed = Math.min(spiritHp, damage);
+      spiritHp -= absorbed;
+      directDamage += enemy.intent.allTargets ? damage : damage - absorbed;
+    }
+  }
+  return Math.max(0, directDamage - state.player.block) + state.player.poison;
+}
+
 function choiceValue(card: CardInstance, state: CombatState): number {
   const definition = CARD_DEFINITIONS[card.cardId];
   const cost = card.upgraded ? definition.upgradedCost ?? definition.cost : definition.cost;
@@ -72,18 +88,21 @@ export function chooseClassCombatAction(state: CombatState): CombatAction {
     if (effects.some((effect) => effect.type === 'block') && incoming(state) <= state.player.block) continue;
     return { type: 'usePotion', slot, targetId };
   }
-  const threat = Math.max(0, incoming(state) - state.player.block - (state.classResources?.ostyHp ?? 0));
-  const options = state.hand.filter((card) => canPlayCard(state, card.uid, targetId)).map((card) => {
+  const threat = expectedHpLoss(state);
+  const options = state.hand.flatMap((card) => living
+    .filter((enemy) => canPlayCard(state, card.uid, getEnemyKey(enemy))).map((enemy) => {
+    const targetId = getEnemyKey(enemy);
     const after = reduceCombat(state, { type: 'playCard', cardId: card.uid, targetId });
     const beforeEnemies = getEnemies(state);
     const afterEnemies = getEnemies(after);
     const damage = beforeEnemies.reduce((sum, enemy, index) => sum + enemy.hp - afterEnemies[index].hp, 0);
     const killed = living.length - afterEnemies.filter((enemy) => enemy.hp > 0).length;
-    const remainingThreat = Math.max(0, incoming(after) - after.player.block - (after.classResources?.ostyHp ?? 0));
+    const remainingThreat = expectedHpLoss(after);
     let score = damage * 1.4 + killed * 70 + (threat - remainingThreat) * 2.5;
     score -= (state.player.hp - after.player.hp) * 4;
     score += (after.player.strength - state.player.strength) * (state.turn < 5 ? 10 : 5);
-    score += (after.hand.length - state.hand.length + 1) * (after.energy > 0 ? 9 : 2);
+    score += (after.hand.length - state.hand.length + 1) *
+      (after.energy > 0 ? Math.max(1, 10 - state.hand.length) : 1);
     score += (after.energy - state.energy) * 10;
     score += (after.jitto - state.jitto) * 0.12;
     for (let index = 0; index < beforeEnemies.length; index++) {
@@ -104,9 +123,9 @@ export function chooseClassCombatAction(state: CombatState): CombatAction {
     if (after.pendingChoice) score += 3;
     if (after.phase === 'victory') score += 1000;
     if (after.phase === 'defeat') score -= 10000;
-    return { card, score };
-  }).sort((a, b) => b.score - a.score);
-  return options.length ? { type: 'playCard', cardId: options[0].card.uid, targetId } : { type: 'endTurn' };
+    return { card, score, targetId };
+  })).sort((a, b) => b.score - a.score);
+  return options.length ? { type: 'playCard', cardId: options[0].card.uid, targetId: options[0].targetId } : { type: 'endTurn' };
 }
 
 export function chooseClassRunAction(state: RunState): RunAction {
@@ -116,7 +135,7 @@ export function chooseClassRunAction(state: RunState): RunAction {
     return { type: 'takeCard', cardId: state.deck.length < 18 && cardValue(best) >= 8 ? best : null };
   }
   if (state.screen === 'upgrade') {
-    const choices = state.deck.filter((card) => !card.upgraded).sort((a, b) =>
+    const choices = state.deck.filter(canUpgradeCard).sort((a, b) =>
       (cardValue(b.cardId, true) - cardValue(b.cardId)) - (cardValue(a.cardId, true) - cardValue(a.cardId)),
     );
     return choices[0] ? { type: 'upgradeCard', cardUid: choices[0].uid } : { type: 'leaveNode' };

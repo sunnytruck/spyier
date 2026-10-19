@@ -52,6 +52,11 @@ describe('presentation observes combat without changing any engine or saved resu
     expect(captured.result.rngState).toBe(plain.rngState);
     expect(serializeGame(captured.result)).toBe(serializeGame(plain));
     expect(JSON.stringify(state)).toBe(before);
+    if (CARD_DEFINITIONS[id].unplayable) {
+      expect(captured.result).toBe(state);
+      expect(captured.cues).toEqual([]);
+      return;
+    }
     expect(captured.cues[0]).toMatchObject({ kind: 'cardPlay', sourceId: 'player', card: { uid: 'played' } });
     expect(captured.cues[0].frame.hand.some((card) => card.uid === 'played')).toBe(false);
   });

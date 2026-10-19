@@ -63,7 +63,9 @@ describe('event upgrades preview the actual seeded result without committing it'
         const committed = reduceRun(state, { type: 'eventChoice', index: 0 });
         const changes = committed.deck.filter((card, index) => card.upgraded !== state.deck[index].upgraded);
         expect(changes).toEqual([after]);
-        expect(committed.screen).toBe('map');
+        expect(committed.screen).toBe('eventResult');
+        expect(committed.eventResult!.upgradedCards).toEqual([after]);
+        expect(reduceRun(committed, { type: 'continueEvent' }).screen).toBe('map');
         expect(committed.gold).toBe(state.gold - (eventId === 'morning_circle' ? 35 : 0));
         expect(committed.hp).toBe(state.hp - (eventId === 'restless_mirror' ? 6 : 0));
         expect(committed.rngState).not.toBe(state.rngState);

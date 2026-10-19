@@ -30,6 +30,7 @@ import './styles/game.css';
 import './styles/campaign.css';
 import './styles/class-system.css';
 import './styles/readability.css';
+import './styles/expansion.css';
 
 const CardLibrary = lazy(() => import('./components/CardLibrary').then((module) => ({ default: module.CardLibrary })));
 

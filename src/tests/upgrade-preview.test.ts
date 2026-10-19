@@ -55,7 +55,7 @@ describe('upgrade previews read actual normal and upgraded card definitions', ()
     expect(preview.changes.cost).toBe(preview.before.cost !== preview.after.cost);
     expect(preview.changes.description).toBe(definition.description !== definition.upgradedDescription);
     expect(getCardPresentation({ ...card, upgraded: true })).toEqual(preview.after);
-    expect(canUpgradeCard(card)).toBe(true);
+    expect(canUpgradeCard(card)).toBe(!definition.unupgradable);
     expect(canUpgradeCard({ ...card, upgraded: true })).toBe(false);
     expect(JSON.stringify(card)).toBe(savedCard);
     expect(JSON.stringify(definition)).toBe(savedDefinition);

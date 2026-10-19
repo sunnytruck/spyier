@@ -525,7 +525,18 @@ const LEGACY_CARD_DEFINITIONS: Record<string, CardDefinition> = {
 
 /** Freeze legacy acquisition pools so old saves preserve their original card universe. */
 export const LEGACY_CARD_IDS = Object.keys(LEGACY_CARD_DEFINITIONS);
-export const CARD_DEFINITIONS: Record<string, CardDefinition> = { ...LEGACY_CARD_DEFINITIONS, ...CLASS_CARD_DEFINITIONS };
+export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
+  ...LEGACY_CARD_DEFINITIONS,
+  ...CLASS_CARD_DEFINITIONS,
+  stone_doubt: {
+    id: 'stone_doubt', name: '石心の迷い', type: 'skill', cost: 0, defense: false,
+    description: '呪い。使用・強化できない。手札を1枠占め、ターン終了時に捨て札へ移る。削除は可能。',
+    upgradedDescription: '呪い。使用・強化できない。手札を1枠占め、ターン終了時に捨て札へ移る。削除は可能。',
+    flavor: 'じっとしているのか、迷っているのか。本人にもわからない。',
+    glyph: '迷', effects: [], upgradedEffects: [], rewardEligible: false,
+    unplayable: true, unupgradable: true, curse: true, tags: ['呪い'],
+  },
+};
 
 /** Preserve the ten-card Phase 1 starter when the content registry grows. */
 export const STARTER_DECK: string[] = [

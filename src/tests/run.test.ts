@@ -8,6 +8,7 @@ import {
 } from '../engine/run';
 import type { RunAction, RunState } from '../types/run';
 import { simulateRun } from './helpers/runDriver';
+import { BOSS_ENEMY_IDS } from '../data/enemies';
 
 function room(screen: 'shop' | 'rest' | 'event' | 'reward' | 'relic' | 'upgrade'): RunState {
   return { ...createRun('room-fixture'), screen };
@@ -172,8 +173,9 @@ describe('run resources and legal screen transitions', () => {
     expect(after.hp).toBe(1);
     expect(after.relicIds).toHaveLength(2);
     expect(after).toEqual(reduceRun(state, { type: 'eventChoice', index: 0 }));
-    expect(after.screen).toBe('map');
+    expect(after.screen).toBe('eventResult');
     expect(reduceRun(after, { type: 'eventChoice', index: 0 })).toBe(after);
+    expect(reduceRun(after, { type: 'continueEvent' }).screen).toBe('map');
   });
 
   it('rejects paid upgrades when funds or unupgraded cards are missing', () => {
@@ -215,7 +217,7 @@ describe('playable complete first-floor campaign', () => {
     expect(result.visited).toHaveLength(12);
     expect(result.hp).toBeGreaterThan(0);
     expect(result.stats.battlesWon).toBeGreaterThanOrEqual(4);
-    expect(result.combat!.enemy.id).toBe('tower_abbot');
+    expect(BOSS_ENEMY_IDS).toContain(result.combat!.enemy.id);
     expect(result.combat!.enemy.hp).toBe(0);
     expect(simulateRun('act1-balance-0')).toEqual(result);
   });
