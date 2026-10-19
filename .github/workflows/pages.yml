@@ -1,0 +1,72 @@
+name: Build and deploy IWASON SPIRE
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run game and save regression tests
+        run: npm test
+      - name: Build for /spyier/
+        run: npm run build
+      - name: Keep downloadable production build
+        uses: actions/upload-artifact@v4
+        with:
+          name: iwason-spire-dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
+      - name: Prepare Pages artifact
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && (github.event.repository.private == false || vars.ENABLE_GITHUB_PAGES == 'true')
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    # Public repositories work on GitHub Free. Eligible paid private repositories
+    # can explicitly opt in with ENABLE_GITHUB_PAGES=true.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && (github.event.repository.private == false || vars.ENABLE_GITHUB_PAGES == 'true')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check Pages configuration
+        uses: actions/configure-pages@v5
+        with:
+          # The owner enables Pages in Settings. Never change repository visibility.
+          enablement: false
+      - name: Publish production build
+        id: deployment
+        uses: actions/deploy-pages@v5

@@ -2,6 +2,12 @@
 
 ブラウザで遊べる、ターン制デッキ構築ローグライクです。**第1階層・12フロアを、新規開始からボス撃破までプレイできます。** 既存の単体戦闘も練習モードとして残しています。
 
+## ブラウザでテストプレイする
+
+GitHub Pagesの初回設定・デプロイが成功すると、`https://sunnytruck.github.io/spyier/` を開くだけで遊べます。プレイヤー側にNode.jsやコマンド入力は不要です。
+
+**GitHub Freeでも、リポジトリをPublicにすればGitHub Pagesを利用できます。** 所有者からPublicへの変更を許可済みですが、この開発環境からはGitHub APIの操作が拒否されるため、GitHub画面での初回設定が必要です。テスト・ビルドは `main` へのpush時に自動実行し、PublicかつPages設定が済んだ後は公開版も自動更新します。具体的な操作、Privateを維持する場合の代替案、セーブへの影響は [公開手順](docs/github-pages.md) を参照してください。
+
 ## 起動
 
 Node.js 22.12 以降と npm が必要です。この環境では Node.js 24 を使っています。APIキー、画像のダウンロード、データベースは不要です。
@@ -12,13 +18,15 @@ npm ci
 npm run dev
 ```
 
-ブラウザで `http://localhost:5173` を開き、「第1階層へ進む」を押してください。クラウド環境ではポート5173を転送します。開発サーバーは `0.0.0.0` で待ち受けます。
+ブラウザで `http://localhost:5173/spyier/` を開き、「第1階層へ進む」を押してください。クラウド環境ではポート5173を転送します。開発サーバーは `0.0.0.0` で待ち受けます。`/workspace/spyier` はCodexクラウド側の作業場所です。
 
 ```bash
 npm test          # Vitest: 戦闘・探索・マップ・保存の回帰テスト
 npm run build    # TypeScript型チェックと本番ビルド
 npm run preview  # dist/をポート4173で起動
 ```
+
+本番ビルドのローカル確認URLは `http://localhost:4173/spyier/` です。Viteの `base` は `/spyier/` に固定しています。
 
 ## 現在遊べる内容
 
