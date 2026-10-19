@@ -3,6 +3,7 @@ import { DEFAULT_ENEMY_ID, getEnemyDefinition } from '../data/enemies';
 import { POTION_DEFINITIONS } from '../data/potions';
 import type { CardInstance, CombatAction, CombatOptions, CombatState } from '../types/game';
 import { drawInto } from './actions/draw';
+import { getPendingChoiceCards } from './actions/choices';
 import { appendLog, applyGauge, gainBlock } from './combat/state';
 import { resolveEndTurn } from './combat/turn';
 import { findEnemy, getEnemies, getEnemyKey, normalizeInto } from './combat/targets';
@@ -59,8 +60,8 @@ export function createCombat(
   // Innate is a catalog flag, not a card-specific rule; drawPile draws from its end.
   shuffled.values.sort(
     (left, right) =>
-      Number(Boolean(CARD_DEFINITIONS[left.cardId]?.innate)) -
-      Number(Boolean(CARD_DEFINITIONS[right.cardId]?.innate)),
+      Number(Boolean(left.upgraded ? CARD_DEFINITIONS[left.cardId]?.upgradedInnate ?? CARD_DEFINITIONS[left.cardId]?.innate : CARD_DEFINITIONS[left.cardId]?.innate)) -
+      Number(Boolean(right.upgraded ? CARD_DEFINITIONS[right.cardId]?.upgradedInnate ?? CARD_DEFINITIONS[right.cardId]?.innate : CARD_DEFINITIONS[right.cardId]?.innate)),
   );
   const state: CombatState = {
     version: 1,
@@ -181,7 +182,7 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
       !Array.isArray(action.cardIds) ||
       action.cardIds.length !== choice.amount ||
       new Set(action.cardIds).size !== choice.amount ||
-      action.cardIds.some((uid) => !state.hand.some((card) => card.uid === uid))
+      action.cardIds.some((uid) => !getPendingChoiceCards(state).some((card) => card.uid === uid))
     )
       return state;
   }
@@ -211,15 +212,16 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
   if (action.type === 'chooseCards') {
     const choice = next.pendingChoice!;
     const chosen = new Set(action.cardIds);
-    const chosenCards = next.hand.filter((card) => chosen.has(card.uid));
-    const destination = choice.mode === 'discard' ? next.discardPile : next.exhaustPile;
-    destination.push(...next.hand.filter((card) => chosen.has(card.uid)));
-    next.hand = next.hand.filter((card) => !chosen.has(card.uid));
+    const sourceZone = choice.sourceZone ?? 'hand';
+    const chosenCards = next[sourceZone].filter((card) => chosen.has(card.uid));
+    const toZone = choice.mode === 'topdeck' ? 'drawPile' : choice.mode === 'retrieve' ? 'hand' : choice.mode === 'discard' ? 'discardPile' : 'exhaustPile';
+    next[sourceZone] = next[sourceZone].filter((card) => !chosen.has(card.uid));
+    next[toZone].push(...chosenCards);
     delete next.pendingChoice;
-    emitCombatCue(next, { kind: choice.mode, sourceId: 'player', cards: chosenCards, fromZone: 'hand', toZone: choice.mode === 'discard' ? 'discardPile' : 'exhaustPile' });
+    emitCombatCue(next, { kind: choice.mode === 'retrieve' ? 'draw' : choice.mode === 'exhaust' ? 'exhaust' : 'discard', sourceId: 'player', cards: chosenCards, fromZone: sourceZone, toZone });
     appendLog(
       next,
-      `${action.cardIds.length}枚を${choice.mode === 'discard' ? '捨て札にした' : '廃棄した'}。`,
+      `${action.cardIds.length}枚を${choice.mode === 'topdeck' ? '山札の一番上に置いた' : choice.mode === 'retrieve' ? '手札に戻した' : choice.mode === 'discard' ? '捨て札にした' : '廃棄した'}。`,
     );
     resolveEffects(next, choice.resume.effects, { defense: choice.resume.defense }, choice.resume);
     if (!next.pendingChoice && choice.resume.sourceCard)

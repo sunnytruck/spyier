@@ -9,6 +9,7 @@ import { generateCards, resources, triggerPassiveOrbs } from './resources';
 import { CARD_DEFINITIONS } from '../../data/cards';
 import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace';
 import { advanceEnemyIntent, enemySurvivesTurnStart, predictedEnemyAttackContext } from './enemyAI';
+import { resolveEffects } from '../effects/resolve';
 
 function expireStatuses(actor: Actor): void {
   actor.weak = Math.max(0, actor.weak - 1);
@@ -42,6 +43,28 @@ function startPlayerPowers(state: CombatState): void {
   if (stacks.focusOnTurn) {
     resources(state).focus += stacks.focusOnTurn;
     emitCombatCue(state, { kind: 'resource', sourceId: 'player', targetId: 'player', resource: 'focus', amount: stacks.focusOnTurn });
+  }
+  if (stacks.energyOnTurn) {
+    state.energy += stacks.energyOnTurn;
+    emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'energy', amount: stacks.energyOnTurn, label: '不滅の火種' });
+  }
+}
+
+function expireTurnModifiers(state: CombatState): void {
+  const modifiers = state.turnModifiers;
+  if (!modifiers) return;
+  delete state.turnModifiers;
+  for (const modifier of modifiers) {
+    if (modifier.kind === 'power') {
+      if (state.powerStacks) state.powerStacks[modifier.power] = Math.max(0, (state.powerStacks[modifier.power] ?? 0) - modifier.amount);
+      if (modifier.power === 'stillness') state.stillness = Math.max(0, state.stillness - modifier.amount);
+      emitCombatCue(state, { kind: 'power', targetId: 'player', status: modifier.power, amount: -modifier.amount, label: '一時効果が終了' });
+    } else {
+      const actor = modifier.targetId === 'player' ? state.player : getEnemies(state).find((enemy) => getEnemyKey(enemy) === modifier.targetId);
+      if (!actor) continue;
+      actor[modifier.status] = modifier.status === 'strength' ? actor[modifier.status] - modifier.amount : Math.max(0, actor[modifier.status] - modifier.amount);
+      emitCombatCue(state, { kind: 'status', targetId: modifier.targetId, status: modifier.status, amount: -modifier.amount, label: '一時効果が終了' });
+    }
   }
 }
 
@@ -154,6 +177,7 @@ export function resolveEndTurn(state: CombatState): void {
     advanceEnemyIntent(enemy, state.turn + 1);
   }
 
+  expireTurnModifiers(state);
   state.turn += 1;
   state.player.block = 0;
   tickPoison(state, 'player');
@@ -168,6 +192,17 @@ export function resolveEndTurn(state: CombatState): void {
   emitCombatCue(state, { kind: 'turn', sourceId: 'player', targetId: 'player', amount: state.turn, label: 'あなたのターン' });
   startPlayerPowers(state);
   triggerRelics(state, 'turnStart');
+  const scheduled = state.scheduledEffects;
+  if (scheduled) {
+    // Remove the persisted queue before executing it. New schedules target the
+    // following turn, and a reload cannot replay effects that already fired.
+    delete state.scheduledEffects;
+    for (const entry of scheduled) {
+      if (state.phase !== 'player') break;
+      const definition = entry.sourceCard ? CARD_DEFINITIONS[entry.sourceCard.cardId] : undefined;
+      resolveEffects(state, entry.effects, { defense: definition?.defense ?? false }, { sourceCard: entry.sourceCard });
+    }
+  }
   drawInto(state, 5 + (state.powerStacks?.drawOnTurn ?? 0));
 }
 

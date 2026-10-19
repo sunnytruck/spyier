@@ -10,6 +10,7 @@ import { RockDeity, StoneSentinel } from '../components/CharacterArt';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { BattleEffects } from '../components/BattleEffects';
 import { CardFlights } from '../components/CardFlights';
+import { getPendingChoiceCards, getPendingChoiceLabel } from '../engine/actions/choices';
 import { ClassResourceHud, EnemyResourceForecast, OrbSlots, OstyCompanion, StarEnergyHud } from '../components/classResources/ClassResourceHud';
 
 type Pile = 'drawPile' | 'discardPile' | 'exhaustPile' | 'powers';
@@ -55,9 +56,9 @@ function StatusChips({ actor, stillness = 0 }: { actor: Actor; stillness?: numbe
   const statuses = [
     {
       value: actor.strength,
-      symbol: '↑',
+      symbol: actor.strength < 0 ? '↓' : '↑',
       label: '筋力',
-      detail: `攻撃1ヒットにつきダメージ+${actor.strength}。`,
+      detail: `攻撃1ヒットにつきダメージ${actor.strength >= 0 ? '+' : ''}${actor.strength}。`,
       color: 'strength',
     },
     {
@@ -95,7 +96,7 @@ function StatusChips({ actor, stillness = 0 }: { actor: Actor; stillness?: numbe
       detail: '敵のターン開始時、破滅が現在HP以上なら撃破します。ブロックの影響を受けません。',
       color: 'poison',
     },
-  ].filter((status) => status.value > 0);
+  ].filter((status) => status.value !== 0);
   return (
     <div className="status-chips">
       {statuses.map((status) => (
@@ -597,10 +598,10 @@ export function BattleScreen({
         {enemies.filter((actor) => actor.hp > 0).length}体 。じっとゲージ{state.jitto}。
       </div>
 
-      {state.pendingChoice && !presentation?.busy && <Modal title={`手札から${state.pendingChoice.amount}枚${state.pendingChoice.mode === 'discard' ? '捨てる' : '廃棄する'}`} subtitle="CHOOSE YOUR CARDS" onClose={keepChoiceOpen} dismissible={false} wide>
-        <p className="modal-intro">カードを選び、確定すると効果の続きを解決します。{state.pendingChoice.mode === 'exhaust' ? '廃棄したカードは、この戦闘では山札に戻りません。' : '捨てたカードは捨て札に移ります。'}</p>
+      {state.pendingChoice && !presentation?.busy && <Modal title={getPendingChoiceLabel(state)} subtitle="CHOOSE YOUR CARDS" onClose={keepChoiceOpen} dismissible={false} wide>
+        <p className="modal-intro">カードを選び、確定すると効果の続きを解決します。{state.pendingChoice.mode === 'exhaust' ? '廃棄したカードは、この戦闘では山札に戻りません。' : state.pendingChoice.mode === 'topdeck' ? '選んだカードを山札の一番上へ戻します。次のドローで先に引きます。' : state.pendingChoice.mode === 'retrieve' ? '選んだ捨て札を手札に戻します。' : '捨てたカードは捨て札に移ります。'}</p>
         <div className="pending-choice-grid">
-          {state.hand.map((card) => {
+          {getPendingChoiceCards(state).map((card) => {
             const selected = chosenCards.includes(card.uid);
             return <div className={`pending-card-choice ${selected ? 'is-selected' : ''}`} key={card.uid}>
               <CardView card={card} inspect />

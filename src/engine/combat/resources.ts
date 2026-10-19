@@ -6,11 +6,13 @@ import type {
   CombatState,
   Effect,
   OrbType,
+  EnemyState,
 } from '../../types/game';
 import { nextRandom } from '../random';
 import { appendLog, dealDamage, gainBlock } from './state';
 import { findEnemy, getEnemies } from './targets';
 import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace';
+import { combatValue, meetsEffectCondition, scaledEffectAmount } from './values';
 
 /** Kept in one place so provisional keyword tuning does not change card data. */
 export const CLASS_RULES = {
@@ -42,13 +44,22 @@ export function attackCardBase(
   state: CombatState,
   effect: Extract<Effect, { type: 'damage' }>,
   sourceCard?: CardInstance,
+  target?: EnemyState,
 ): number {
-  return effect.amount +
+  return scaledEffectAmount(state, effect, target) +
     (effect.fromBlock ? state.player.block : 0) +
     (effect.fromForge ? state.classResources?.forge ?? 0 : 0) +
     (sourceCard && CARD_DEFINITIONS[sourceCard.cardId]?.tags?.includes('knife')
       ? state.powerStacks?.knifeDamage ?? 0 : 0) +
     (state.jitto >= 100 ? effect.divineBonus ?? 0 : 0);
+}
+
+export function attackHitCount(state: CombatState, effect: Extract<Effect, { type: 'damage' }>, paidEnergy = 0, target?: EnemyState): number {
+  let hits = effect.xHits ? paidEnergy : effect.hits ?? 1;
+  if (effect.xHits && effect.xDoubleAt !== undefined && paidEnergy >= effect.xDoubleAt) hits *= 2;
+  if (effect.hitsPer) hits *= combatValue(state, effect.hitsPer, target);
+  if (effect.hitsIf && meetsEffectCondition(state, effect.hitsIf.condition, target)) hits += effect.hitsIf.extra;
+  return Math.max(0, Math.floor(hits));
 }
 
 export function createClassResources(): ClassResources {

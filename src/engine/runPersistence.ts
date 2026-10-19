@@ -84,6 +84,7 @@ export function isValidRunState(value: unknown): value is RunState {
     !member(value.classId, ['berserker', 'assassin', 'oracle', 'necromancer', 'machinist'])
   )
     return false;
+  if (value.rewardRules !== undefined && (value.rewardRules !== 'rarity-v1' || value.classId === undefined)) return false;
 
   if (
     !Array.isArray(value.deck) ||
@@ -162,6 +163,12 @@ export function isValidRunState(value: unknown): value is RunState {
       const pool = getCardPool(value.classId as RunState['classId'], 'shop');
       if (!value.shop.cardIds.every((id) => pool.includes(id))) return false;
     }
+    const stock = value.shop.cardIds;
+    const prices = value.shop.cardPrices;
+    if (prices !== undefined && (
+      !record(prices) || Object.keys(prices).length !== stock.length ||
+      !Object.entries(prices).every(([id, price]) => stock.includes(id) && int(price, 1, 1000))
+    )) return false;
     const allowedPurchases = [
       ...value.shop.cardIds.map((id) => `card:${id}`),
       'relic',

@@ -2,7 +2,7 @@ import { CARD_DEFINITIONS } from '../data/cards';
 import { getEnemyDefinition } from '../data/enemies';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { POTION_DEFINITIONS } from '../data/potions';
-import type { CombatState, GameSettings } from '../types/game';
+import type { CombatState, Effect, GameSettings } from '../types/game';
 import { normalizeCombatState } from './index';
 
 export const SAVE_KEY = 'iwason-spire:save:v1';
@@ -24,7 +24,8 @@ function actor(value: unknown): boolean {
     return false;
   return (
     integer(value.hp, 0, value.maxHp) &&
-    ['block', 'strength', 'weak', 'vulnerable', 'poison'].every((key) => integer(value[key]))
+    integer(value.strength, -1_000_000) &&
+    ['block', 'weak', 'vulnerable', 'poison'].every((key) => integer(value[key]))
   );
 }
 
@@ -71,6 +72,38 @@ function enemy(value: unknown): boolean {
 }
 
 const CLASS_IDS = ['berserker', 'assassin', 'oracle', 'necromancer', 'machinist'] as const;
+const POWER_KEYS = ['stillness', 'thorns', 'strengthOnTurn', 'poisonAura', 'drawOnTurn',
+  'blockOnAttack', 'knifeDamage', 'knivesOnTurn', 'focusOnTurn', 'energyOnTurn'];
+
+/** Only authored effect lists can be restored; saved JSON cannot inject new opcodes. */
+function authoredLists(effects: Effect[]): Effect[][] {
+  return [effects, ...effects.flatMap((effect) =>
+    effect.type === 'conditional' || effect.type === 'nextTurn' ? authoredLists(effect.effects) : [],
+  )];
+}
+
+function temporaryMechanics(value: Record<string, unknown>, enemyKeys: string[]): boolean {
+  if (value.scheduledEffects !== undefined) {
+    if (!Array.isArray(value.scheduledEffects) || value.scheduledEffects.length > 1000) return false;
+    if (!value.scheduledEffects.every((entry) => {
+      if (!record(entry) || !card(entry.sourceCard) || !Array.isArray(entry.effects)) return false;
+      const definition = CARD_DEFINITIONS[entry.sourceCard.cardId];
+      const effects = entry.sourceCard.upgraded ? definition.upgradedEffects : definition.effects;
+      return authoredLists(effects).some((list) => list.some((effect) =>
+        effect.type === 'nextTurn' && JSON.stringify(effect.effects) === JSON.stringify(entry.effects),
+      ));
+    })) return false;
+  }
+  if (value.turnModifiers !== undefined) {
+    if (!Array.isArray(value.turnModifiers) || value.turnModifiers.length > 1000) return false;
+    if (!value.turnModifiers.every((entry) => record(entry) && integer(entry.amount, -1_000_000) && (
+      entry.kind === 'power' ? oneOf(entry.power, POWER_KEYS)
+        : entry.kind === 'status' && oneOf(entry.status, ['strength', 'weak', 'vulnerable', 'poison']) &&
+          (entry.targetId === 'player' || enemyKeys.includes(String(entry.targetId)))
+    ))) return false;
+  }
+  return true;
+}
 
 function classState(value: Record<string, unknown>): boolean {
   if (value.classId !== undefined && !oneOf(value.classId, CLASS_IDS)) return false;
@@ -97,17 +130,20 @@ function classState(value: Record<string, unknown>): boolean {
 function pendingChoice(value: Record<string, unknown>, enemyKeys: string[]): boolean {
   if (value.pendingChoice === undefined) return true;
   const pending = value.pendingChoice;
+  const sourceZone = record(pending) ? pending.sourceZone ?? 'hand' : 'hand';
+  const candidates = typeof sourceZone === 'string' ? value[sourceZone] : undefined;
   if (
     !record(pending) ||
     value.phase !== 'player' ||
-    !oneOf(pending.mode, ['discard', 'exhaust']) ||
-    !Array.isArray(value.hand) ||
-    !integer(pending.amount, 1, value.hand.length) ||
+    !oneOf(pending.mode, ['discard', 'exhaust', 'topdeck', 'retrieve']) ||
+    !oneOf(sourceZone, ['hand', 'discardPile']) ||
+    !Array.isArray(candidates) ||
+    !integer(pending.amount, 1, candidates.length) ||
     !record(pending.resume) ||
     !card(pending.resume.sourceCard) ||
     typeof pending.resume.defense !== 'boolean' ||
     !Array.isArray(pending.resume.effects) ||
-    (pending.resume.xEnergy !== undefined && !integer(pending.resume.xEnergy, 0, 999)) ||
+    (pending.resume.xEnergy !== undefined && !integer(pending.resume.xEnergy)) ||
     (pending.resume.targetId !== undefined &&
       (!text(pending.resume.targetId, 100) || !enemyKeys.includes(pending.resume.targetId)))
   )
@@ -119,15 +155,18 @@ function pendingChoice(value: Record<string, unknown>, enemyKeys: string[]): boo
   const amount = pending.amount;
   const remaining = JSON.stringify(pending.resume.effects);
   // The preceding opcode created this exact choice; arbitrary saved effect payloads are rejected.
-  return effects.some((effect, index) => {
-    const mode = effect.type === 'discard' ? 'discard' : effect.type === 'exhaustChoice' ? 'exhaust' : null;
+  return authoredLists(effects).some((list) => list.some((effect, index) => {
+    const mode = effect.type === 'discard' ? 'discard' : effect.type === 'exhaustChoice' ? 'exhaust'
+      : effect.type === 'moveChoice' ? effect.to === 'hand' ? 'retrieve' : 'topdeck' : null;
+    const zone = effect.type === 'moveChoice' ? effect.from : 'hand';
     return (
-      mode === pending.mode &&
+      mode === pending.mode && zone === sourceZone &&
       'amount' in effect &&
-      amount === Math.min(effect.amount, (value.hand as unknown[]).length) &&
-      JSON.stringify(effects.slice(index + 1)) === remaining
+      amount === Math.min(effect.amount, candidates.length,
+        mode === 'retrieve' && Array.isArray(value.hand) ? Math.max(0, 50 - value.hand.length) : Infinity) &&
+      JSON.stringify(list.slice(index + 1)) === remaining
     );
-  });
+  }));
 }
 
 /** Validate before exposing a local save to the reducer or UI. No partial state is restored. */
@@ -143,7 +182,7 @@ export function isValidCombatState(value: unknown): value is CombatState {
     !actor(value.enemy) ||
     !record(value.enemy) ||
     !record(value.player) ||
-    !integer(value.energy, 0, 999) ||
+    !integer(value.energy) ||
     !integer(value.maxEnergy, 1, 999) ||
     !integer(value.jitto, 0, 100) ||
     !integer(value.stillness) ||
@@ -161,7 +200,7 @@ export function isValidCombatState(value: unknown): value is CombatState {
     return false;
   const enemyKeys = enemies.map((entry) => String(entry.instanceId ?? entry.id));
   if (new Set(enemyKeys).size !== enemyKeys.length) return false;
-  if (!pendingChoice(value, enemyKeys)) return false;
+  if (!pendingChoice(value, enemyKeys) || !temporaryMechanics(value, enemyKeys)) return false;
   if (
     value.selectedEnemyId !== undefined &&
     (!text(value.selectedEnemyId, 100) || !enemyKeys.includes(value.selectedEnemyId))
@@ -188,17 +227,7 @@ export function isValidCombatState(value: unknown): value is CombatState {
     (!record(value.powerStacks) ||
       !Object.entries(value.powerStacks).every(
         ([key, amount]) =>
-          oneOf(key, [
-            'stillness',
-            'thorns',
-            'strengthOnTurn',
-            'poisonAura',
-            'drawOnTurn',
-            'blockOnAttack',
-            'knifeDamage',
-            'knivesOnTurn',
-            'focusOnTurn',
-          ]) && integer(amount),
+          oneOf(key, POWER_KEYS) && integer(amount),
       ))
   )
     return false;
@@ -228,6 +257,11 @@ export function isValidCombatState(value: unknown): value is CombatState {
   const inventory = [...value.deck, ...generated];
   const knownCards = new Map(inventory.map((instance) => [instance.uid, instance]));
   if (knownCards.size !== inventory.length) return false;
+  if (Array.isArray(value.scheduledEffects) && value.scheduledEffects.some((entry) => {
+    if (!record(entry) || !card(entry.sourceCard)) return true;
+    const original = knownCards.get(entry.sourceCard.uid);
+    return !original || original.cardId !== entry.sourceCard.cardId || original.upgraded !== entry.sourceCard.upgraded;
+  })) return false;
   const seen = new Set<string>();
   if (record(value.pendingChoice) && record(value.pendingChoice.resume)) {
     const source = value.pendingChoice.resume.sourceCard;

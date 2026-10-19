@@ -34,7 +34,7 @@ function keywordsFor(definition: CardDefinition, upgraded: boolean): string[] {
   if (upgraded ? (definition.upgradedRetain ?? definition.retain) : definition.retain)
     result.push('保留');
   if (definition.ethereal) result.push('エセリアル');
-  if (definition.innate) result.push('天賦');
+  if (upgraded ? (definition.upgradedInnate ?? definition.innate) : definition.innate) result.push('天賦');
   if (definition.curse) result.push('呪い');
   if (definition.unplayable) result.push('使用不可');
   return result;

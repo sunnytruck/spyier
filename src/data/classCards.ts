@@ -1,41 +1,7 @@
 import type { CardDefinition, Effect } from '../types/game';
-import type { SourceClassId } from '../types/catalog';
-import catalog from './sourceCardIndex.generated.json';
-
-interface PlayableInput {
-  id: string;
-  sourceName: string;
-  classId: SourceClassId;
-  name: string;
-  type: CardDefinition['type'];
-  glyph: string;
-  description: string;
-  upgradedDescription: string;
-  effects: Effect[];
-  upgradedEffects: Effect[];
-  rarity?: CardDefinition['rarity'];
-  options?: Partial<CardDefinition>;
-}
-
-/** Every playable adaptation explicitly identifies its reference. No lexical parsing executes effects. */
-function card(input: PlayableInput): CardDefinition {
-  const source = catalog.cards.find((entry) => entry.sourceClass === input.classId && entry.sourceName === input.sourceName);
-  if (!source) throw new Error(`Unknown source card: ${input.classId}/${input.sourceName}`);
-  const xCost = source.normal.costRaw === 'X';
-  const cost = xCost ? 0 : Number(source.normal.costRaw);
-  const upgradedCost = source.upgraded.costRaw === 'X' ? 0 : Number(source.upgraded.costRaw);
-  if (!Number.isInteger(cost) || !Number.isInteger(upgradedCost)) throw new Error(`Unresolved source cost: ${source.sourceId}`);
-  return {
-    id: input.id, classId: input.classId, sourceCardId: source.sourceId,
-    name: input.name, type: input.type, cost, upgradedCost, xCost,
-    defense: input.type === 'skill' && input.effects.some((effect) => effect.type === 'block'),
-    description: input.description, upgradedDescription: input.upgradedDescription,
-    flavor: '教義は石に刻む。作戦は手札で変える。', glyph: input.glyph,
-    rarity: input.rarity ?? 'common', metadataProvisional: true,
-    effects: input.effects, upgradedEffects: input.upgradedEffects,
-    ...input.options,
-  };
-}
+import { createReferenceCard as card } from './referenceCard';
+import { EXPANDED_MARTIAL_CARDS } from './expandedMartialCards';
+import { EXPANDED_MYSTIC_CARDS } from './expandedMysticCards';
 
 const damage = (amount: number, extra: Partial<Extract<Effect, { type: 'damage' }>> = {}): Effect => ({ type: 'damage', amount, ...extra });
 const block = (amount: number): Effect => ({ type: 'block', amount });
@@ -147,7 +113,7 @@ const tokenCards: CardDefinition[] = [
 ];
 
 export const CLASS_CARD_DEFINITIONS: Record<string, CardDefinition> = Object.fromEntries(
-  [...basicCards, ...adaptedCards, ...tokenCards].map((entry) => [entry.id, entry]),
+  [...basicCards, ...adaptedCards, ...tokenCards, ...EXPANDED_MARTIAL_CARDS, ...EXPANDED_MYSTIC_CARDS].map((entry) => [entry.id, entry]),
 );
 export const GENERATED_CARD_IDS = tokenCards.map((entry) => entry.id);
 export const PLAYABLE_SOURCE_CARD_IDS = [...new Set(

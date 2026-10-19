@@ -12,7 +12,18 @@ export type PowerKey =
   | 'blockOnAttack'
   | 'knifeDamage'
   | 'knivesOnTurn'
-  | 'focusOnTurn';
+  | 'focusOnTurn'
+  | 'energyOnTurn';
+
+/** Read-only combat quantities shared by reusable effect handlers and their previews. */
+export type CombatValue = 'handSize' | 'drawPileSize' | 'discardPileSize' | 'exhaustPileSize'
+  | 'enemyPoison' | 'enemyWeak' | 'enemyVulnerable' | 'enemyDoom' | 'enemyDebuffs' | 'totalEnemyPoison'
+  | 'orbCount' | 'distinctOrbCount' | 'livingEnemyCount';
+export type EffectCondition =
+  | { type: 'targetStatus'; status: 'poison' | 'weak' | 'vulnerable'; min?: number }
+  | { type: 'targetAttacking' }
+  | { type: 'cardsPlayedAtMost'; amount: number };
+export interface EffectScaling { value: CombatValue; multiplier: number }
 
 export type Effect =
   | {
@@ -24,8 +35,14 @@ export type Effect =
       fromBlock?: boolean;
       fromForge?: boolean;
       doomFromDamage?: boolean;
+      randomTarget?: boolean;
+      xHits?: boolean;
+      xDoubleAt?: number;
+      hitsPer?: CombatValue;
+      bonusPer?: EffectScaling;
+      hitsIf?: { condition: EffectCondition; extra: number };
     }
-  | { type: 'block'; amount: number }
+  | { type: 'block'; amount: number; bonusPer?: EffectScaling }
   | { type: 'gauge'; amount: number }
   | { type: 'draw'; amount: number; perOrbType?: boolean }
   | { type: 'energy'; amount: number }
@@ -35,12 +52,22 @@ export type Effect =
       target: Target | 'allEnemies';
       status: 'strength' | 'weak' | 'vulnerable' | 'poison';
       amount: number;
+      allowNegative?: boolean;
     }
   | { type: 'power'; power: PowerKey; amount: number }
   | { type: 'multiplyPoison'; amount: number }
   | { type: 'loseHp'; amount: number }
   | { type: 'discard'; amount: number }
   | { type: 'exhaustChoice'; amount: number }
+  | { type: 'exhaustRandom'; amount: number }
+  | { type: 'moveChoice'; from: 'hand' | 'discardPile'; to: 'drawPile' | 'hand'; amount: number }
+  | { type: 'drawTo'; amount: number }
+  | { type: 'redraw' }
+  | { type: 'multiply'; resource: 'energy' | 'block'; amount: number }
+  | { type: 'conditional'; condition: EffectCondition; effects: Effect[] }
+  | { type: 'nextTurn'; effects: Effect[] }
+  | { type: 'temporaryStatus'; target: Target | 'allEnemies'; status: 'strength' | 'weak' | 'vulnerable' | 'poison'; amount: number; allowNegative?: boolean }
+  | { type: 'temporaryPower'; power: PowerKey; amount: number }
   | { type: 'generate'; cardId: string; amount: number; destination: CardDestination; upgraded?: boolean }
   | { type: 'copySelf'; destination: CardDestination }
   | { type: 'fetchGenerated'; cardId: string }
@@ -49,11 +76,11 @@ export type Effect =
   | { type: 'forge'; amount: number }
   | { type: 'summon'; amount: number }
   | { type: 'summonDamage'; amount: number; plusSummonHp?: boolean }
-  | { type: 'doom'; amount: number; all?: boolean }
+  | { type: 'doom'; amount: number; all?: boolean; bonusPer?: EffectScaling }
   | { type: 'soul'; amount: number; upgraded?: boolean; destination?: CardDestination }
-  | { type: 'channel'; orb: OrbType; amount: number }
-  | { type: 'evoke'; times: number }
-  | { type: 'focus'; amount: number; temporary?: boolean }
+  | { type: 'channel'; orb: OrbType; amount: number; bonusPer?: EffectScaling }
+  | { type: 'evoke'; times: number; fromEnergy?: boolean; all?: boolean }
+  | { type: 'focus'; amount: number; temporary?: boolean; bonusPer?: EffectScaling }
   | { type: 'nextTurnEnergy'; amount: number }
   | { type: 'xChannel'; orb: OrbType; bonus: number };
 
@@ -84,6 +111,7 @@ export interface CardDefinition {
   upgradedRetain?: boolean;
   ethereal?: boolean;
   innate?: boolean;
+  upgradedInnate?: boolean;
   /** Curses/status cards may be deliberate draw burdens rather than playable effects. */
   unplayable?: boolean;
   unupgradable?: boolean;
@@ -159,7 +187,9 @@ export interface ClassResources {
 }
 
 export interface PendingCardChoice {
-  mode: 'discard' | 'exhaust';
+  mode: 'discard' | 'exhaust' | 'topdeck' | 'retrieve';
+  /** Missing means the hand, preserving existing suspended-card save data. */
+  sourceZone?: 'hand' | 'discardPile';
   amount: number;
   resume: {
     effects: Effect[];
@@ -169,6 +199,10 @@ export interface PendingCardChoice {
     xEnergy?: number;
   };
 }
+
+export type TurnModifier =
+  | { kind: 'status'; targetId: string; status: 'strength' | 'weak' | 'vulnerable' | 'poison'; amount: number }
+  | { kind: 'power'; power: PowerKey; amount: number };
 
 export interface BattleLog {
   id: number;
@@ -218,6 +252,9 @@ export interface CombatState {
   classResources?: ClassResources;
   generatedCards?: CardInstance[];
   pendingChoice?: PendingCardChoice;
+  /** Added lazily by new effects; legacy combat states retain their exact serialized shape. */
+  scheduledEffects?: { effects: Effect[]; sourceCard?: CardInstance }[];
+  turnModifiers?: TurnModifier[];
 }
 
 export interface CombatOptions {

@@ -34,6 +34,8 @@ export interface RunReward {
 }
 export interface ShopState {
   cardIds: string[];
+  /** Rolled prices are saved with new stock. Missing on older saves: all cards cost 55. */
+  cardPrices?: Record<string, number>;
   relicId: string | null;
   potionId: string | null;
   purchased: string[];
@@ -65,6 +67,8 @@ export interface RunState {
   seed: string;
   /** Missing on pre-class saves, which retain the original deck and reward pool. */
   classId?: ClassId;
+  /** Only new class runs opt in. Already saved rooms and legacy reward rolls remain intact. */
+  rewardRules?: 'rarity-v1';
   rngState: number;
   screen: RunScreen;
   floor: number;

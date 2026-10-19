@@ -1,21 +1,22 @@
 import { CARD_DEFINITIONS } from '../../data/cards';
 import { POTION_DEFINITIONS } from '../../data/potions';
 import { canPlayCard, getEnemies, getEnemyKey, predictEnemyDamage, reduceCombat } from '../../engine';
-import { SHOP_PRICES } from '../../engine/run';
+import { getShopCardPrice, SHOP_PRICES } from '../../engine/run';
+import { getPendingChoiceCards } from '../../engine/actions/choices';
+import { attackCardBase, attackHitCount } from '../../engine/combat/resources';
 import { canUpgradeCard } from '../../presentation/cardUpgrade';
-import type { CardInstance, CombatAction, CombatState } from '../../types/game';
+import type { CardInstance, CombatAction, CombatState, Effect } from '../../types/game';
 import type { RunAction, RunState } from '../../types/run';
 import { chooseRunAction } from './runDriver';
 
-function cardValue(id: string, upgraded = false): number {
-  const card = CARD_DEFINITIONS[id];
-  const effects = upgraded ? card.upgradedEffects : card.effects;
+/** Approximate policy weights, never a production rule or a claim of optimal play. */
+function effectsValue(effects: Effect[]): number {
   let value = 0;
   for (const effect of effects) {
     switch (effect.type) {
-      case 'damage': value += effect.amount * (effect.hits ?? 1) * (effect.all ? 1.6 : 1); break;
-      case 'block': value += effect.amount; break;
-      case 'status': value += effect.amount * (effect.status === 'strength' ? 7 : effect.status === 'poison' ? 3 : 4); break;
+      case 'damage': value += (effect.amount + (effect.bonusPer ? effect.bonusPer.multiplier * 2 : 0)) * (effect.xHits ? 3 : effect.hitsPer ? 2 : effect.hits ?? 1) * (effect.all ? 1.6 : 1); break;
+      case 'block': value += effect.amount + (effect.bonusPer ? effect.bonusPer.multiplier * 2 : 0); break;
+      case 'status': value += effect.amount * (effect.status === 'strength' ? effect.target === 'player' ? 7 : -5 : effect.status === 'poison' ? 3 : 4); break;
       case 'draw': value += effect.amount * 7; break;
       case 'energy': value += effect.amount * 9; break;
       case 'power': value += effect.amount * 12; break;
@@ -34,6 +35,15 @@ function cardValue(id: string, upgraded = false): number {
       case 'loseHp': value -= effect.amount * 2; break;
       case 'discard': value -= effect.amount * 2; break;
       case 'exhaustChoice': value += effect.amount * 3; break;
+      case 'exhaustRandom': value += effect.amount; break;
+      case 'moveChoice': value += effect.amount * (effect.to === 'hand' ? 10 : 3); break;
+      case 'drawTo': value += Math.max(0, effect.amount - 3) * 7; break;
+      case 'redraw': value += 14; break;
+      case 'multiply': value += Math.max(0, effect.amount - 1) * (effect.resource === 'energy' ? 18 : 8); break;
+      case 'conditional': value += effectsValue(effect.effects) * 0.6; break;
+      case 'nextTurn': value += effectsValue(effect.effects) * 0.8; break;
+      case 'temporaryStatus': value += effect.amount * (effect.target === 'player' ? 3 : -3); break;
+      case 'temporaryPower': value += effect.amount * 6; break;
       case 'nextTurnEnergy': value += effect.amount * 6; break;
       case 'xChannel': value += 27; break;
       case 'fetchGenerated': value += 5; break;
@@ -42,7 +52,49 @@ function cardValue(id: string, upgraded = false): number {
       case 'multiplyPoison': value += effect.amount * 7; break;
     }
   }
-  return value - (upgraded ? card.upgradedCost ?? card.cost : card.cost) * 4;
+  return value;
+}
+
+function cardValue(id: string, upgraded = false): number {
+  const card = CARD_DEFINITIONS[id];
+  if (!card || card.unplayable) return -100;
+  const effects = upgraded ? card.upgradedEffects : card.effects;
+  return effectsValue(effects) - (upgraded ? card.upgradedCost ?? card.cost : card.cost) * 4;
+}
+
+function flattenEffects(effects: Effect[]): Effect[] {
+  return effects.flatMap((effect) => effect.type === 'conditional' || effect.type === 'nextTurn'
+    ? [effect, ...flattenEffects(effect.effects)] : [effect]);
+}
+
+function offensive(effects: Effect[]): boolean {
+  return flattenEffects(effects).some((effect) =>
+    ['damage', 'doom', 'summonDamage', 'starBurst', 'multiplyPoison'].includes(effect.type) ||
+    effect.type === 'status' && effect.status === 'poison' && effect.target !== 'player' ||
+    effect.type === 'generate' && CARD_DEFINITIONS[effect.cardId]?.type === 'attack',
+  );
+}
+
+/** An optional deck-aware experiment; old fixed regression policies remain unchanged. */
+function draftValue(id: string, state: RunState): number {
+  const definition = CARD_DEFINITIONS[id];
+  let value = cardValue(id);
+  if (!definition || definition.unplayable) return value;
+  const effects = flattenEffects(definition.effects);
+  const copies = state.deck.filter((card) => card.cardId === id).length;
+  value -= copies * (definition.type === 'power' ? 2 : 6);
+  const attacks = state.deck.filter((card) => offensive(CARD_DEFINITIONS[card.cardId].effects)).length;
+  const isOffensive = offensive(definition.effects);
+  if (attacks / state.deck.length < 0.55) value += isOffensive ? 10 : -8;
+  const support = effects.some((effect) => ['draw', 'drawTo', 'redraw', 'moveChoice', 'soul'].includes(effect.type));
+  const existingSupport = state.deck.filter((card) => flattenEffects(CARD_DEFINITIONS[card.cardId].effects)
+    .some((effect) => ['draw', 'drawTo', 'redraw', 'moveChoice', 'soul'].includes(effect.type))).length;
+  if (support && !isOffensive && existingSupport >= 4) value -= 8;
+  // A zero-base finisher is useful in a deck that can actually supply its scaling input.
+  if (effects.some((effect) => effect.type === 'damage' && effect.bonusPer?.value === 'enemyDoom') &&
+      state.deck.some((card) => flattenEffects(CARD_DEFINITIONS[card.cardId].effects)
+        .some((effect) => effect.type === 'doom' || effect.type === 'damage' && effect.doomFromDamage))) value += 18;
+  return value;
 }
 
 function incoming(state: CombatState): number {
@@ -69,13 +121,20 @@ function expectedHpLoss(state: CombatState): number {
 function choiceValue(card: CardInstance, state: CombatState): number {
   const definition = CARD_DEFINITIONS[card.cardId];
   const cost = card.upgraded ? definition.upgradedCost ?? definition.cost : definition.cost;
-  return cardValue(card.cardId, card.upgraded) - (cost > state.energy ? 20 : 0);
+  const effects = flattenEffects(card.upgraded ? definition.upgradedEffects : definition.effects);
+  const currentScaling = effects.reduce((sum, effect) => effect.type === 'damage'
+    ? sum + Math.max(0, attackCardBase(state, effect, card) - effect.amount - (effect.bonusPer ? effect.bonusPer.multiplier * 2 : 0)) * attackHitCount(state, effect, definition.xCost ? state.energy : 0) : sum, 0);
+  const absentCommand = effects.some((effect) => effect.type === 'summonDamage') && (state.classResources?.ostyHp ?? 0) <= 0;
+  return cardValue(card.cardId, card.upgraded) + currentScaling - (cost > state.energy ? 20 : 0) - (absentCommand ? 10 : 0);
 }
 
 /** A test/browser controller using public actions, with no fixture HP or inventory changes. */
 export function chooseClassCombatAction(state: CombatState): CombatAction {
   if (state.pendingChoice) {
-    const choices = [...state.hand].sort((a, b) => choiceValue(a, state) - choiceValue(b, state));
+    const keepBest = state.pendingChoice.mode === 'retrieve';
+    const choices = [...getPendingChoiceCards(state)].sort((a, b) =>
+      (choiceValue(a, state) - choiceValue(b, state)) * (keepBest ? -1 : 1),
+    );
     return { type: 'chooseCards', cardIds: choices.slice(0, state.pendingChoice.amount).map((card) => card.uid) };
   }
   const living = getEnemies(state).filter((enemy) => enemy.hp > 0);
@@ -118,6 +177,11 @@ export function chooseClassCombatAction(state: CombatState): CombatAction {
       score += (afterResources.ostyHp - (beforeResources?.ostyHp ?? 0)) * 0.7;
       score += (afterResources.stars - (beforeResources?.stars ?? 0)) * 4;
       score += (afterResources.nextTurnEnergy - (beforeResources?.nextTurnEnergy ?? 0)) * 5;
+      // A summon enables real commands in this hand; a one-card score otherwise
+      // misses the summon-before-command order on an enemy's defensive turn.
+      if ((beforeResources?.ostyHp ?? 0) === 0 && afterResources.ostyHp > 0 && after.hand.some((held) =>
+        flattenEffects(held.upgraded ? CARD_DEFINITIONS[held.cardId].upgradedEffects : CARD_DEFINITIONS[held.cardId].effects)
+          .some((effect) => effect.type === 'summonDamage'))) score += 12;
     }
     if (CARD_DEFINITIONS[card.cardId].type === 'power') score += state.turn < 5 ? 28 : 8;
     if (after.pendingChoice) score += 3;
@@ -128,11 +192,12 @@ export function chooseClassCombatAction(state: CombatState): CombatAction {
   return options.length ? { type: 'playCard', cardId: options[0].card.uid, targetId: options[0].targetId } : { type: 'endTurn' };
 }
 
-export function chooseClassRunAction(state: RunState): RunAction {
+export function chooseClassRunAction(state: RunState, options: { deckAware?: boolean } = {}): RunAction {
+  const acquisitionValue = (id: string) => options.deckAware ? draftValue(id, state) : cardValue(id);
   if (state.screen === 'combat') return { type: 'combat', action: chooseClassCombatAction(state.combat!) };
   if (state.screen === 'reward') {
-    const best = [...state.reward!.cardIds].sort((a, b) => cardValue(b) - cardValue(a))[0];
-    return { type: 'takeCard', cardId: state.deck.length < 18 && cardValue(best) >= 8 ? best : null };
+    const best = [...state.reward!.cardIds].sort((a, b) => acquisitionValue(b) - acquisitionValue(a))[0];
+    return { type: 'takeCard', cardId: state.deck.length < 18 && acquisitionValue(best) >= 8 ? best : null };
   }
   if (state.screen === 'upgrade') {
     const choices = state.deck.filter(canUpgradeCard).sort((a, b) =>
@@ -142,9 +207,9 @@ export function chooseClassRunAction(state: RunState): RunAction {
   }
   if (state.screen === 'shop') {
     const shop = state.shop!;
-    const best = [...shop.cardIds].filter((id) => !shop.purchased.includes(`card:${id}`)).sort((a, b) => cardValue(b) - cardValue(a))[0];
+    const best = [...shop.cardIds].filter((id) => !shop.purchased.includes(`card:${id}`) && state.gold >= getShopCardPrice(state, id)).sort((a, b) => acquisitionValue(b) - acquisitionValue(a))[0];
     if (shop.relicId && !shop.purchased.includes('relic') && state.gold >= SHOP_PRICES.relic) return { type: 'buyRelic' };
-    if (best && cardValue(best) >= 20 && state.deck.length < 18 && state.gold >= SHOP_PRICES.card) return { type: 'buyCard', cardId: best };
+    if (best && acquisitionValue(best) >= 20 && state.deck.length < 18 && state.gold >= getShopCardPrice(state, best)) return { type: 'buyCard', cardId: best };
     if (shop.potionId && !shop.purchased.includes('potion') && state.gold >= SHOP_PRICES.potion && state.potions.includes(null)) return { type: 'buyPotion' };
     return { type: 'leaveNode' };
   }

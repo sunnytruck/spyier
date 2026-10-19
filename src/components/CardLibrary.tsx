@@ -14,7 +14,7 @@ export function CardLibrary() {
   const [owner, setOwner] = useState('all');
   const [shown, setShown] = useState(pageSize);
   const cards = Object.values(CARD_DEFINITIONS);
-  const collectibleCount = cards.filter((card) => !card.tokenOnly).length;
+  const generatedCount = cards.filter((card) => card.tokenOnly).length;
   const implemented = useMemo(() => new Set(Object.values(CARD_DEFINITIONS).flatMap((card) => card.sourceCardId ? [card.sourceCardId] : [])), []);
   const generatedSources = useMemo(() => new Set(Object.values(CARD_DEFINITIONS).flatMap((card) => card.tokenOnly && card.sourceCardId ? [card.sourceCardId] : [])), []);
   const normalizedQuery = query.trim().toLocaleLowerCase();
@@ -25,7 +25,7 @@ export function CardLibrary() {
   const sourceClassName = (id: string) => id === 'colorless' ? '無色・共通' : CLASS_IDS.includes(id as typeof CLASS_IDS[number]) ? CLASS_DEFINITIONS[id as typeof CLASS_IDS[number]].displayName : 'じっと教・既存';
   function resetPage() { setShown(pageSize); }
   return <div className="card-library-content">
-    <p className="modal-intro">資料 {sourceCards.length}枚を収録。取得できるカード {collectibleCount}種類と生成専用 {cards.length - collectibleCount}種類。資料と接続済み {implemented.size}種類。未実装カードは報酬・商人に出現しません。</p>
+    <p className="modal-intro">資料 {sourceCards.length}枚を収録。実装カード {cards.length}種類（基本札・呪い・生成専用{generatedCount}種類を含む）。資料と接続済み {implemented.size}種類。取得先は職業ごとに異なり、未実装カード・生成専用カードは報酬・商人に出現しません。</p>
     <div className="library-controls">
       <div className="segmented-control" aria-label="図鑑の表示内容">
         <button aria-pressed={tab === 'playable'} className={tab === 'playable' ? 'active' : ''} onClick={() => { setTab('playable'); resetPage(); }}>使用可能なカード</button>

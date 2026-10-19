@@ -50,7 +50,8 @@ describe('upgrade previews read actual normal and upgraded card definitions', ()
         .toBe(!!(upgraded ? definition.upgradedRetain ?? definition.retain : definition.retain));
       expect(presentation.keywords.includes('防御')).toBe(definition.defense);
       expect(presentation.keywords.includes('エセリアル')).toBe(!!definition.ethereal);
-      expect(presentation.keywords.includes('天賦')).toBe(!!definition.innate);
+      expect(presentation.keywords.includes('天賦'))
+        .toBe(!!(upgraded ? definition.upgradedInnate ?? definition.innate : definition.innate));
     }
     expect(preview.changes.cost).toBe(preview.before.cost !== preview.after.cost);
     expect(preview.changes.description).toBe(definition.description !== definition.upgradedDescription);
@@ -98,6 +99,19 @@ describe('upgrade previews read actual normal and upgraded card definitions', ()
 });
 
 describe('different upgrade patterns agree with real combat and rest confirmation', () => {
+  it('adds innate only after upgrading machine learning, matching the opening hand rule', () => {
+    const preview = getCardUpgradePreview(instance('machinist_machine_learning'))!;
+    expect(preview.before.keywords).not.toContain('天賦');
+    expect(preview.after.keywords).toContain('天賦');
+    expect(preview.changes.keywords).toBe(true);
+    const card = instance('machinist_machine_learning', true);
+    const deck = [card, ...Array.from({ length: 15 }, (_, index) => ({ uid: `innate-filler-${index}`, cardId: 'machinist_guard', upgraded: false }))];
+    for (const seed of ['innate-a', 'innate-b', 'innate-c']) {
+      const battle = createCombat(seed, 'grit_scout', { classId: 'machinist', deck });
+      expect(battle.hand.some((held) => held.uid === card.uid)).toBe(true);
+    }
+    expect(card.upgraded).toBe(true);
+  });
   it('shows a cost reduction from 1 to 0 and combat charges the displayed cost', () => {
     const preview = getCardUpgradePreview(instance('berserker_body_slam'))!;
     expect(preview.before.cost).toBe(1);

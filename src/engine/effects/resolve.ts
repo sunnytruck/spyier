@@ -10,7 +10,9 @@ import {
   healPlayer,
 } from '../combat/state';
 import { findEnemy, getEnemies, getEnemyKey } from '../combat/targets';
-import { attackCardBase, channelOrbs, evokeOrb, fetchGeneratedCard, generateCards, resources, summonAttack } from '../combat/resources';
+import { attackCardBase, attackHitCount, channelOrbs, evokeOrb, fetchGeneratedCard, generateCards, resources, summonAttack } from '../combat/resources';
+import { meetsEffectCondition, scaledEffectAmount } from '../combat/values';
+import { nextRandom } from '../random';
 import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace';
 
 export interface EffectContext {
@@ -19,6 +21,8 @@ export interface EffectContext {
   source?: 'card' | 'potion';
   sourceCard?: CardInstance;
   xEnergy?: number;
+  /** Presentation/log attribution only; never persisted as an executable modifier. */
+  temporary?: boolean;
 }
 
 type Resolver<T extends Effect['type']> = (
@@ -32,7 +36,19 @@ type Resolver<T extends Effect['type']> = (
 const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
   damage: (state, effect, _card, context) => {
     if (effect.fromForge) resources(state);
-    const base = attackCardBase(state, effect, context.sourceCard);
+    if (effect.randomTarget) {
+      const hits = attackHitCount(state, effect, context.xEnergy);
+      for (let hit = 0; hit < hits && state.phase === 'player'; hit++) {
+        const enemies = getEnemies(state).filter((enemy) => enemy.hp > 0);
+        if (!enemies.length) break;
+        const random = nextRandom(state.rngState);
+        state.rngState = random.state;
+        const enemy = enemies[Math.floor(random.value * enemies.length)];
+        const base = attackCardBase(state, effect, context.sourceCard, enemy);
+        dealDamage(state, 'enemy', calculateDamage(base, state.player, enemy), false, enemy);
+      }
+      return;
+    }
     const targets =
       effect.all || context.all
         ? getEnemies(state).filter((enemy) => enemy.hp > 0)
@@ -40,9 +56,11 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
     const attacker =
       context.source === 'potion' ? { ...state.player, strength: 0, weak: 0 } : state.player;
     for (const enemy of targets) {
+      const base = attackCardBase(state, effect, context.sourceCard, enemy);
+      const hits = attackHitCount(state, effect, context.xEnergy, enemy);
       for (
         let hit = 0;
-        hit < (effect.hits ?? 1) && state.phase === 'player' && enemy.hp > 0;
+        hit < hits && state.phase === 'player' && enemy.hp > 0;
         hit += 1
       ) {
         const damage = dealDamage(state, 'enemy', calculateDamage(base, attacker, enemy), false, enemy);
@@ -54,7 +72,7 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
     }
   },
   block: (state, effect, card) => {
-    gainBlock(state, 'player', effect.amount + (card.defense && state.jitto >= 50 ? 2 : 0));
+    gainBlock(state, 'player', scaledEffectAmount(state, effect) + (card.defense && state.jitto >= 50 ? 2 : 0));
   },
   gauge: (state, effect) => applyGauge(state, effect.amount),
   draw: (state, effect) => drawInto(state, effect.amount * (effect.perOrbType ? new Set(state.classResources?.orbs ?? []).size : 1)),
@@ -75,7 +93,8 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
     const labels = { strength: '筋力', weak: '弱体', vulnerable: '脆弱', poison: '毒' };
     for (const actor of targets) {
       const previous = actor[effect.status];
-      actor[effect.status] = Math.max(0, actor[effect.status] + effect.amount);
+      actor[effect.status] = effect.allowNegative && effect.status === 'strength'
+        ? actor[effect.status] + effect.amount : Math.max(0, actor[effect.status] + effect.amount);
       appendLog(
         state,
         `${actor.name}に${labels[effect.status]} ${effect.amount > 0 ? '+' : ''}${effect.amount}。`,
@@ -83,7 +102,7 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
       emitCombatCue(state, { kind: 'status', targetId: actor === state.player ? 'player' : getEnemyKey(actor as EnemyState), status: effect.status, amount: actor[effect.status] - previous, label: labels[effect.status] });
     }
   },
-  power: (state, effect) => {
+  power: (state, effect, _card, context) => {
     state.powerStacks ??= {};
     state.powerStacks[effect.power] = (state.powerStacks[effect.power] ?? 0) + effect.amount;
     if (effect.power === 'stillness') state.stillness += effect.amount;
@@ -98,9 +117,10 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
       knifeDamage: '影刃の研磨',
       knivesOnTurn: '無尽の影刃',
       focusOnTurn: '集中回路',
+      energyOnTurn: '不滅の火種',
     };
-    appendLog(state, `${labels[effect.power]} +${effect.amount}。戦闘中持続。`);
-    emitCombatCue(state, { kind: 'power', targetId: 'player', status: effect.power, amount: effect.amount, label: labels[effect.power] });
+    appendLog(state, `${labels[effect.power]} +${effect.amount}。${context.temporary ? '次の自分のターンまで。' : '戦闘中持続。'}`);
+    emitCombatCue(state, { kind: 'power', targetId: 'player', status: effect.power, amount: effect.amount, label: `${labels[effect.power]}${context.temporary ? '・一時' : ''}` });
   },
   multiplyPoison: (state, effect, _card, context) => {
     const enemy = findEnemy(state, context.targetId);
@@ -114,6 +134,59 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
   // Interactive effects are suspended by resolveEffects, not resolved here.
   discard: () => {},
   exhaustChoice: () => {},
+  moveChoice: () => {},
+  exhaustRandom: (state, effect) => {
+    const moved: CardInstance[] = [];
+    for (let index = 0; index < effect.amount && state.hand.length > 0; index++) {
+      const random = nextRandom(state.rngState);
+      state.rngState = random.state;
+      const [card] = state.hand.splice(Math.floor(random.value * state.hand.length), 1);
+      state.exhaustPile.push(card);
+      moved.push(card);
+    }
+    if (moved.length) emitCombatCue(state, { kind: 'exhaust', sourceId: 'player', cards: moved, fromZone: 'hand', toZone: 'exhaustPile' });
+  },
+  drawTo: (state, effect) => drawInto(state, Math.max(0, effect.amount - state.hand.length)),
+  redraw: (state) => {
+    const moved = [...state.hand];
+    state.discardPile.push(...moved);
+    state.hand = [];
+    if (moved.length) emitCombatCue(state, { kind: 'discard', sourceId: 'player', cards: moved, fromZone: 'hand', toZone: 'discardPile' });
+    drawInto(state, moved.length);
+  },
+  multiply: (state, effect) => {
+    const before = effect.resource === 'energy' ? state.energy : state.player.block;
+    const after = Math.min(1_000_000, Math.max(0, Math.floor(before * effect.amount)));
+    if (effect.resource === 'block') gainBlock(state, 'player', Math.max(0, after - before));
+    else {
+      state.energy = after;
+      emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'energy', amount: after - before });
+    }
+  },
+  conditional: () => {},
+  nextTurn: (state, effect, _card, context) => {
+    state.scheduledEffects ??= [];
+    state.scheduledEffects.push({ effects: structuredClone(effect.effects), ...(context.sourceCard ? { sourceCard: { ...context.sourceCard } } : {}) });
+    appendLog(state, '次のターンの効果を予約した。');
+  },
+  temporaryStatus: (state, effect, card, context) => {
+    const targets = effect.target === 'player' ? [state.player]
+      : effect.target === 'allEnemies' ? getEnemies(state).filter((enemy) => enemy.hp > 0)
+        : [findEnemy(state, context.targetId)].filter((enemy) => enemy !== undefined);
+    const previous = targets.map((actor) => actor[effect.status]);
+    resolvers.status(state, { ...effect, type: 'status' }, card, context);
+    targets.forEach((actor, index) => {
+      const amount = actor[effect.status] - previous[index];
+      if (!amount) return;
+      state.turnModifiers ??= [];
+      state.turnModifiers.push({ kind: 'status', targetId: actor === state.player ? 'player' : getEnemyKey(actor as EnemyState), status: effect.status, amount });
+    });
+  },
+  temporaryPower: (state, effect, card, context) => {
+    resolvers.power(state, { ...effect, type: 'power' }, card, { ...context, temporary: true });
+    state.turnModifiers ??= [];
+    state.turnModifiers.push({ kind: 'power', power: effect.power, amount: effect.amount });
+  },
   generate: (state, effect) => generateCards(state, effect.cardId, effect.amount, effect.destination, effect.upgraded),
   copySelf: (state, effect, _card, context) => {
     if (context.sourceCard) generateCards(state, context.sourceCard.cardId, 1, effect.destination, context.sourceCard.upgraded);
@@ -152,20 +225,25 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
   doom: (state, effect, _card, context) => {
     const enemies = effect.all ? getEnemies(state).filter((enemy) => enemy.hp > 0) : [findEnemy(state, context.targetId)].filter((enemy) => enemy !== undefined);
     for (const enemy of enemies) {
-      enemy.doom = (enemy.doom ?? 0) + effect.amount;
-      appendLog(state, `${enemy.name}に破滅 +${effect.amount}。`);
-      emitCombatCue(state, { kind: 'status', targetId: getEnemyKey(enemy), status: 'doom', amount: effect.amount });
+      const amount = Math.max(0, Math.floor(scaledEffectAmount(state, effect, enemy)));
+      enemy.doom = (enemy.doom ?? 0) + amount;
+      appendLog(state, `${enemy.name}に破滅 +${amount}。`);
+      emitCombatCue(state, { kind: 'status', targetId: getEnemyKey(enemy), status: 'doom', amount });
     }
   },
   soul: (state, effect) => generateCards(state, 'token_soul', effect.amount, effect.destination ?? 'drawPile', effect.upgraded),
-  channel: (state, effect) => channelOrbs(state, effect.orb, effect.amount),
-  evoke: (state, effect) => evokeOrb(state, effect.times),
+  channel: (state, effect) => channelOrbs(state, effect.orb, scaledEffectAmount(state, effect)),
+  evoke: (state, effect, _card, context) => {
+    const count = effect.all ? state.classResources?.orbs.length ?? 0 : 1;
+    for (let index = 0; index < count && state.phase === 'player'; index++) evokeOrb(state, effect.times + (effect.fromEnergy ? context.xEnergy ?? 0 : 0));
+  },
   focus: (state, effect) => {
     const current = resources(state);
-    current.focus += effect.amount;
-    if (effect.temporary) current.temporaryFocus += effect.amount;
-    appendLog(state, `集中力 +${effect.amount}${effect.temporary ? '（このターン）' : ''}。`);
-    emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'focus', amount: effect.amount });
+    const amount = Math.floor(scaledEffectAmount(state, effect));
+    current.focus += amount;
+    if (effect.temporary) current.temporaryFocus += amount;
+    appendLog(state, `集中力 +${amount}${effect.temporary ? '（このターン）' : ''}。`);
+    emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'focus', amount });
   },
   nextTurnEnergy: (state, effect) => {
     resources(state).nextTurnEnergy += effect.amount;
@@ -183,19 +261,31 @@ export function resolveEffects(
 ): void {
   for (const [index, effect] of effects.entries()) {
     if (state.phase !== 'player') break;
-    if ((effect.type === 'discard' || effect.type === 'exhaustChoice') && state.hand.length > 0) {
-      const amount = Math.min(state.hand.length, Math.max(0, Math.floor(effect.amount)));
+    if (effect.type === 'conditional') {
+      // Flatten the chosen continuation so a nested interactive effect resumes
+      // the whole card once, including the effects after its conditional branch.
+      const remaining = effects.slice(index + 1);
+      resolveEffects(state, meetsEffectCondition(state, effect.condition, findEnemy(state, context.targetId)) ? [...effect.effects, ...remaining] : remaining, card, context);
+      return;
+    }
+    if (effect.type === 'discard' || effect.type === 'exhaustChoice' || effect.type === 'moveChoice') {
+      const sourceZone = effect.type === 'moveChoice' ? effect.from : 'hand';
+      const mode = effect.type === 'moveChoice' ? effect.to === 'hand' ? 'retrieve' : 'topdeck' : effect.type === 'discard' ? 'discard' : 'exhaust';
+      const toZone = mode === 'retrieve' ? 'hand' : mode === 'topdeck' ? 'drawPile' : mode === 'discard' ? 'discardPile' : 'exhaustPile';
+      if (sourceZone === toZone) continue;
+      const amount = Math.min(state[sourceZone].length, Math.max(0, Math.floor(effect.amount)), mode === 'retrieve' ? Math.max(0, 50 - state.hand.length) : Infinity);
       if (amount === 0) continue;
-      if (amount === state.hand.length) {
-        const moved = [...state.hand];
-        state[effect.type === 'discard' ? 'discardPile' : 'exhaustPile'].push(...state.hand);
-        state.hand = [];
-        emitCombatCue(state, { kind: effect.type === 'discard' ? 'discard' : 'exhaust', sourceId: 'player', card: context.sourceCard, cards: moved, fromZone: 'hand', toZone: effect.type === 'discard' ? 'discardPile' : 'exhaustPile' });
+      if (amount === state[sourceZone].length) {
+        const moved = [...state[sourceZone]];
+        state[toZone].push(...moved);
+        state[sourceZone] = [];
+        emitCombatCue(state, { kind: mode === 'retrieve' ? 'draw' : mode === 'exhaust' ? 'exhaust' : 'discard', sourceId: 'player', card: context.sourceCard, cards: moved, fromZone: sourceZone, toZone });
         continue;
       }
       if (!context.sourceCard) continue;
       state.pendingChoice = {
-        mode: effect.type === 'discard' ? 'discard' : 'exhaust',
+        mode,
+        ...(sourceZone !== 'hand' ? { sourceZone } : {}),
         amount,
         resume: {
           effects: structuredClone(effects.slice(index + 1)),
@@ -205,7 +295,7 @@ export function resolveEffects(
           ...(context.xEnergy !== undefined ? { xEnergy: context.xEnergy } : {}),
         },
       };
-      appendLog(state, `手札から${amount}枚を${effect.type === 'discard' ? '捨てる' : '廃棄する'}。カードを選んでください。`);
+      appendLog(state, `${sourceZone === 'hand' ? '手札' : '捨て札'}から${amount}枚を${mode === 'retrieve' ? '手札に戻す' : mode === 'topdeck' ? '山札の一番上に置く' : mode === 'discard' ? '捨てる' : '廃棄する'}。カードを選んでください。`);
       break;
     }
     const resolve = resolvers[effect.type] as (

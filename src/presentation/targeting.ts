@@ -8,11 +8,19 @@ export type CardTargetMode = 'enemy' | 'allEnemies' | 'self';
 function effectTargetMode(effect: Effect): CardTargetMode {
   switch (effect.type) {
     case 'damage':
+      if (effect.randomTarget) return 'self';
+      return effect.all ? 'allEnemies' : 'enemy';
     case 'starBurst':
     case 'doom':
       return effect.all ? 'allEnemies' : 'enemy';
     case 'status':
+    case 'temporaryStatus':
       return effect.target === 'enemy' ? 'enemy' : effect.target === 'allEnemies' ? 'allEnemies' : 'self';
+    case 'conditional': {
+      const modes = effect.effects.map(effectTargetMode);
+      if (modes.includes('enemy') || effect.condition.type === 'targetStatus' || effect.condition.type === 'targetAttacking') return 'enemy';
+      return modes.includes('allEnemies') ? 'allEnemies' : 'self';
+    }
     case 'multiplyPoison':
     case 'summonDamage':
       return 'enemy';

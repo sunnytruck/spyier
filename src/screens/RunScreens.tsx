@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { MapNode, NodeType, RunAction, RunState } from '../types/run';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import type { RunAction, RunState } from '../types/run';
 import type { CardInstance } from '../types/game';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { POTION_DEFINITIONS } from '../data/potions';
 import { EVENT_DEFINITIONS } from '../data/events';
 import { CLASS_DEFINITIONS } from '../data/classes';
-import { canChooseEvent, getAvailableNodes, SHOP_PRICES } from '../engine/run';
+import { canChooseEvent, getShopCardPrice, SHOP_PRICES } from '../engine/run';
 import { CardView } from '../components/CardView';
 import { CardUpgradePreview } from '../components/CardUpgradePreview';
 import { canUpgradeCard } from '../presentation/cardUpgrade';
@@ -14,6 +14,7 @@ import { Icon } from '../components/Icon';
 import { Modal } from '../components/Modal';
 import { RockDeity } from '../components/CharacterArt';
 import '../styles/run.css';
+import { MapScreen } from './MapScreen';
 
 interface RunScreensProps {
   state: RunState;
@@ -23,60 +24,6 @@ interface RunScreensProps {
   onTitle: () => void;
 }
 
-const nodeLabels: Record<NodeType, { name: string; description: string }> = {
-  battle: { name: '通常戦闘', description: '敵を倒して、カードとゴールドを獲得。' },
-  elite: { name: 'エリート', description: '手強い敵。その先には貴重なレリックが。' },
-  event: { name: '出来事', description: '奇妙な出会い。選択が旅を変える。' },
-  shop: { name: '商人', description: 'カード・レリックの購入とデッキの整理。' },
-  rest: { name: '休憩所', description: 'HPを回復するか、カードを1枚強化。' },
-  treasure: { name: '宝箱', description: '古代の祝福、レリックを1つ獲得。' },
-  boss: { name: '階層ボス', description: '第一層の最後の試練。準備はよろしいですか。' },
-};
-
-function NodeIcon({ type, size = 24 }: { type: NodeType; size?: number }) {
-  if (type === 'battle') return <Icon name="sword" size={size} />;
-  if (type === 'rest') return <Icon name="flame" size={size} />;
-  if (type === 'event') return <Icon name="help" size={size} />;
-  return (
-    <svg
-      className="icon"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {type === 'shop' && (
-        <>
-          <path d="M3 10h18L18 4H6Zm1 0v11h16V10M9 21v-7h6v7" />
-          <path d="M3 10c0 4 4 4 5 0 0 4 7 4 8 0 0 4 5 4 5 0M9 4l-1 6m7-6 1 6" />
-        </>
-      )}
-      {type === 'treasure' && (
-        <>
-          <path d="M3 11V7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v4M3 11h18v9H3Z" />
-          <path d="M10 10h4v5h-4ZM7 4v7m10-7v7" />
-        </>
-      )}
-      {type === 'elite' && (
-        <>
-          <path d="m4 5 4 4 4-6 4 6 4-4-2 10H6ZM7 19h10M9 15l-1 4m7-4 1 4" />
-          <path d="m10 10 2 3 2-3" />
-        </>
-      )}
-      {type === 'boss' && (
-        <>
-          <path d="m3 20 3-9 3 2 3-9 3 9 3-2 3 9ZM6 20h12M10 17h4M12 1v1" />
-          <path d="m3 3 2 2m16-2-2 2" />
-        </>
-      )}
-    </svg>
-  );
-}
 
 function Gold({ amount }: { amount: number }) {
   return (
@@ -278,193 +225,6 @@ function SceneArt({ kind }: { kind: 'rest' | 'shop' | 'event' | 'relic' }) {
   );
 }
 
-const mapHeight = 1170;
-function mapPoint(node: MapNode, floors: number) {
-  return {
-    x: 140 + node.lane * 180,
-    y: 70 + (floors - node.floor) * ((mapHeight - 140) / Math.max(1, floors - 1)),
-  };
-}
-
-function MapScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAction'>) {
-  const scroller = useRef<HTMLDivElement>(null);
-  const available = getAvailableNodes(state);
-  const availableIds = new Set(available.map((node) => node.id));
-  const visitedIds = new Set(state.visited);
-  const byId = new Map(state.map.nodes.map((node) => [node.id, node]));
-  const nextFloor = available[0]?.floor ?? Math.min(state.floor + 1, state.map.floors);
-  useEffect(() => {
-    const target = state.map.nodes.find((node) => node.floor === nextFloor);
-    if (scroller.current && target)
-      scroller.current.scrollTop = Math.max(
-        0,
-        mapPoint(target, state.map.floors).y - scroller.current.clientHeight * 0.67,
-      );
-  }, [nextFloor, state.map]);
-  return (
-    <>
-      <ScreenHeading
-        kicker="ACT I · 岩の目覚め"
-        title="じっと教の塔"
-        text="道を選び、岩の頂へ。光る地点へ進むことができます。"
-      >
-        <span className="run-seed">
-          <Icon name="mountain" size={14} /> SEED <b>{state.seed}</b>
-        </span>
-      </ScreenHeading>
-      <div className="run-map-layout">
-        <aside className="run-map-sidebar">
-          <div className="run-map-chapter">
-            <span>第一層</span>
-            <h2>不動の回廊</h2>
-            <p>
-              上へ、上へ。
-              <br />
-              じっとしてても、冒険は進む。
-            </p>
-            <div className="run-floor-progress">
-              <span style={{ width: `${(state.visited.length / state.map.floors) * 100}%` }} />
-            </div>
-            <small>
-              {state.visited.length} / {state.map.floors} フロア踏破
-            </small>
-          </div>
-          <div className="run-map-next">
-            <p className="section-kicker">NEXT DESTINATION</p>
-            <h3>次の目的地</h3>
-            <p>第 {nextFloor} フロア</p>
-            <div>
-              {available.map((node) => (
-                <button
-                  key={node.id}
-                  onClick={() => onAction({ type: 'chooseNode', nodeId: node.id })}
-                  className="run-next-choice"
-                >
-                  <NodeIcon type={node.type} size={20} />
-                  <span>
-                    {nodeLabels[node.type].name}
-                    <small>
-                      {node.lane === 0 ? '左の道' : node.lane === 1 ? '中央の道' : '右の道'}
-                    </small>
-                  </span>
-                  <Icon name="chevron" size={14} />
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="run-map-legend">
-            {(Object.keys(nodeLabels) as NodeType[]).map((type) => (
-              <div key={type} title={nodeLabels[type].description}>
-                <NodeIcon type={type} size={15} />
-                <span>{nodeLabels[type].name}</span>
-              </div>
-            ))}
-          </div>
-          <p className="run-map-note">
-            <Icon name="help" size={13} /> 接続された地点だけに進めます。
-            <br />
-            HP・デッキ・ゴールドは持ち越されます。
-          </p>
-        </aside>
-        <div className="run-map-panel">
-          <div className="run-map-scroll-hint">
-            <span>頂をめざして、上へ</span>
-            <span>⌃</span>
-          </div>
-          <div
-            className="run-map-scroll"
-            ref={scroller}
-            tabIndex={0}
-            aria-label="12フロアの分岐マップ。スクロールして全体を確認できます。"
-          >
-            <div className="run-map-graph" style={{ height: mapHeight }}>
-              <svg
-                className="run-map-lines"
-                viewBox={`0 0 640 ${mapHeight}`}
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <defs>
-                  <pattern id="run-map-dots" width="32" height="32" patternUnits="userSpaceOnUse">
-                    <circle cx="1" cy="1" r=".7" fill="#d5b575" opacity=".08" />
-                  </pattern>
-                </defs>
-                <rect width="640" height={mapHeight} fill="url(#run-map-dots)" />
-                {state.map.nodes.flatMap((node) =>
-                  node.connections.map((connection) => {
-                    const next = byId.get(connection);
-                    if (!next) return null;
-                    const from = mapPoint(node, state.map.floors);
-                    const to = mapPoint(next, state.map.floors);
-                    const traversed = visitedIds.has(node.id) && visitedIds.has(next.id);
-                    const upcoming = node.id === state.currentNodeId && availableIds.has(next.id);
-                    return (
-                      <path
-                        key={`${node.id}-${connection}`}
-                        d={`M${from.x} ${from.y} C${from.x} ${from.y - 45} ${to.x} ${to.y + 45} ${to.x} ${to.y}`}
-                        className={`run-map-connection${traversed ? ' is-traversed' : ''}${upcoming ? ' is-upcoming' : ''}`}
-                      />
-                    );
-                  }),
-                )}
-                {Array.from({ length: state.map.floors }, (_, index) => {
-                  const floor = index + 1;
-                  const point = mapPoint({ floor, lane: 0 } as MapNode, state.map.floors);
-                  return (
-                    <g key={floor}>
-                      <text x="25" y={point.y + 4} className="run-map-floor-number">
-                        {String(floor).padStart(2, '0')}
-                      </text>
-                      <path d={`M49 ${point.y}h21M570 ${point.y}h20`} stroke="#a18b5626" />
-                    </g>
-                  );
-                })}
-              </svg>
-              {state.map.nodes.map((node) => {
-                const point = mapPoint(node, state.map.floors);
-                const available = availableIds.has(node.id);
-                const visited = visitedIds.has(node.id);
-                const current = state.currentNodeId === node.id;
-                return (
-                  <div
-                    key={node.id}
-                    className={`run-map-node-wrap${available ? ' is-available' : ''}${visited ? ' is-visited' : ''}${current ? ' is-current' : ''}${node.type === 'boss' ? ' is-boss' : ''}`}
-                    style={{ left: `${(point.x / 640) * 100}%`, top: point.y }}
-                  >
-                    <button
-                      data-node-id={node.id}
-                      className="run-map-node"
-                      disabled={!available}
-                      onClick={() => onAction({ type: 'chooseNode', nodeId: node.id })}
-                      aria-label={`第${node.floor}フロア ${nodeLabels[node.type].name}${available ? '。選択できます' : current ? '。現在地' : visited ? '。踏破済み' : '。未到達'}`}
-                      title={nodeLabels[node.type].description}
-                    >
-                      <NodeIcon type={node.type} size={node.type === 'boss' ? 29 : 23} />
-                      {visited && <span className="run-node-check">✓</span>}
-                    </button>
-                    {(available || node.type === 'boss' || current) && (
-                      <span className="run-node-label">
-                        {current ? '現在地' : nodeLabels[node.type].name}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-              <span className="run-map-start">旅のはじまり</span>
-            </div>
-          </div>
-          <div className="run-map-panel-foot">
-            <span>
-              <i /> 選択可能
-            </span>
-            <span>✓ 踏破済み</span>
-            <span>第一層 · 全12フロア</span>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
 
 function RewardScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAction'>) {
   const reward = state.reward;
@@ -670,12 +430,13 @@ function ShopScreen({
         <div className="run-shop-cards">
           {shop?.cardIds.map((cardId) => {
             const bought = isPurchased('card', cardId);
+            const price = getShopCardPrice(state, cardId);
             return (
               <div className={`run-card-choice${bought ? ' is-bought' : ''}`} key={cardId}>
                 <CardView card={{ uid: `shop-${cardId}`, cardId, upgraded: false }} inspect />
                 <button
                   className="secondary-button"
-                  disabled={bought || state.gold < SHOP_PRICES.card}
+                  disabled={bought || state.gold < price}
                   onClick={() => onAction({ type: 'buyCard', cardId })}
                 >
                   {bought ? (
@@ -683,7 +444,7 @@ function ShopScreen({
                   ) : (
                     <>
                       <span>購入する</span>
-                      <Gold amount={SHOP_PRICES.card} />
+                      <Gold amount={price} />
                     </>
                   )}
                 </button>
@@ -746,12 +507,12 @@ function ShopScreen({
             <div>
               <small>デッキ整理 · 1度限り</small>
               <h3>教えを、ひとつ手放す</h3>
-              <p>デッキから選んだカード1枚を取り除きます。</p>
+              <p>デッキから選んだカード1枚を取り除きます。最低5枚は残します。</p>
             </div>
             <button
               className="secondary-button"
               disabled={
-                !!shop?.removed || state.gold < SHOP_PRICES.remove || state.deck.length <= 1
+                !!shop?.removed || state.gold < SHOP_PRICES.remove || state.deck.length <= 5
               }
               onClick={onRemove}
             >
@@ -1031,7 +792,7 @@ export function RunScreens({ state, onAction, onNewRun, onReplay, onTitle }: Run
               <div className="run-card-choice" key={card.uid}>
                 <CardView card={card} inspect />
                 {removing && (
-                  <button className="secondary-button danger-text" onClick={() => remove(card)}>
+                  <button className="secondary-button danger-text" disabled={state.deck.length <= 5 || state.gold < SHOP_PRICES.remove || !!state.shop?.removed} onClick={() => remove(card)}>
                     このカードを取り除く
                   </button>
                 )}

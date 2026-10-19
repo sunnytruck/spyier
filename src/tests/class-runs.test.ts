@@ -3,26 +3,30 @@ import { CARD_DEFINITIONS } from '../data/cards';
 import { createRun, reduceRun } from '../engine/run';
 import { deserializeRun, isValidRunState, serializeRun } from '../engine/runPersistence';
 import type { ClassId } from '../types/game';
+import { createRoguelikeDriver } from './helpers/roguelikeDriver';
 import { chooseClassRunAction } from './helpers/classDriver';
 
-const routes: [ClassId, string][] = [
-  ['berserker', 'class-balance-1'],
-  ['assassin', 'class-balance-0'],
-  ['oracle', 'class-balance-8'],
-  ['necromancer', 'class-balance-0'],
-  ['machinist', 'class-balance-1'],
+const routes: [ClassId, string, 'safe' | 'local'][] = [
+  ['berserker', 'class-balance-1', 'safe'],
+  ['assassin', 'class-balance-0', 'local'],
+  ['oracle', 'class-balance-8', 'local'],
+  ['necromancer', 'class-balance-0', 'safe'],
+  ['machinist', 'class-balance-1', 'local'],
 ];
 
 describe('playable class campaigns through the first act', () => {
-  it.each(routes)('%s can reach and defeat the boss using only legal public actions', (classId, seed) => {
+  it.each(routes)('%s can defeat the boss using legal actions (%s, %s route)', (classId, seed, policy) => {
     let run = createRun(seed, classId);
+    // Route planning matters on the new graph. Each fixture documents its policy;
+    // all original seeds and victory/save assertions are retained.
+    const decide = policy === 'safe' ? createRoguelikeDriver('safe', seed) : chooseClassRunAction;
     let bossRewardSeen = false;
     let choiceSeen = false;
     for (let step = 0; step < 1500 && !['victory', 'defeat'].includes(run.screen); step++) {
       expect(isValidRunState(run), `${classId}: ${run.screen} at floor ${run.floor}`).toBe(true);
       const restored = deserializeRun(serializeRun(run));
       expect(restored).toEqual(run);
-      const action = chooseClassRunAction(run);
+      const action = decide(run);
       if (run.combat?.pendingChoice) choiceSeen = true;
       if (run.screen === 'reward') {
         for (const id of run.reward!.cardIds) expect(CARD_DEFINITIONS[id].classId).toBe(classId);

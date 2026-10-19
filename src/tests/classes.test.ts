@@ -7,6 +7,7 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import catalog from '../data/sourceCards.generated.json';
 import { canPlayCard, createCombat, getCardCost, getEnemies, reduceCombat } from '../engine';
 import { createRun, getAvailableNodes, reduceRun } from '../engine/run';
+import { getPendingChoiceCards } from '../engine/actions/choices';
 import type { ClassId, CombatState } from '../types/game';
 
 describe('selectable classes and legacy compatibility', () => {
@@ -103,9 +104,9 @@ describe('implemented card provenance and effect execution', () => {
       const filler = Array.from({ length: 20 }, (_, index) => ({ uid: `filler-${index}`, cardId: 'still_guard', upgraded: false }));
       state.deck = [played, ...filler];
       state.hand = [played, ...filler.slice(0, 3)];
-      state.drawPile = filler.slice(3);
-      state.discardPile = [];
-      state.exhaustPile = [];
+      state.drawPile = filler.slice(3, 14);
+      state.discardPile = filler.slice(14, 18);
+      state.exhaustPile = filler.slice(18);
       state.powers = [];
       state.energy = 5;
       state.player.block = 4;
@@ -115,12 +116,17 @@ describe('implemented card provenance and effect execution', () => {
       };
       state.enemy.hp = 500;
       state.enemy.maxHp = 500;
+      // Conditional/scaling cards need their real prerequisites, not an empty
+      // state in which the source explicitly says that their effect is zero.
+      state.enemy.poison = 2;
+      state.enemy.vulnerable = 2;
+      state.enemy.doom = 9;
       const before = structuredClone(state);
       expect(canPlayCard(state, played.uid)).toBe(true);
       const expectedEnergyAfterPayment = state.energy - getCardCost(played, state);
       let after = reduceCombat(state, { type: 'playCard', cardId: played.uid });
       for (let count = 0; after.pendingChoice && count < 5; count++)
-        after = reduceCombat(after, { type: 'chooseCards', cardIds: after.hand.slice(0, after.pendingChoice.amount).map((instance) => instance.uid) });
+        after = reduceCombat(after, { type: 'chooseCards', cardIds: getPendingChoiceCards(after).slice(0, after.pendingChoice.amount).map((instance) => instance.uid) });
       expect(after.pendingChoice).toBeUndefined();
       expect(after.stats.cardsPlayed).toBe(1);
       expect(after.phase).toBe('player');
@@ -134,6 +140,8 @@ describe('implemented card provenance and effect execution', () => {
         hand: combat.hand.filter((instance) => instance.uid !== played.uid),
         exhaust: combat.exhaustPile.filter((instance) => instance.uid !== played.uid),
         generated: combat.generatedCards ?? [],
+        scheduled: combat.scheduledEffects ?? [],
+        temporary: combat.turnModifiers ?? [],
       });
       const onlyPayment = { ...before, energy: expectedEnergyAfterPayment };
       expect(actualEffect(after)).not.toEqual(actualEffect(onlyPayment));

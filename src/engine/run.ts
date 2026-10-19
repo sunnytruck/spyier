@@ -11,8 +11,13 @@ import { getCardPool } from './cardPools';
 import type { CardAcquisitionSource } from './cardPools';
 import { generateMap } from './map';
 import { nextRandom, seedToState, shuffle } from './random';
+import { newShopCardPrice, sampleCardRewards } from './rewards';
 
 export const SHOP_PRICES = { card: 55, relic: 120, potion: 35, remove: 60 } as const;
+
+export function getShopCardPrice(state: Pick<RunState, 'shop'>, cardId: string): number {
+  return state.shop?.cardPrices?.[cardId] ?? SHOP_PRICES.card;
+}
 
 function log(state: RunState, message: string): void {
   state.log.push(message);
@@ -31,6 +36,21 @@ function pick<T>(state: RunState, values: readonly T[]): T | undefined {
 }
 
 function cardChoices(state: RunState, source: CardAcquisitionSource): string[] {
+  if (state.rewardRules === 'rarity-v1' && state.classId) {
+    const pool = getCardPool(state.classId, source);
+    const nodeType = state.map.nodes.find((node) => node.id === state.currentNodeId)?.type;
+    const tier = source === 'shop' ? 'shop' : nodeType === 'boss' ? 'boss' : nodeType === 'elite' ? 'elite' : 'battle';
+    const ownPool = source === 'shop' ? pool.filter((id) => CARD_DEFINITIONS[id].classId === state.classId) : pool;
+    const drawn = sampleCardRewards(ownPool, state.rngState, tier, source === 'shop' ? 2 : 3);
+    state.rngState = drawn.rngState;
+    if (source === 'shop') {
+      const commonPool = pool.filter((id) => CARD_DEFINITIONS[id].classId === 'colorless');
+      const colorless = sampleCardRewards(commonPool, state.rngState, 'shop', 1, drawn.cardIds);
+      state.rngState = colorless.rngState;
+      drawn.cardIds.push(...colorless.cardIds);
+    }
+    return drawn.cardIds;
+  }
   // Preserve the existing seeded, uniform draw without replacement; rarity was display metadata.
   const result = shuffle(getCardPool(state.classId, source), state.rngState);
   state.rngState = result.rngState;
@@ -89,7 +109,7 @@ export function createRun(seed = 'IWASON-SPIRE', classId?: ClassId): RunState {
   return {
     version: 2,
     seed: normalizedSeed,
-    ...(profession ? { classId: profession.id } : {}),
+    ...(profession ? { classId: profession.id, rewardRules: 'rarity-v1' as const } : {}),
     rngState: seedToState(`${normalizedSeed}:run`),
     screen: 'map',
     floor: 0,
@@ -244,8 +264,10 @@ function enterNode(state: RunState, node: MapNode): void {
     return;
   }
   if (node.type === 'shop') {
+    const cardIds = cardChoices(state, 'shop');
     state.shop = {
-      cardIds: cardChoices(state, 'shop'),
+      cardIds,
+      ...(state.rewardRules === 'rarity-v1' ? { cardPrices: Object.fromEntries(cardIds.map((id) => [id, newShopCardPrice(id)])) } : {}),
       relicId: availableRelic(state),
       potionId: pick(state, POTION_IDS) ?? null,
       purchased: [],
@@ -364,11 +386,11 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
       !state.shop ||
       !state.shop.cardIds.includes(action.cardId) ||
       state.shop.purchased.includes(`card:${action.cardId}`) ||
-      state.gold < SHOP_PRICES.card
+      state.gold < getShopCardPrice(state, action.cardId)
     )
       return state;
     const next = structuredClone(state);
-    next.gold -= SHOP_PRICES.card;
+    next.gold -= getShopCardPrice(state, action.cardId);
     next.shop!.purchased.push(`card:${action.cardId}`);
     addCard(next, action.cardId);
     return next;

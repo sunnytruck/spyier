@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CARD_DEFINITIONS } from '../data/cards';
-import { createCombat, getCardCost, getEnemies, reduceCombat } from '../engine';
+import { createCombat, getCardCost, getEnemies, getEnemyKey, reduceCombat } from '../engine';
 import { serializeGame, deserializeGame } from '../engine/persistence';
 import { getCardRuntimeInfo } from '../presentation/cardRuntime';
 import { getCardPresentation } from '../presentation/cardUpgrade';
@@ -28,6 +28,12 @@ function fixture(cardId: string, upgraded = false, multi = false): CombatState {
 const info = (state: CombatState, card = state.hand[0]) => getCardRuntimeInfo(card, state)!;
 const fact = (state: CombatState, type: string) => info(state).facts.find((entry) => entry.key.endsWith(`:${type}`))!;
 const play = (state: CombatState) => reduceCombat(state, { type: 'playCard', cardId: state.hand[0].uid });
+
+function addCards(state: CombatState, zone: 'hand' | 'drawPile' | 'discardPile' | 'exhaustPile', amount: number) {
+  const cards = Array.from({ length: amount }, (_, index) => ({ uid: `runtime-${zone}-${index}`, cardId: 'still_guard', upgraded: false }));
+  state.deck.push(...cards);
+  state[zone].push(...cards);
+}
 
 describe('runtime card facts use the actual combat rules', () => {
   it.each([false, true])('star burst reads this-turn gains, applies attack modifiers, and does not spend cumulative stars (%s)', (upgraded) => {
@@ -206,5 +212,261 @@ describe('runtime card facts use the actual combat rules', () => {
         expect(getCardRuntimeInfo(card, restored!)).toEqual(preview);
       }
     }
+  });
+});
+
+describe('expanded cards show canonical dynamic and delayed effects', () => {
+  it.each([false, true])('hand-scaling damage excludes the card being played and preserves preview state (%s)', (upgraded) => {
+    const state = fixture('assassin_focused_blade', upgraded);
+    addCards(state, 'hand', 5);
+    state.player.strength = 2;
+    const saved = serializeGame(state);
+    const preview = fact(state, 'damage');
+    expect(preview.summary).toContain('他の手札5');
+    expect(preview.amount).toBe(500 - play(state).enemy.hp);
+    expect(serializeGame(state)).toBe(saved);
+  });
+
+  it.each(['berserker_ash_strike', 'colorless_mind_blast', 'necromancer_deadline'])('%s reads the actual discard/exhaust/draw/doom combat quantity', (cardId) => {
+    const state = fixture(cardId);
+    addCards(state, 'exhaustPile', 3);
+    addCards(state, 'drawPile', 5);
+    state.enemy.doom = 17;
+    state.player.strength = 2;
+    state.player.weak = 1;
+    expect(fact(state, 'damage').amount).toBe(500 - play(state).enemy.hp);
+  });
+
+  it.each([false, true])('vulnerability-based damage and conditional hits follow the selected enemy (%s)', (upgraded) => {
+    const state = fixture('berserker_bully', upgraded, true);
+    const enemies = getEnemies(state);
+    enemies[0].vulnerable = 1;
+    enemies[1].vulnerable = 3;
+    state.selectedEnemyId = getEnemyKey(enemies[1]);
+    expect(fact(state, 'damage').amount).toBe(500 - getEnemies(play(state))[1].hp);
+    const repeated = fixture('berserker_dismantle', upgraded);
+    repeated.enemy.vulnerable = 1;
+    repeated.player.strength = 2;
+    const hit = fact(repeated, 'damage');
+    expect(hit.summary).toContain(`${hit.amount}×2回`);
+    expect(500 - play(repeated).enemy.hp).toBe(hit.amount! * 2);
+    repeated.enemy.vulnerable = 0;
+    expect(fact(repeated, 'damage').summary).not.toContain('×2回');
+  });
+
+  it.each(['berserker_whirlwind', 'assassin_skewer', 'necromancer_eradicate', 'oracle_heavenly_drill'])('%s previews X=0/2/4 and normal/upgraded actual hit counts', (cardId) => {
+    for (const upgraded of [false, true]) {
+      for (const energy of [0, 2, 4]) {
+        const state = fixture(cardId, upgraded, true);
+        state.energy = energy;
+        state.player.strength = 1;
+        const preview = fact(state, 'damage');
+        const result = play(state);
+        const hits = cardId === 'oracle_heavenly_drill' && energy >= 4 ? energy * 2 : energy;
+        expect(preview.summary).toContain(`X＝${energy}`);
+        if (hits === 0) {
+          expect(preview.amount).toBe(0);
+          expect(preview.summary).toContain('攻撃0回');
+          expect(result.enemy.hp).toBe(500);
+        } else {
+          expect(500 - result.enemy.hp).toBe(preview.amount! * hits);
+          expect(preview.summary).toContain(`×${hits}回`);
+        }
+        expect(result.energy).toBe(0);
+      }
+    }
+  });
+
+  it('all-enemy attack previews apply each enemy vulnerability separately', () => {
+    const state = fixture('oracle_stellar_wave', false, true);
+    getEnemies(state)[1].vulnerable = 1;
+    const result = play(state);
+    const summary = fact(state, 'damage').summary;
+    for (const [index, enemy] of getEnemies(state).entries())
+      expect(summary).toContain(`${enemy.name} ${500 - getEnemies(result)[index].hp}`);
+  });
+
+  it.each(['assassin_mirage', 'colorless_stack'])('%s previews canonical scaled block including defense gauge bonus', (cardId) => {
+    const state = fixture(cardId, true, true);
+    state.jitto = 50;
+    state.player.block = 7;
+    state.enemy.poison = 3;
+    getEnemies(state)[1].poison = 5;
+    addCards(state, 'discardPile', 4);
+    expect(fact(state, 'block').amount).toBe(play(state).player.block - 7);
+  });
+
+  it('all-enemy doom shows exact accumulation with unique React fact keys', () => {
+    const state = fixture('necromancer_deathbringer', true, true);
+    state.enemy.doom = 2;
+    getEnemies(state)[1].doom = 8;
+    const preview = info(state);
+    const result = play(state);
+    const doom = preview.facts.filter((entry) => entry.key.endsWith(':doom'));
+    expect(doom.map((entry) => entry.amount)).toEqual(getEnemies(result).map((enemy) => enemy.doom));
+    expect(new Set(preview.facts.map((entry) => entry.key)).size).toBe(preview.facts.length);
+    expect(doom[0].detail).toContain('毒を先に解決');
+    expect(result.phase).toBe('player');
+  });
+
+  it('orb-count hits, enemy-count channeling and type-count focus use the same engine scalars', () => {
+    const barrage = fixture('machinist_barrage');
+    barrage.classResources!.orbs = ['frost', 'lightning', 'frost'];
+    const hit = fact(barrage, 'damage');
+    expect(hit.summary).toContain('×3回');
+    expect(500 - play(barrage).enemy.hp).toBe(hit.amount! * 3);
+    barrage.classResources!.orbs = [];
+    expect(fact(barrage, 'damage').amount).toBe(0);
+    const channel = fixture('machinist_chill', false, true);
+    expect(fact(channel, 'channel').amount).toBe(2);
+    expect(play(channel).classResources!.orbs).toHaveLength(2);
+    const focused = fixture('machinist_synchrony');
+    focused.classResources!.focus = 1;
+    focused.classResources!.orbs = ['frost', 'lightning', 'frost'];
+    expect(fact(focused, 'focus').amount).toBe(play(focused).classResources!.focus);
+    expect(fact(focused, 'focus').summary).toBe('集中力 1 → 5（このターン）');
+  });
+
+  it.each([false, true])('X evoke includes consumed energy and handles zero-hit removal honestly (%s)', (upgraded) => {
+    for (const energy of [0, 3]) {
+      const state = fixture('machinist_multicast', upgraded);
+      state.energy = energy;
+      state.classResources!.orbs = ['lightning', 'frost'];
+      state.classResources!.focus = 2;
+      const times = energy + (upgraded ? 1 : 0);
+      const preview = fact(state, 'evoke');
+      const result = play(state);
+      expect(preview.summary).toBe(`右端の霜：7×${times}回解放`);
+      expect(preview.amount).toBe(times ? 7 : 0);
+      expect(result.player.block).toBe(7 * times);
+      expect(result.classResources!.orbs).toEqual(['lightning']);
+      if (!times) expect(preview.detail).toContain('0回でもオーブは取り除きます');
+    }
+  });
+
+  it('all-orb release describes the existing right-to-left order with focused values', () => {
+    const state = fixture('machinist_pulverize', false, true);
+    state.classResources!.orbs = ['lightning', 'lightning', 'frost'];
+    state.classResources!.focus = 2;
+    const preview = fact(state, 'evoke');
+    expect(preview.summary).toBe('右端から全3個：霜7×1回 → 雷10×1回 → 雷10×1回');
+    const result = play(state);
+    expect(result.classResources!.orbs).toEqual([]);
+    expect(result.player.block).toBe(7);
+    expect(result.stats.damageDealt).toBe(11 * 2 + 10 * 2);
+  });
+
+  it('random attack previews show a damage range without revealing targets or depending on hidden RNG state', () => {
+    const state = fixture('berserker_boomerang', false, true);
+    getEnemies(state)[1].vulnerable = 1;
+    const preview = info(state);
+    expect(fact(state, 'damage').summary).toBe('ランダムな生存敵に3〜4×3回');
+    for (const enemy of getEnemies(state)) expect(fact(state, 'damage').summary).not.toContain(enemy.name);
+    expect(fact(state, 'damage').amount).toBeUndefined();
+    state.rngState = (state.rngState + 101) >>> 0;
+    expect(info(state)).toEqual(preview);
+  });
+
+  it.each([false, true])('poison conditional only includes the additional poison fact when active (%s)', (upgraded) => {
+    const state = fixture('assassin_bubble', upgraded);
+    expect(fact(state, 'conditional').warning).toBe(true);
+    expect(info(state).facts.some((entry) => entry.key.endsWith(':status'))).toBe(false);
+    expect(play(state).enemy.poison).toBe(0);
+    state.enemy.poison = 2;
+    expect(fact(state, 'conditional').warning).toBe(false);
+    expect(fact(state, 'status').amount).toBe(play(state).enemy.poison);
+  });
+
+  it('attack-intent conditional uses the current announced action after preceding damage', () => {
+    const state = fixture('machinist_eye_poke');
+    expect(fact(state, 'status').amount).toBe(play(state).enemy.weak);
+    state.enemy.intent = { kind: 'defend', label: '休む', description: '何もしない' };
+    expect(fact(state, 'conditional').warning).toBe(true);
+    expect(info(state).facts.some((entry) => entry.key.endsWith(':status'))).toBe(false);
+  });
+
+  it.each([
+    { upgraded: false, played: 1, active: true }, { upgraded: false, played: 2, active: false },
+    { upgraded: true, played: 2, active: true }, { upgraded: true, played: 3, active: false },
+  ])('FTL counts this card: $played previous / upgraded=$upgraded', ({ upgraded, played, active }) => {
+    const state = fixture('machinist_ftl', upgraded);
+    addCards(state, 'drawPile', 3);
+    state.cardsPlayedThisTurn = played;
+    expect(fact(state, 'conditional').warning).toBe(!active);
+    expect(info(state).facts.some((entry) => entry.key.endsWith(':draw'))).toBe(active);
+    expect(play(state).hand).toHaveLength(active ? 1 : 0);
+  });
+
+  it.each([false, true])('delayed stars show the exact queued definition without applying it now (%s)', (upgraded) => {
+    const state = fixture('oracle_hidden_wealth', upgraded);
+    state.classResources!.stars = 10;
+    const preview = fact(state, 'nextTurn');
+    expect(preview.summary).toBe(`次ターン予約：星＋${upgraded ? 4 : 3}`);
+    expect(preview.amount).toBeUndefined();
+    const played = play(state);
+    expect(played.classResources!.stars).toBe(11);
+    expect(state.scheduledEffects).toBeUndefined();
+    const next = reduceCombat(played, { type: 'endTurn' });
+    expect(next.classResources!.starsGainedThisTurn).toBe(upgraded ? 4 : 3);
+    expect(next.classResources!.stars).toBe(11 + (upgraded ? 4 : 3));
+  });
+
+  it('delayed draw, block and summon/energy summaries describe definitions rather than guessed future state', () => {
+    expect(fact(fixture('oracle_guiding_star'), 'nextTurn').summary).toBe('次ターン予約：追加ドロー2枚');
+    expect(fact(fixture('oracle_glittering_torrent', true), 'nextTurn').summary).toBe('次ターン予約：7ブロック');
+    const state = fixture('necromancer_prayer', true);
+    state.classResources!.ostyHp = 9;
+    expect(fact(state, 'nextTurn').summary).toBe('次ターン予約：岩霊HP＋3 ／ エナジー＋3');
+    expect(play(state).classResources!.ostyHp).toBe(9);
+  });
+
+  it('next-turn energy facts accumulate the existing queue and stay distinct from current energy', () => {
+    const state = fixture('colorless_foresight', true);
+    state.classResources!.nextTurnEnergy = 2;
+    const preview = fact(state, 'nextTurnEnergy');
+    expect(preview.amount).toBe(5);
+    const played = play(state);
+    expect(played.classResources!.nextTurnEnergy).toBe(5);
+    expect(played.energy).toBe(state.energy - getCardCost(state.hand[0], state));
+    expect(reduceCombat(played, { type: 'endTurn' }).energy).toBe(state.maxEnergy + 5);
+  });
+
+  it('temporary strength and power facts match applied values and preserve permanent stacks after expiry', () => {
+    const strength = fixture('berserker_setup_strike');
+    strength.player.strength = 2;
+    const used = play(strength);
+    expect(fact(strength, 'temporaryStatus').amount).toBe(used.player.strength);
+    expect(used.player.strength).toBe(4);
+    expect(reduceCombat(used, { type: 'endTurn' }).player.strength).toBe(2);
+    const power = fixture('berserker_flame_barrier');
+    power.powerStacks = { thorns: 2 };
+    const protectedState = play(power);
+    expect(fact(power, 'temporaryPower').amount).toBe(protectedState.powerStacks!.thorns);
+    expect(protectedState.powerStacks!.thorns).toBe(6);
+    expect(reduceCombat(protectedState, { type: 'endTurn' }).powerStacks!.thorns).toBe(2);
+  });
+
+  it.each([false, true])('energy multiplication starts after actual card payment (%s)', (upgraded) => {
+    const state = fixture('machinist_double_energy', upgraded);
+    expect(fact(state, 'multiply').amount).toBe(play(state).energy);
+    expect(fact(state, 'multiply').summary).toBe(`エナジー ${5 - getCardCost(state.hand[0], state)} → ${play(state).energy}`);
+  });
+
+  it('draw-to and redraw counts exclude the current card and interactive choices stop later predictions', () => {
+    const draw = fixture('assassin_expertise');
+    addCards(draw, 'hand', 2);
+    addCards(draw, 'drawPile', 10);
+    expect(fact(draw, 'drawTo').amount).toBe(4);
+    expect(play(draw).hand).toHaveLength(6);
+    const redraw = fixture('assassin_gamble');
+    addCards(redraw, 'hand', 3);
+    expect(fact(redraw, 'redraw').amount).toBe(3);
+    const choice = fixture('machinist_salvage');
+    addCards(choice, 'hand', 2);
+    const before = serializeGame(choice);
+    expect(fact(choice, 'exhaustChoice').amount).toBe(1);
+    expect(info(choice).facts.some((entry) => entry.key.endsWith(':pendingChoice'))).toBe(true);
+    expect(info(choice).facts.some((entry) => entry.key.endsWith(':nextTurnEnergy'))).toBe(false);
+    expect(serializeGame(choice)).toBe(before);
   });
 });
