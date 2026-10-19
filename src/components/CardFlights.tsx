@@ -187,7 +187,7 @@ export function CardFlights({ cue, sequence, duration = 220, settings, busy }: C
   }, []);
 
   return createPortal(<div className="card-flights-overlay" aria-hidden="true">
-    <div className="card-flight-templates" ref={templates}>{cards.map((card: CardInstance) => <div key={card.uid}><CardView card={card} inspect /></div>)}</div>
+    <div className="card-flight-templates" ref={templates}>{cards.map((card: CardInstance) => <div key={card.uid}><CardView card={card} inspect showUpgradePreview={false} /></div>)}</div>
     <div ref={layer} className="card-flights-layer" />
   </div>, document.body);
 }

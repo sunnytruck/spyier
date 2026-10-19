@@ -1,8 +1,12 @@
+import { useEffect, useState } from 'react';
 import type { CardDefinition, CardInstance, CombatState } from '../types/game';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { canPlayCard, getCardCost } from '../engine';
 import { Icon } from './Icon';
 import { CLASS_DEFINITIONS } from '../data/classes';
+import { diffCardText, getCardPresentation, getCardUpgradePreview } from '../presentation/cardUpgrade';
+import { CardUpgradeToggle } from './CardUpgradeToggle';
+import '../styles/card-upgrade.css';
 
 const typeLabels = { attack: '攻撃', skill: 'スキル', power: 'パワー' };
 
@@ -57,6 +61,8 @@ export function CardView({
   inspect = false,
   position = 0,
   disabled = false,
+  showUpgradePreview = true,
+  highlightUpgradeChanges = false,
 }: {
   card: CardInstance;
   state?: CombatState;
@@ -64,25 +70,39 @@ export function CardView({
   inspect?: boolean;
   position?: number;
   disabled?: boolean;
+  showUpgradePreview?: boolean;
+  highlightUpgradeChanges?: boolean;
 }) {
+  const [showAfter, setShowAfter] = useState(false);
+  useEffect(() => setShowAfter(false), [card.uid, card.cardId, card.upgraded]);
   const definition = CARD_DEFINITIONS[card.cardId];
   if (!definition) return null;
+  const canToggle = inspect && showUpgradePreview && !card.upgraded;
+  const shownCard = canToggle && showAfter ? { ...card, upgraded: true } : card;
+  const presentation = getCardPresentation(shownCard)!;
+  const preview = getCardUpgradePreview(card)!;
+  const highlight = highlightUpgradeChanges || (canToggle && showAfter);
+  const comparison = shownCard.upgraded ? preview.before : preview.after;
+  const renderDifference = (value: string, other: string) => highlight
+    ? diffCardText(other, value).map((part, index) => part.changed
+      ? <mark className={`card-upgrade-change${shownCard.upgraded ? '' : ' is-before'}`} key={index}>{part.text}</mark>
+      : part.text)
+    : value;
   const playable = !!state && canPlayCard(state, card.uid) && !disabled;
-  const label = `${definition.name}${card.upgraded ? '＋' : ''}`;
-  const text = card.upgraded ? definition.upgradedDescription : definition.description;
-  const cost = definition.xCost ? 'X' : getCardCost(card, state);
+  const label = presentation.name;
+  const text = presentation.description;
+  const cost = definition.xCost ? 'X' : getCardCost(shownCard, state);
   const rarity = definition.rarity === 'rare' ? 'レア' : definition.rarity === 'uncommon' ? 'アンコモン' : 'コモン';
   const owner = definition.classId && definition.classId !== 'colorless'
     ? CLASS_DEFINITIONS[definition.classId].displayName
     : definition.classId === 'colorless' ? '無色・共通' : 'じっと教';
-  const upgradedCost = definition.xCost ? 'X' : definition.upgradedCost ?? definition.cost;
   const inner = (
     <>
       <div className="card-heading">
-        <span className="card-cost" title={definition.xCost ? '残りのエナジーをすべて消費' : `消費エナジー ${cost}`}>
+        <span className={`card-cost${highlight && preview.changes.cost ? ' card-upgrade-cost-changed' : ''}`} title={definition.xCost ? '残りのエナジーをすべて消費' : `消費エナジー ${cost}`}>
           {cost}
         </span>
-        <h3>{label}</h3>
+        <h3>{renderDifference(label, comparison.name)}</h3>
         <span className="card-type-symbol">
           <Icon
             name={
@@ -97,7 +117,7 @@ export function CardView({
         </span>
       </div>
       <CardArt definition={definition} />
-      <div className="card-description">{text}</div>
+      <div className="card-description">{renderDifference(text, comparison.description)}</div>
       {inspect && (
         <div className="card-metadata">
           <span>{owner}{definition.tokenOnly ? '・生成専用' : ''}</span>
@@ -109,25 +129,24 @@ export function CardView({
       <div className="card-footer">
         <span>
           {typeLabels[definition.type]}
-          {definition.defense ? '・防御' : ''}
-          {(card.upgraded ? definition.upgradedExhaust ?? definition.exhaust : definition.exhaust) ? '・廃棄' : ''}
-          {(card.upgraded ? definition.upgradedRetain ?? definition.retain : definition.retain) ? '・保留' : ''}
-          {definition.ethereal ? '・エセリアル' : ''}
+          {presentation.keywords.map((keyword) => (
+            <span key={keyword} className={highlight && !comparison.keywords.includes(keyword) ? 'card-upgrade-keyword-changed' : undefined}>・{keyword}</span>
+          ))}
         </span>
-        <span className="card-glyph">{card.upgraded ? '強化済' : '◆'}</span>
+        <span className="card-glyph">{shownCard.upgraded ? '強化済' : '◆'}</span>
       </div>
-      {inspect && !card.upgraded && (
-        <details className="card-upgrade-preview">
-          <summary>強化後を確認 <span>＋</span></summary>
-          <p><b>コスト {upgradedCost}</b>{definition.upgradedDescription}</p>
-        </details>
+      {canToggle && (
+        <div className="card-upgrade-inline">
+          <span className="card-upgrade-inline-stage" aria-live="polite">{showAfter ? '強化後のプレビュー' : '強化前'}</span>
+          <CardUpgradeToggle upgraded={showAfter} onToggle={() => setShowAfter((value) => !value)} />
+        </div>
       )}
       {!inspect && <span className="card-shortcut">{position < 5 ? position + 1 : ''}</span>}
     </>
   );
   if (inspect)
     return (
-      <article className={`game-card game-card--${definition.type} inspect-card`} data-card-id={definition.id}>{inner}</article>
+      <article className={`game-card game-card--${definition.type} inspect-card${canToggle && showAfter ? ' is-upgrade-preview' : ''}`} data-card-id={definition.id} data-upgraded={String(shownCard.upgraded)}>{inner}</article>
     );
   return (
     <button

@@ -29,6 +29,7 @@ import type { CombatCue } from './presentation/types';
 import './styles/game.css';
 import './styles/campaign.css';
 import './styles/class-system.css';
+import './styles/readability.css';
 
 const CardLibrary = lazy(() => import('./components/CardLibrary').then((module) => ({ default: module.CardLibrary })));
 

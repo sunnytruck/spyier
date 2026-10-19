@@ -1,0 +1,63 @@
+.card-upgrade-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid #c5a97166;
+  border-radius: 4px;
+  background: #1a231a;
+  color: #f0dbac;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+  cursor: pointer;
+}
+.card-upgrade-toggle:hover { background: #35402b; border-color: #d5bd82; }
+.card-upgrade-toggle:focus-visible { outline: 2px solid #f0d39a; outline-offset: 3px; }
+.card-upgrade-toggle[aria-pressed="true"] { color: #ccedb9; border-color: #a9c88c88; }
+.card-upgrade-toggle > span { font-size: 19px; line-height: 1; }
+.card-upgrade-inline { margin: 8px 13px 13px; border-top: 1px solid #bca77140; padding-top: 9px; }
+.card-upgrade-inline-stage { display: block; margin-bottom: 7px; color: #d6cfb5; font-size: 12px; line-height: 1.5; }
+.card-upgrade-change {
+  color: #e2ffc8;
+  background: #4561348c;
+  border-radius: 2px;
+  padding: 0 1px;
+  text-decoration: underline;
+  text-decoration-color: #c8e6ae99;
+  text-underline-offset: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.card-upgrade-change.is-before { color: #ffe2ad; background: #74582a66; text-decoration-color: #d8b675aa; }
+.card-upgrade-keyword-changed { color: #d5f4bd; text-decoration: underline; text-underline-offset: 3px; }
+.app .card-upgrade-cost-changed { outline: 2px solid #bedf95; outline-offset: 2px; }
+.app .game-card.is-upgrade-preview { border-color: #a9c787; }
+.card-upgrade-modal { width: min(100%, 650px); }
+.card-upgrade-context { margin: 0 0 14px; color: #e0dfcc; line-height: 1.85; font-size: 14px; overflow-wrap: anywhere; }
+.card-upgrade-comparison { width: 100%; min-width: 0; }
+.card-upgrade-toolbar { display: flex; gap: 15px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 15px; }
+.card-upgrade-stage { color: #e5d6ae; font-size: 15px; font-weight: 600; line-height: 1.6; }
+.card-upgrade-toolbar .card-upgrade-toggle { width: auto; min-width: 185px; }
+.card-upgrade-preview-face { width: min(100%, 340px); margin: 0 auto; }
+.app .card-upgrade-preview-face > .game-card.inspect-card { width: 100%; min-height: 320px; max-width: none; height: auto; }
+.app .card-upgrade-preview-face .card-heading { min-height: 62px; }
+.app .card-upgrade-preview-face .card-art { height: 95px; flex-basis: 95px; }
+.app .card-upgrade-preview-face .card-description { min-height: 95px; line-height: 1.9; font-size: 15px; }
+.card-upgrade-change-note { color: #e0dfc4; font-size: 14px; line-height: 1.85; margin: 17px 0 8px; overflow-wrap: anywhere; }
+.card-upgrade-safety-note { color: #babfac; font-size: 13px; line-height: 1.8; margin: 8px 0 0; }
+.card-upgrade-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; border-top: 1px solid #a99b6538; margin-top: 22px; padding-top: 18px; }
+.app .card-upgrade-actions > button { min-height: 46px; white-space: normal; line-height: 1.6; font-size: 14px; }
+.app .run-choice-preview-hint { color: #cccbab; font-style: normal; }
+@media (max-width: 600px) {
+  .card-upgrade-toolbar { gap: 9px; }
+  .card-upgrade-toolbar .card-upgrade-toggle { width: 100%; }
+  .card-upgrade-preview-face { width: 100%; max-width: 340px; }
+  .card-upgrade-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .card-upgrade-actions > .primary-button { order: -1; }
+  .app .card-upgrade-preview-face .card-description { font-size: 14px; }
+}

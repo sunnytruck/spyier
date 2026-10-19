@@ -1,0 +1,341 @@
+/* Functional text uses a local Japanese Gothic stack; ceremonial headings keep --serif.
+   Keep this sheet last so compact viewport rules cannot shrink essential information. */
+:root {
+  --sans: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, system-ui, sans-serif;
+  --readable-text: #e0e2cf;
+  --readable-muted: #b9bba5;
+  font-family: var(--sans);
+  font-size: 14px;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--sans);
+}
+
+.app :is(.primary-button, .secondary-button, .text-button, .end-turn-button) {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: .035em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.app :is(.primary-button, .secondary-button) {
+  min-height: 44px;
+}
+.app :is(.primary-button, .secondary-button, .run-event-choice):disabled {
+  opacity: 1;
+  color: #b9bda8;
+  border-color: #606750;
+  background: #252b20;
+  box-shadow: none;
+}
+.app .run-event-choice:disabled b { color: #c7cbb5; }
+.app .is-bought > .game-card { opacity: 1; filter: saturate(.35); border-color: #65694f; }
+.app :is(.text-button, .nav-button) { color: #d0c6a8; }
+.app .nav-button { font-size: 13px; }
+.app :is(.eyebrow, .section-kicker) { font-size: 11px; line-height: 1.6; color: #c8b885; }
+.app .brand-title small { font-family: var(--sans); font-size: 10px; }
+.app :is(.title-description, .modal-intro, .run-heading-description, .run-facility-description,
+  .run-event-story, .run-result-description, .class-detail-copy > p,
+  .class-selection-heading > div > p:last-child) {
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.95;
+  color: var(--readable-text);
+  letter-spacing: .025em;
+  overflow-wrap: anywhere;
+}
+.app :is(.seed-field, .seed-field input, .seed-field > span) { font-size: 13px; }
+.app :is(.title-footer, .title-footer button, .title-footer > span:first-child,
+  .practice-start, .practice-resume) { font-size: 12px; line-height: 1.7; color: var(--readable-muted); }
+.app .title-facts > span { font-size: 12px; }
+
+/* Cards grow with their actual definition text, including long upgraded effects. */
+.game-card { font-family: var(--sans); }
+.game-card .card-heading {
+  height: auto;
+  min-height: 46px;
+  padding: 8px 10px;
+  align-items: center;
+}
+.game-card .card-heading h3 {
+  min-width: 0;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.55;
+  letter-spacing: .01em;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+}
+.game-card .card-cost { font-family: var(--sans); font-size: 19px; font-weight: 600; }
+.game-card .card-description {
+  display: block;
+  height: auto;
+  max-height: none;
+  min-height: 66px;
+  flex: 1 0 auto;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.8;
+  letter-spacing: .015em;
+  padding: 11px 12px 12px;
+  color: #e0e4cf;
+  white-space: pre-line;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: unset;
+}
+.game-card .card-footer {
+  height: auto;
+  min-height: 28px;
+  padding: 5px 0;
+  margin-bottom: 5px;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: .02em;
+  color: #c3c5ac;
+}
+.game-card .card-glyph { font-size: 10px; color: #d3c18d; }
+.game-card .card-type-symbol { opacity: 1; }
+.app .game-card.is-unplayable {
+  opacity: 1;
+  filter: saturate(.55);
+  border-color: #6d705b;
+  background: linear-gradient(115deg, #303328, #252c23 70%);
+}
+.app .game-card.is-unplayable .card-cost { color: #c2bda1; background: #242a20; }
+.app .game-card.is-unplayable .card-heading h3 { color: #cccfb9; }
+.app .battle-hand .battle-hand-slot > .game-card {
+  width: 184px;
+  min-width: 184px;
+  height: auto;
+  min-height: 254px;
+  flex-basis: 184px;
+}
+.app .battle-hand .card-art { height: 68px; }
+.app .battle-hand .card-description { min-height: 86px; }
+.app .battle-hand .hand-cards { align-items: flex-end; }
+.app .game-card.inspect-card {
+  height: auto;
+  min-height: 296px;
+  overflow: visible;
+}
+.app .inspect-card .card-heading h3 { font-size: 15px; font-weight: 700; }
+.app .inspect-card .card-description {
+  font-size: 14px;
+  line-height: 1.9;
+  padding: 13px 14px;
+  min-height: 82px;
+  color: #e0e4cf;
+}
+.app .inspect-card .card-footer { font-size: 11px; }
+.app :is(.card-metadata, .run-card-rarity) { font-size: 11px; line-height: 1.7; color: #c7bea0; }
+.app :is(.card-upgrade-preview, .card-upgrade-preview b, .run-upgrade-before) { font-size: 13px; line-height: 1.8; }
+.app .card-upgrade-preview summary { color: #ebcf8e; }
+.app .card-upgrade-preview p { color: #dce2c9; overflow-wrap: anywhere; }
+.app :is(.run-card-choice > .secondary-button, .run-skip-button,
+  .run-shop-item > .secondary-button, .run-upgrade-grid .secondary-button,
+  .run-deck-grid .run-card-choice > .secondary-button) { font-size: 14px; }
+.app :is(.run-deck-grid, .run-upgrade-grid, .run-shop-cards) .run-card-choice { min-width: 0; }
+
+/* Intent labels and numbers remain legible at compact desktop and mobile sizes. */
+.app .enemy-intent {
+  font-family: var(--sans);
+  max-width: min(270px, calc(100vw - 38px));
+  padding: 9px 12px;
+}
+.app .enemy-intent .intent-eyebrow {
+  font-family: var(--sans);
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: .015em;
+  color: #d0bb90;
+  white-space: normal;
+}
+.app .enemy-intent b {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: .02em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.app .enemy-intent small { font-size: 13px; line-height: 1.6; color: #d8cfb5; overflow-wrap: anywhere; }
+.app .enemy-intent strong { font-family: var(--sans); font-size: 16px; font-weight: 700; color: #f3c893; }
+.app .formation-enemy .enemy-intent { gap: 5px; padding: 8px; }
+.app .formation-enemy .enemy-status { top: 118px; left: 0; right: 0; justify-content: center; }
+.app .formation-enemy .status-chips { justify-content: center; max-width: 100%; }
+.app .status-chips { flex-wrap: wrap; }
+.app .status-chip { font-size: 12px; line-height: 1.4; padding: 3px 5px; min-width: 27px; }
+.app .status-chip b { font-family: var(--sans); font-size: 12px; }
+.app .status-strength { color: #d5dfaa; }
+.app .status-weak { color: #dfbae8; }
+.app .status-vulnerable { color: #efb49b; }
+.app :is(.status-poison, .status-stillness) { color: #c7dda8; }
+.app .tooltip {
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.7;
+  width: min(240px, calc(100vw - 40px));
+  color: #eee7cf;
+  background: #20271bf5;
+  overflow-wrap: anywhere;
+}
+.app .tooltip small { font-size: 12px; line-height: 1.8; color: #d0d4bb; }
+.app .actor-name h2 { font-family: var(--sans); font-size: 14px; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; }
+.app .actor-name > span { font-size: 10px; color: #b9b49a; }
+.app :is(.health-value b, .block-value b) { font-family: var(--sans); font-size: 14px; }
+.app .health-value > span { font-size: 11px; color: #c3c6ad; }
+.app .target-label { font-family: var(--sans); font-size: 11px; line-height: 1.5; letter-spacing: .01em; }
+.app :is(.class-combat-resources, .class-combat-resources .class-resource-name) { font-size: 13px; line-height: 1.7; }
+.app .class-combat-resources small { font-size: 11px; color: #bac5a6; }
+.app .class-combat-resources b { font-size: 15px; }
+.app .class-combat-resources > span { min-width: 0; overflow-wrap: anywhere; }
+.app .class-combat-resources .class-resource-name { white-space: normal; }
+.app :is(.pile-button > span, .pile-button--minor > span, .jitto-label,
+  .energy > div, .hand-heading h2, .battle-log-toggle) { font-size: 13px; }
+.app :is(.pile-button b small, .jitto-label small, .jitto-milestones,
+  .energy small, .hand-heading h2 > span, .hand-heading > p,
+  .shortcut-hint, .autosave-label, .seed-display, .turn-tag) { font-size: 11px; line-height: 1.6; color: #b8bca4; }
+.app .hand-heading { flex-wrap: wrap; gap: 8px 14px; }
+.app .hand-heading > p { flex-wrap: wrap; }
+.app .end-turn-button { height: auto; min-height: 46px; }
+.app .battle-log-toggle > span:nth-child(2) { white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
+.app .battle-log-panel li { font-size: 13px; line-height: 1.8; }
+.app :is(.battle-number > small, .card-drop-hint) { font-family: var(--sans); font-size: 12px; }
+.app .battle-skip-button { font-family: var(--sans); font-size: 13px; line-height: 1.6; }
+
+/* Room text is larger than metadata, with independent wrapping for choices. */
+.app :is(.run-event-choice b, .run-shop-item h3, .setting-row h3,
+  .relic-collection h3, .help-grid h3, .class-starting-relic b) { font-family: var(--sans); font-size: 15px; line-height: 1.6; color: #e5d7b3; }
+.app :is(.run-event-choice small, .run-shop-item p, .setting-row p,
+  .relic-collection p, .help-grid p, .status-guide p, .save-info p,
+  .class-starting-relic p) { font-family: var(--sans); font-size: 14px; line-height: 1.85; color: #c8cfb6; overflow-wrap: anywhere; }
+.app .run-event-choice { padding: 16px 18px; }
+.app .run-event-choice > span:not(.run-choice-number) { min-width: 0; }
+.app .run-event-choice b { letter-spacing: .02em; }
+.app .run-event-choice em { font-size: 13px; line-height: 1.7; color: #e5ac91; overflow-wrap: anywhere; }
+.app :is(.run-shop-item em, .run-shop-item > div > small, .run-small-note,
+  .run-shop-note, .run-future-act, .screen-notice, .result-note,
+  .class-detail-copy .class-pool-note, .class-detail-copy .class-rule-note,
+  .library-entry > p, .help-grid small) { font-family: var(--sans); font-size: 12px; line-height: 1.85; color: #bdc3a8; overflow-wrap: anywhere; }
+.app :is(.class-option small, .class-option-hp, .class-starter-count) { font-family: var(--sans); font-size: 12px; line-height: 1.8; color: #cad0b6; }
+.app .class-option b { font-family: var(--sans); font-size: 16px; }
+.app .class-detail-copy dl > div { font-size: 14px; line-height: 1.8; }
+.app .class-detail-copy dt { color: #b6c1a5; }
+.app :is(.library-controls label, .library-result-count, .reference-owner,
+  .reference-card dt, .reference-unavailable, .reference-card details) { font-size: 13px; line-height: 1.8; color: #c6cbb2; }
+.app :is(.library-controls select, .library-controls input, .library-controls .segmented-control button,
+  .segmented-control button, .reference-card dd) { font-size: 14px; }
+.app :is(.reference-status, .reference-card small) { font-size: 11px; line-height: 1.8; color: #bdc3aa; white-space: normal; }
+.app .reference-card-heading h3 { font-family: var(--sans); font-size: 16px; }
+.app :is(.run-map-chapter > p, .run-map-next > p:last-of-type,
+  .run-map-note, .run-map-legend > div) { font-size: 13px; line-height: 1.8; color: #bec6aa; }
+.app .run-next-choice > span { font-size: 13px; white-space: normal; }
+.app :is(.run-map-next .section-kicker, .run-map-chapter > span,
+  .run-map-chapter > small, .run-node-label, .run-map-scroll-hint,
+  .run-map-panel-foot, .run-map-panel-foot > span:last-child) { font-size: 11px; line-height: 1.6; color: #b7b89c; }
+.app .run-hud > :is(span, button) { font-family: var(--sans); font-size: 13px; }
+.app .run-hud small { font-family: var(--sans); font-size: 11px; color: #bbc5a5; }
+.app .potion-slot > span { font-size: 10px; color: #c6caa9; }
+.app .run-item-tooltip { font-family: var(--sans); font-size: 13px; line-height: 1.85; color: #d6dbc0; }
+.app .run-item-tooltip > b { font-size: 14px; }
+.app .run-scene-caption { font-family: var(--sans); font-size: 13px; line-height: 1.8; }
+.app :is(.pending-card-choice > button, .pending-choice-confirm > button,
+  .pending-choice-confirm > span) { font-size: 14px; }
+.app .run-reward-summary { font-size: 13px; flex-wrap: wrap; }
+.app :is(.run-victory-word, .run-reward-potion) { font-size: 13px; }
+.app .storage-warning { font-size: 13px; line-height: 1.8; }
+
+@media (max-width: 800px) {
+  .app .formation-enemy .enemy-intent b { font-size: 13px; }
+  .app .formation-enemy .enemy-intent small { font-size: 12px; }
+  .app .formation-enemy .intent-eyebrow { font-size: 10px; }
+  .app .formation-enemy .enemy-intent { top: -22px; }
+  .app .formation-enemy .actor-name h2 { font-size: 13px; }
+  .app .formation-enemy .health-info { width: 100%; }
+  .app .formation-enemy .health-value { min-width: 0; }
+  .app .formation-enemy .enemy-status { top: 128px; }
+  .app .topbar:has(.run-hud) { height: auto; min-height: 118px; }
+  .app .run-hud { flex-wrap: wrap; row-gap: 10px; }
+  .app .run-hud > :is(span, button) { font-size: 12px; }
+  .app .run-hud small { font-size: 10px; }
+  .app .setting-row { flex-wrap: wrap; gap: 14px; }
+  .app .setting-row > div:first-child { min-width: 0; }
+}
+
+@media (max-width: 600px) {
+  .app .battle-hand .battle-hand-slot > .game-card { width: 180px; min-width: 180px; min-height: 254px; flex-basis: 180px; }
+  .app .hand-heading > p { max-width: none; text-align: left; }
+  .app .battle-heading { flex-wrap: wrap; }
+  .app .battle-heading .eyebrow { font-size: 10px; flex-wrap: wrap; }
+  .app .battle-controls { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .app .pile-controls { grid-row: auto; grid-column: auto; gap: 22px; flex-wrap: wrap; }
+  .app .jitto-control { grid-row: auto; grid-column: auto; width: 100%; }
+  .app .turn-controls { grid-row: auto; grid-column: auto; width: 100%; justify-content: space-between; }
+  .app .end-turn-button { min-width: 145px; }
+  .app .battle-footer { flex-wrap: wrap; gap: 10px 16px; padding: 12px 0; }
+  .app .battle-log-toggle { flex: 1 0 100%; text-align: left; }
+  .app .battle-log-toggle > span:nth-child(2) { max-width: none; }
+  .app .battle-log-panel { bottom: 100px; }
+  .app .enemy-intent { min-width: 145px; }
+  .app .formation-enemy .enemy-intent { position: relative; left: auto; top: auto; transform: none; min-width: 0; max-width: 100%; width: 100%; flex-direction: column; align-items: center; gap: 3px; padding: 7px 4px; text-align: center; }
+  .app .formation-enemy .enemy-intent > div { width: 100%; }
+  .app .formation-enemy .enemy-intent small { max-width: none; }
+  .app .enemy-formation { align-items: stretch; padding-top: 16px; }
+  .app .formation-enemy { align-self: stretch; justify-content: flex-end; }
+  .app .formation-enemy .enemy-status { position: relative; top: auto; left: auto; right: auto; width: 100%; margin: 9px 0; }
+  .app .formation-enemy .status-chips { justify-content: center; max-width: 100%; }
+  .app .formation-enemy .character-stage { height: 150px; margin-top: auto; }
+  .app .formation-enemy .character-art { height: 145px; width: 130px; }
+  .app .formation-enemy .health-line { row-gap: 8px; }
+  .app .formation-enemy .health-track { flex-basis: 100%; min-width: 0; height: 5px; }
+  .app .formation-enemy .health-value b { font-size: 13px; }
+  .app .formation-enemy .health-value > span { font-size: 11px; }
+  .app .formation-enemy .target-label { font-size: 10px; padding: 3px 4px; }
+  .app .formation-enemy .status-chip { font-size: 11px; padding: 2px 4px; min-width: 25px; }
+  .app .formation-enemy .status-chip b { font-size: 11px; }
+  .app :is(.status-chip .tooltip, .enemy-status .tooltip) {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    top: auto;
+    bottom: 16px;
+    width: auto;
+    max-width: none;
+    transform: none;
+    z-index: 100;
+    padding: 12px 14px;
+  }
+  .app .multi-enemy .battle-arena { height: auto; min-height: 590px; grid-template-rows: 255px minmax(320px, auto); }
+  .app .multi-enemy .combatant--player { padding-bottom: 16px; }
+  .app .class-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .app .class-option { padding: 15px 12px; }
+  .app .class-option b { font-size: 15px; }
+  .app .run-facility-content h2 { line-height: 1.5; }
+  .app .run-event-choice { padding: 15px 13px; gap: 12px; }
+  .app .run-shop-supplies { grid-template-columns: 1fr; }
+  .app .run-screen-heading { flex-wrap: wrap; }
+  .app .run-screen-heading > .secondary-button { margin-top: 8px; }
+  .app .run-reward-cards { width: min(100%, 360px); }
+  .app .run-map-sidebar { flex-direction: column; }
+  .app .run-next-choice { padding: 12px; }
+  .app .run-map-panel-foot { flex-wrap: wrap; }
+  .app .run-node-label { max-width: 90px; text-align: center; white-space: normal; }
+  .app .class-detail-copy dl > div { grid-template-columns: 82px minmax(0, 1fr); gap: 10px; }
+  .app .library-controls .segmented-control { flex-wrap: wrap; }
+  .app .library-controls .segmented-control button { min-width: 100px; }
+  .app .modal { padding: 24px 18px; }
+  .app .modal-header h2 { line-height: 1.5; }
+}

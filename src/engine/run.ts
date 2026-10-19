@@ -4,7 +4,7 @@ import { BOSS_ENEMY_ID, ELITE_ENEMY_IDS, ENCOUNTER_GROUPS } from '../data/enemie
 import { EVENT_DEFINITIONS, EVENT_IDS } from '../data/events';
 import { POTION_IDS } from '../data/potions';
 import { RELIC_IDS } from '../data/relics';
-import type { ClassId, CombatAction } from '../types/game';
+import type { CardInstance, ClassId, CombatAction } from '../types/game';
 import type { MapNode, RunAction, RunReward, RunState } from '../types/run';
 import { createCombat, reduceCombat } from './index';
 import { getCardPool } from './cardPools';
@@ -150,6 +150,29 @@ export function canChooseEvent(state: RunState, index: number): boolean {
   )
     return false;
   return true;
+}
+
+export interface EventUpgradePreview {
+  upgrades: { before: CardInstance; after: CardInstance }[];
+}
+
+/**
+ * Inspect the existing seeded event outcome without committing it. The same public
+ * reducer decides the target, costs and effect order for preview and confirmation.
+ */
+export function previewRunEventChoice(state: RunState, index: number): EventUpgradePreview | null {
+  if (!canChooseEvent(state, index)) return null;
+  const choice = EVENT_DEFINITIONS[state.eventId!].choices[index];
+  if (!choice.effects.some((effect) => effect.type === 'upgrade')) return null;
+  const result = reduceRun(state, { type: 'eventChoice', index });
+  if (result === state) return null;
+  const upgrades = state.deck.flatMap((before) => {
+    const after = result.deck.find((card) => card.uid === before.uid);
+    return !before.upgraded && after?.upgraded
+      ? [{ before: { ...before }, after: { ...after } }]
+      : [];
+  });
+  return upgrades.length ? { upgrades } : null;
 }
 
 function enterNode(state: RunState, node: MapNode): void {

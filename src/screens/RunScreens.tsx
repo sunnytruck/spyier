@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { MapNode, NodeType, RunAction, RunState } from '../types/run';
 import type { CardInstance } from '../types/game';
 import { CARD_DEFINITIONS } from '../data/cards';
@@ -6,8 +6,10 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import { POTION_DEFINITIONS } from '../data/potions';
 import { EVENT_DEFINITIONS } from '../data/events';
 import { CLASS_DEFINITIONS } from '../data/classes';
-import { canChooseEvent, getAvailableNodes, SHOP_PRICES } from '../engine/run';
+import { canChooseEvent, getAvailableNodes, previewRunEventChoice, SHOP_PRICES } from '../engine/run';
 import { CardView } from '../components/CardView';
+import { CardUpgradePreview } from '../components/CardUpgradePreview';
+import { canUpgradeCard } from '../presentation/cardUpgrade';
 import { Icon } from '../components/Icon';
 import { Modal } from '../components/Modal';
 import { RockDeity } from '../components/CharacterArt';
@@ -554,8 +556,12 @@ function RelicScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAct
 
 function EventScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAction'>) {
   const event = state.eventId ? EVENT_DEFINITIONS[state.eventId] : null;
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const closePreview = useCallback(() => setPreviewIndex(null), []);
+  const preview = previewIndex === null ? null : previewRunEventChoice(state, previewIndex);
+  const previewChoice = previewIndex === null ? null : event?.choices[previewIndex];
   return (
-    <div className="run-facility-screen">
+    <><div className="run-facility-screen">
       <ScreenHeading
         kicker="A STRANGE ENCOUNTER"
         title={event?.title ?? '塔の出来事'}
@@ -569,18 +575,29 @@ function EventScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAct
           <div className="run-event-choices">
             {event?.choices.map((choice, index) => {
               const allowed = canChooseEvent(state, index);
+              const needsUpgrade = choice.effects.some((effect) => effect.type === 'upgrade');
+              const disabledReason = state.gold < (choice.goldCost ?? 0)
+                ? '必要なゴールドが足りません'
+                : state.hp <= (choice.hpCost ?? 0)
+                  ? '必要なHPが足りません'
+                  : needsUpgrade && !state.deck.some(canUpgradeCard)
+                    ? '強化できる未強化カードがありません'
+                    : 'この選択肢は現在利用できません';
               return (
                 <button
                   key={index}
                   className="run-event-choice"
                   disabled={!allowed}
-                  onClick={() => onAction({ type: 'eventChoice', index })}
+                  onClick={() => needsUpgrade
+                    ? setPreviewIndex(index)
+                    : onAction({ type: 'eventChoice', index })}
                 >
                   <span className="run-choice-number">{String(index + 1).padStart(2, '0')}</span>
                   <span>
                     <b>{choice.label}</b>
                     <small>{state.classId ? (choice.classDescription ?? choice.description) : choice.description}</small>
-                    {!allowed && <em>必要なHPまたはゴールドが足りません</em>}
+                    {allowed && needsUpgrade && <em className="run-choice-preview-hint">対象と強化内容を確認してから確定</em>}
+                    {!allowed && <em>{disabledReason}</em>}
                   </span>
                   <Icon name="arrow" size={17} />
                 </button>
@@ -590,6 +607,17 @@ function EventScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAct
         </div>
       </div>
     </div>
+    {preview && previewChoice && previewIndex !== null && (
+      <Modal title="教えを磨く前に" subtitle={event?.title} onClose={closePreview} className="card-upgrade-modal">
+        <p className="card-upgrade-context">{state.classId ? (previewChoice.classDescription ?? previewChoice.description) : previewChoice.description}</p>
+        <p className="card-upgrade-context">この出来事で強化されるカードです。対象は旅のシードで決まり、開き直しても変わりません。</p>
+        {preview.upgrades.map(({ before }) => <CardUpgradePreview key={before.uid} card={before} />)}
+        <div className="card-upgrade-actions">
+          <button className="secondary-button" onClick={closePreview}>選択肢に戻る</button>
+          <button className="primary-button" onClick={() => onAction({ type: 'eventChoice', index: previewIndex })}>強化を確定する <Icon name="flame" size={17} /></button>
+        </div>
+      </Modal>
+    )}</>
   );
 }
 
@@ -718,7 +746,7 @@ function ShopScreen({
 
 function RestScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAction'>) {
   const heal = Math.ceil(state.maxHp * 0.3);
-  const canUpgrade = state.deck.some((card) => !card.upgraded);
+  const canUpgrade = state.deck.some(canUpgradeCard);
   return (
     <div className="run-facility-screen">
       <ScreenHeading
@@ -767,7 +795,7 @@ function RestScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onActi
               <Icon name="arrow" size={17} />
             </button>
           </div>
-          <p className="run-small-note">選択すると休憩所を離れ、マップへ進みます。</p>
+          <p className="run-small-note">休息は選ぶと回復します。強化は対象と効果を確認し、確定してから休憩所を離れます。</p>
         </div>
       </div>
     </div>
@@ -775,13 +803,16 @@ function RestScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onActi
 }
 
 function UpgradeScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAction'>) {
-  const cards = state.deck.filter((card) => !card.upgraded);
+  const cards = state.deck.filter(canUpgradeCard);
+  const [selectedUid, setSelectedUid] = useState<string | null>(null);
+  const selectedCard = cards.find((card) => card.uid === selectedUid);
+  const closePreview = useCallback(() => setSelectedUid(null), []);
   return (
     <>
       <ScreenHeading
         kicker="REFINE YOUR TEACHING"
         title="ひとつの教えを、さらに深く。"
-        text="強化後の効果を確認し、カードを1枚選んでください。強化は1段階までです。"
+        text="強化するカードを選び、強化前と強化後を切り替えて確認できます。確定するまでは変更されません。"
       >
         <button className="secondary-button" onClick={() => onAction({ type: 'leaveNode' })}>
           休憩所に戻る
@@ -790,23 +821,29 @@ function UpgradeScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onA
       <div className="run-upgrade-grid">
         {cards.map((card) => (
           <div key={card.uid} className="run-card-choice">
-            <CardView card={{ ...card, upgraded: true }} inspect />
-            <p className="run-upgrade-before">
-              <b>強化前</b>
-              {CARD_DEFINITIONS[card.cardId]?.description}
-            </p>
+            <CardView card={card} inspect showUpgradePreview={false} />
             <button
               className="secondary-button"
-              onClick={() => onAction({ type: 'upgradeCard', cardUid: card.uid })}
+              onClick={() => setSelectedUid(card.uid)}
+              aria-label={`${CARD_DEFINITIONS[card.cardId]?.name}の強化内容を確認`}
             >
               <Icon name="flame" size={14} />
-              このカードを強化
+              強化内容を確認
             </button>
           </div>
         ))}
       </div>
       {cards.length === 0 && (
         <p className="run-empty-message">すべての教えが磨き上げられています。</p>
+      )}
+      {selectedCard && (
+        <Modal title={`${CARD_DEFINITIONS[selectedCard.cardId].name}を磨く`} subtitle="REFINE YOUR TEACHING" onClose={closePreview} className="card-upgrade-modal">
+          <CardUpgradePreview key={selectedCard.uid} card={selectedCard} />
+          <div className="card-upgrade-actions">
+            <button className="secondary-button" onClick={closePreview}>カード選択に戻る</button>
+            <button className="primary-button" onClick={() => onAction({ type: 'upgradeCard', cardUid: selectedCard.uid })}>強化を確定する <Icon name="flame" size={17} /></button>
+          </div>
+        </Modal>
       )}
     </>
   );
