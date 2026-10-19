@@ -125,7 +125,9 @@ export function resolveEndTurn(state: CombatState): void {
             const summonDamage = Math.min(state.classResources!.ostyHp, damage);
             state.classResources!.ostyHp -= summonDamage;
             appendLog(state, `全体攻撃が召喚体にも${summonDamage}ダメージ。`);
-            emitCombatCue(state, { kind: 'resource', sourceId: getEnemyKey(enemy), targetId: 'player', resource: 'ostyHp', amount: -summonDamage });
+            emitCombatCue(state, { kind: 'resource', sourceId: getEnemyKey(enemy), targetId: 'osty', resource: 'ostyHp', amount: -summonDamage, resourceAction: 'sweep', label: '全体攻撃で岩霊も被弾' });
+            if (state.classResources!.ostyHp === 0)
+              emitCombatCue(state, { kind: 'resource', sourceId: getEnemyKey(enemy), targetId: 'osty', resource: 'ostyHp', amount: 0, resourceAction: 'vanish', label: '岩霊の消滅' });
           }
           dealDamage(state, 'player', damage, false, undefined, { bypassSummon: intent.allTargets });
           if (state.phase === 'player' && (state.powerStacks?.thorns ?? 0) > 0) {

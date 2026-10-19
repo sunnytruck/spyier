@@ -1,0 +1,24 @@
+.card-runtime {
+  margin: 0 12px 9px;
+  padding: 8px 9px;
+  border: 1px solid #78b7b33d;
+  border-radius: 4px;
+  background: #112325e8;
+  color: #d2efeb;
+  font-family: var(--sans, "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif);
+  text-align: left;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.card-runtime-label { display: block; font-size: 11px; line-height: 1.5; color: #a4cfca; margin-bottom: 3px; }
+.card-runtime-fact { font-size: 12px; line-height: 1.7; }
+.card-runtime-fact + .card-runtime-fact { margin-top: 5px; }
+.card-runtime-fact > span { font-weight: 650; }
+.card-runtime-fact > small { display: block; color: #c1d5d1; font-size: 12px; line-height: 1.75; margin-top: 4px; }
+.card-runtime-note { display: block; font-size: 12px; line-height: 1.75; color: #aec5c2; margin-top: 7px; }
+.card-runtime.has-risk { border-color: #e49b7299; background: #371b18e8; }
+.card-runtime .is-risk { color: #ffb89a; }
+.app .inspect-card .card-runtime-fact { font-size: 13px; }
+@media (max-width: 600px) {
+  .card-runtime { margin-right: 10px; margin-left: 10px; padding: 7px; }
+}

@@ -14,13 +14,16 @@
 .battle-number > small { font-size: 10px; letter-spacing: 1px; margin-top: 7px; font-family: var(--sans); font-weight: 600; background: #171a13d9; border: 1px solid currentColor; padding: 3px 6px; border-radius: 2px; }
 .battle-number.number-compact > b { font-size: clamp(22px, 2.2vw, 31px); }
 .number-poison { color: #c8ec91; }
+.number-sacrifice { color: #ffaaa0; }
+.number-forge { color: #ffe2a1; }
+.number-guard, .number-doom { color: #d2c4ff; }
 .number-shield, .number-blocked, .number-frost { color: #b4e7f5; }
 .number-heal { color: #bcf3ad; }
 .number-strength { color: #f5bf8a; }
 .number-debuff { color: #e0b1d1; }
 .number-power, .number-stars { color: #ffe098; }
 .number-ghost, .number-sword { color: #d5c2ff; }
-.number-lightning { color: #baf1ff; }
+.number-lightning { color: #fff0b0; }
 .number-blocked > b { font-size: 22px; letter-spacing: 2px; }
 .battle-skip-button { font-size: 10px; color: #d5c795; border: 1px solid #9e895555; background: #1d251bcc; border-radius: 3px; padding: 7px 10px; cursor: pointer; white-space: nowrap; transition: border-color .15s, background .15s; }
 .battle-skip-button:hover { border-color: #cbb376; background: #3b3e2ccc; }

@@ -3,7 +3,7 @@ import { isRelicEligible, RELIC_DEFINITIONS, type RelicDefinition, type RelicTri
 import type { CardInstance, CombatState } from '../../types/game';
 import { drawInto } from '../actions/draw';
 import { appendLog, applyGauge, gainBlock, healPlayer } from './state';
-import { emitCombatCue } from '../../presentation/trace';
+import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace';
 import { channelOrbs, generateCards, resources } from './resources';
 import { getEnemies, getEnemyKey } from './targets';
 
@@ -72,6 +72,8 @@ export function triggerRelics(state: CombatState, trigger: RelicTrigger, context
     state.relicCounters![id] = (state.relicCounters![id] ?? 0) + 1;
     const { kind, amount } = relic.effect;
     appendLog(state, `レリック「${relic.name}」が発動。`);
+    withCombatTraceContext(state, { sourceId: 'player', card: context.card, effect: 'relic', label: relic.name,
+      orbIndex: undefined, orbMode: undefined, resourceAction: 'relic' }, () => {
     switch (kind) {
       case 'block':
         gainBlock(state, 'player', amount);
@@ -116,16 +118,19 @@ export function triggerRelics(state: CombatState, trigger: RelicTrigger, context
         const current = resources(state);
         current.stars += amount;
         current.starsGainedThisTurn += amount;
-        emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'stars', amount, label: relic.name });
+        emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'stars', amount, label: relic.name, resourceAction: 'gain' });
         break;
       }
-      case 'summon':
+      case 'summon': {
+        const wasActive = (state.classResources?.ostyHp ?? 0) > 0;
         resources(state).ostyHp += amount;
-        emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'ostyHp', amount, label: relic.name });
+        emitCombatCue(state, { kind: 'resource', targetId: 'osty', resource: 'ostyHp', amount, label: relic.name, resourceAction: wasActive ? 'grow' : 'summon' });
         break;
+      }
       case 'frost':
         channelOrbs(state, 'frost', amount);
         break;
     }
+    });
   }
 }

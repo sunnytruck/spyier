@@ -891,7 +891,7 @@ function ResultScreen({
     <div className={`run-result-screen${won ? ' is-victory' : ''}`}>
       <div className="run-result-art">
         <div className="run-result-halo" />
-        <RockDeity deified={won} />
+        <RockDeity deified={won} classId={state.classId} />
       </div>
       <div className="run-result-content">
         <p className="eyebrow">

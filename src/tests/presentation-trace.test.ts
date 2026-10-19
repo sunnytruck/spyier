@@ -235,14 +235,14 @@ describe('card movements and interactive effect continuations', () => {
 
 describe('distinct effect cues for class resources, buffs and recovery', () => {
   it.each([
-    ['oracle_awe', 'stars', 2],
-    ['oracle_manifest', 'forge', 8],
-    ['necromancer_bodyguard', 'ostyHp', 5],
-    ['machinist_zap', 'lightning', 1],
-    ['machinist_hotfix', 'focus', 2],
-  ] as const)('%s records the exact gained %s resource separately from damage', (cardId, resource, amount) => {
+    ['oracle_awe', 'stars', 2, 'player'],
+    ['oracle_manifest', 'forge', 8, 'player'],
+    ['necromancer_bodyguard', 'ostyHp', 5, 'osty'],
+    ['machinist_zap', 'lightning', 1, 'orb-0'],
+    ['machinist_hotfix', 'focus', 2, 'player'],
+  ] as const)('%s records the exact gained %s resource separately from damage', (cardId, resource, amount, targetId) => {
     const captured = play(fixture(cardId));
-    expect(captured.cues).toContainEqual(expect.objectContaining({ kind: 'resource', sourceId: 'player', targetId: 'player', resource, amount }));
+    expect(captured.cues).toContainEqual(expect.objectContaining({ kind: 'resource', sourceId: 'player', targetId, resource, amount }));
     expect(impacts(captured.cues)).toEqual([]);
   });
 
@@ -272,7 +272,7 @@ describe('distinct effect cues for class resources, buffs and recovery', () => {
     const state = fixture('necromancer_unleash');
     state.classResources!.ostyHp = 5;
     const summoned = play(state);
-    expect(impacts(summoned.cues)).toEqual([expect.objectContaining({ sourceId: 'player', effect: 'summonDamage', amount: 11 })]);
+    expect(impacts(summoned.cues)).toEqual([expect.objectContaining({ sourceId: 'osty', effect: 'summonDamage', amount: 11 })]);
     const doomed = fixture('necromancer_doom_draw');
     doomed.enemy.hp = 10;
     const applied = play(doomed);

@@ -1,0 +1,13 @@
+/* Art stays independent of battle positioning and animation transforms. */
+.class-character-art { overflow: visible; }
+.class-character-art .keito-inscriptions { paint-order: stroke; stroke: #26392e; stroke-width: .45px; }
+.osty-art { display: block; width: 100%; height: auto; overflow: visible; }
+.osty-art.is-dormant .osty-vector-body { opacity: .32; filter: saturate(.3); }
+.class-selection-portrait { position: relative; margin: 0 0 20px; padding: 6px 12px 10px; border: 1px solid #b7a26635; border-radius: 8px; background: radial-gradient(ellipse at 50% 45%, #ad975319, transparent 70%), #101b1659; }
+.class-selection-portrait > .character-art { display: block; width: min(100%, 275px); height: 285px; margin: 0 auto; }
+.class-selection-portrait figcaption { text-align: center; color: #c9d0ba; font: 13px/1.6 var(--sans, sans-serif); }
+.class-selection-portrait figcaption span { display: inline-block; padding: 1px 8px; margin-right: 8px; border: 1px solid #b7a26655; border-radius: 3px; color: #e3cf9c; font-size: 12px; }
+@media (max-width: 700px) {
+  .class-selection-portrait { margin-bottom: 16px; }
+  .class-selection-portrait > .character-art { width: 220px; height: 235px; }
+}

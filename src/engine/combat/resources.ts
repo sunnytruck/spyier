@@ -4,6 +4,7 @@ import type {
   CardInstance,
   ClassResources,
   CombatState,
+  Effect,
   OrbType,
 } from '../../types/game';
 import { nextRandom } from '../random';
@@ -19,6 +20,36 @@ export const CLASS_RULES = {
   frostPassive: 2,
   frostEvoke: 5,
 } as const;
+
+/** The battle engine and its read-only HUD share these existing orb rules. */
+export function orbSlotCount(): number {
+  return CLASS_RULES.orbSlots;
+}
+
+export function nextOrbEvokeIndex(orbs: readonly OrbType[]): number | null {
+  return orbs.length ? orbs.length - 1 : null;
+}
+
+export function orbEffectValue(orb: OrbType, mode: 'passive' | 'evoke', focus: number): number {
+  const base = orb === 'frost'
+    ? mode === 'evoke' ? CLASS_RULES.frostEvoke : CLASS_RULES.frostPassive
+    : mode === 'evoke' ? CLASS_RULES.lightningEvoke : CLASS_RULES.lightningPassive;
+  return Math.max(0, Math.floor(base + focus));
+}
+
+/** Raw card attack value, before the shared strength/weak/vulnerable calculation. */
+export function attackCardBase(
+  state: CombatState,
+  effect: Extract<Effect, { type: 'damage' }>,
+  sourceCard?: CardInstance,
+): number {
+  return effect.amount +
+    (effect.fromBlock ? state.player.block : 0) +
+    (effect.fromForge ? state.classResources?.forge ?? 0 : 0) +
+    (sourceCard && CARD_DEFINITIONS[sourceCard.cardId]?.tags?.includes('knife')
+      ? state.powerStacks?.knifeDamage ?? 0 : 0) +
+    (state.jitto >= 100 ? effect.divineBonus ?? 0 : 0);
+}
 
 export function createClassResources(): ClassResources {
   return {
@@ -89,11 +120,22 @@ export function fetchGeneratedCard(state: CombatState, cardId: string): void {
   generateCards(state, cardId, 1, 'hand');
 }
 
-function triggerOrb(state: CombatState, orb: OrbType, evoke: boolean): void {
-  const focus = resources(state).focus;
+function triggerOrb(state: CombatState, orb: OrbType, evoke: boolean, index: number): void {
+  const amount = orbEffectValue(orb, evoke ? 'evoke' : 'passive', resources(state).focus);
+  const context = {
+    sourceId: `orb-${index}`,
+    effect: orb === 'frost' ? 'orbFrost' : 'orbLightning',
+    orbIndex: index,
+    orbMode: evoke ? 'evoke' as const : 'passive' as const,
+    resourceAction: 'activate',
+  };
+  const emitActivation = () => emitCombatCue(state, {
+    kind: 'resource', ...context, targetId: `orb-${index}`, resource: orb,
+    amount: 0, label: evoke ? '解放発動' : '自動発動',
+  });
   if (orb === 'frost') {
-    const amount = (evoke ? CLASS_RULES.frostEvoke : CLASS_RULES.frostPassive) + focus;
-    withCombatTraceContext(state, { sourceId: 'player', effect: 'orbFrost' }, () => gainBlock(state, 'player', Math.max(0, amount)));
+    emitActivation();
+    withCombatTraceContext(state, context, () => gainBlock(state, 'player', amount));
     return;
   }
   const enemies = getEnemies(state).filter((enemy) => enemy.hp > 0);
@@ -101,17 +143,18 @@ function triggerOrb(state: CombatState, orb: OrbType, evoke: boolean): void {
   const random = nextRandom(state.rngState);
   state.rngState = random.state;
   const enemy = enemies[Math.floor(random.value * enemies.length)];
-  const amount = (evoke ? CLASS_RULES.lightningEvoke : CLASS_RULES.lightningPassive) + focus;
-  withCombatTraceContext(state, { sourceId: 'player', effect: 'orbLightning' }, () => dealDamage(state, 'enemy', Math.max(0, amount), false, enemy));
+  emitActivation();
+  withCombatTraceContext(state, context, () => dealDamage(state, 'enemy', amount, false, enemy));
 }
 
 /** Repeating an evoke repeats the same rightmost orb, then removes it once. */
 export function evokeOrb(state: CombatState, times: number): void {
+  const index = nextOrbEvokeIndex(resources(state).orbs);
   const orb = resources(state).orbs.pop();
-  if (!orb) return;
-  emitCombatCue(state, { kind: 'resource', sourceId: 'player', targetId: 'player', resource: orb, amount: -1, label: '解放' });
+  if (!orb || index === null) return;
+  emitCombatCue(state, { kind: 'resource', sourceId: 'player', targetId: `orb-${index}`, resource: orb, amount: -1, label: '解放', orbIndex: index, orbMode: 'evoke', resourceAction: 'remove' });
   for (let hit = 0; hit < Math.max(0, times) && state.phase === 'player'; hit += 1)
-    triggerOrb(state, orb, true);
+    triggerOrb(state, orb, true, index);
   appendLog(state, `${orb === 'lightning' ? '雷' : '氷'}オーブを${times}回解放。`);
 }
 
@@ -122,19 +165,20 @@ export function channelOrbs(state: CombatState, orb: OrbType, amount: number): v
     count < Math.max(0, Math.floor(amount)) && state.phase === 'player';
     count += 1
   ) {
-    if (current.orbs.length >= CLASS_RULES.orbSlots) evokeOrb(state, 1);
+    if (current.orbs.length >= orbSlotCount()) evokeOrb(state, 1);
     if (state.phase === 'player') {
       current.orbs.push(orb);
-      emitCombatCue(state, { kind: 'resource', sourceId: 'player', targetId: 'player', resource: orb, amount: 1, label: '生成' });
+      const index = current.orbs.length - 1;
+      emitCombatCue(state, { kind: 'resource', sourceId: 'player', targetId: `orb-${index}`, resource: orb, amount: 1, label: '生成', orbIndex: index, orbMode: 'channel', resourceAction: 'channel' });
     }
   }
   appendLog(state, `${orb === 'lightning' ? '雷' : '氷'}オーブを${amount}個生成。`);
 }
 
 export function triggerPassiveOrbs(state: CombatState): void {
-  for (const orb of state.classResources?.orbs ?? []) {
+  for (const [index, orb] of (state.classResources?.orbs ?? []).entries()) {
     if (state.phase !== 'player') break;
-    triggerOrb(state, orb, false);
+    triggerOrb(state, orb, false, index);
   }
 }
 
@@ -151,5 +195,5 @@ export function summonAttack(
     appendLog(state, '召喚体がいないため、召喚攻撃は発動しない。');
     return;
   }
-  withCombatTraceContext(state, { sourceId: 'player', effect: 'summonDamage' }, () => dealDamage(state, 'enemy', amount + (plusSummonHp ? current.ostyHp : 0), false, enemy));
+  withCombatTraceContext(state, { sourceId: 'osty', effect: 'summonDamage' }, () => dealDamage(state, 'enemy', amount + (plusSummonHp ? current.ostyHp : 0), false, enemy));
 }

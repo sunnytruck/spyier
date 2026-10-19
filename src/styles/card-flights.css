@@ -37,6 +37,9 @@
   box-shadow: 0 0 22px #e8c06c77, inset 0 0 0 3px #1a211b;
 }
 .card-flight--exhaust .card-flight-face { border-color: #e99151; }
+.card-flight--generate.card-flight--knife .card-flight-face { border-color: #b5e8b2; box-shadow: 0 0 18px #7bd38c77, inset 0 0 0 3px #1a211b; }
+.card-flight--generate.card-flight--sword .card-flight-face { border-color: #ffe7ae; box-shadow: 0 0 26px #ffe1a199, inset 0 0 0 3px #29231c; }
+.card-flight--generate.card-flight--ghost .card-flight-face { border-color: #c9b7fb; box-shadow: 0 0 22px #aaa0f377, inset 0 0 0 3px #202036; }
 .card-flight--light { filter: none; }
 .card-flight-back {
   position: absolute;

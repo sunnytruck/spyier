@@ -1,0 +1,714 @@
+{
+  "sourceCommit": "60fd02d060c0570850911fd0fc23e6f532a582ba",
+  "format": "SHA-256 of complete serializeGame output after each public action",
+  "scenarios": [
+    {
+      "name": "orbs-overflow-repeat-passive-normal",
+      "classId": "machinist",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-machinist\",\"rngState\":729957532,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},\"enemies\":[{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},{\"id\":\"candle_moth\",\"name\":\"灯籠の石蛾\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"candle_moth-1\"}],\"selectedEnemyId\":\"grit_scout-0\",\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"machinist_cold_wave\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"machinist_dual_cast\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"machinist_hotfix\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"machinist_glacier\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-13\",\"cardId\":\"machinist_guard\",\"upgraded\":false}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"machinist_cold_wave\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"machinist_dual_cast\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"machinist_hotfix\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"machinist_glacier\",\"upgraded\":false}],\"drawPile\":[{\"uid\":\"baseline-4\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-13\",\"cardId\":\"machinist_guard\",\"upgraded\":false}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張り・灯籠の石蛾が立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"machinist\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":2,\"temporaryFocus\":0,\"orbs\":[\"lightning\",\"frost\",\"lightning\"],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "machinist_cold_wave",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "83b4adcdcea359c5d22650db2f1b7ce7a618b8345dabc93665930cd310344065",
+          "rngState": 2561523345
+        },
+        {
+          "label": "machinist_dual_cast",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "518f42c06354aff1a254300292c91b83b36dba88b2ab64edd835f0ab435bdd39",
+          "rngState": 2561523345
+        },
+        {
+          "label": "machinist_hotfix",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "1d7884efc2673f0dbf3fd16aa3f6b48b9c2714de16a09aa37f46fb4d4021f60f",
+          "rngState": 2561523345
+        },
+        {
+          "label": "machinist_glacier",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-3"
+          },
+          "sha256": "48c95e5b02b0552976007b6b63ee05c2f0d87f381d549fd12d0784d20725b3a0",
+          "rngState": 2561523345
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "7a27da1ebd42b21f9cb49a4c183465b794ad73389f55f0b74710e09a6cb05d38",
+          "rngState": 98121862
+        }
+      ]
+    },
+    {
+      "name": "orbs-negative-focus-normal",
+      "classId": "machinist",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-machinist\",\"rngState\":729957532,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},\"enemies\":[{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},{\"id\":\"candle_moth\",\"name\":\"灯籠の石蛾\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"candle_moth-1\"}],\"selectedEnemyId\":\"grit_scout-0\",\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"machinist_dual_cast\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"machinist_zap\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"machinist_hotfix\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"machinist_cold_wave\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-13\",\"cardId\":\"machinist_guard\",\"upgraded\":false}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"machinist_dual_cast\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"machinist_zap\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"machinist_hotfix\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"machinist_cold_wave\",\"upgraded\":false}],\"drawPile\":[{\"uid\":\"baseline-4\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"machinist_guard\",\"upgraded\":false},{\"uid\":\"baseline-13\",\"cardId\":\"machinist_guard\",\"upgraded\":false}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張り・灯籠の石蛾が立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"machinist\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":-6,\"temporaryFocus\":0,\"orbs\":[\"frost\",\"lightning\"],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "machinist_dual_cast",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "6a52d68898d61b362e5565ab7f3ab30f0df002e43455f33a97b1dc317b819d03",
+          "rngState": 98121862
+        },
+        {
+          "label": "machinist_zap",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "677ba73048d9ee57e884ca7f6e819446bf40de407f8568d1c485d716b4f53f8e",
+          "rngState": 98121862
+        },
+        {
+          "label": "machinist_hotfix",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "f98c7cb0e10ad0625246854c88d64db925f44729b5ca26d56aeabef3525a0fd6",
+          "rngState": 98121862
+        },
+        {
+          "label": "machinist_cold_wave",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-3"
+          },
+          "sha256": "04eda499b6cf1f2f03fb9def7c90834f9de8eb2bfb583fc3f30cb97d009339bb",
+          "rngState": 98121862
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "b7e964fa65493aa5684cb4a6a48183c87bccf14331d5260333e299b2c637186d",
+          "rngState": 1929687675
+        }
+      ]
+    },
+    {
+      "name": "stars-reference-forge-reset-normal",
+      "classId": "oracle",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-oracle\",\"rngState\":469051970,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},\"enemies\":[{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},{\"id\":\"candle_moth\",\"name\":\"灯籠の石蛾\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"candle_moth-1\"}],\"selectedEnemyId\":\"grit_scout-0\",\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"oracle_awe\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"oracle_star_burst\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"oracle_manifest\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"oracle_sword_grind\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-13\",\"cardId\":\"oracle_guard\",\"upgraded\":false}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"oracle_awe\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"oracle_star_burst\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"oracle_manifest\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"oracle_sword_grind\",\"upgraded\":false}],\"drawPile\":[{\"uid\":\"baseline-4\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-13\",\"cardId\":\"oracle_guard\",\"upgraded\":false}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張り・灯籠の石蛾が立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"oracle\",\"classResources\":{\"stars\":7,\"starsGainedThisTurn\":0,\"forge\":3,\"ostyHp\":0,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "oracle_awe",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "b3d149d6e2cd9d76f43f485189446d3167b5103d2e762fd510ca35cea96da60e",
+          "rngState": 469051970
+        },
+        {
+          "label": "oracle_star_burst",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "0bfda5c5d0f8f05e352d1f145864d4fbed745f15bf0e82c3465b3bf916fdcae2",
+          "rngState": 469051970
+        },
+        {
+          "label": "oracle_manifest",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "ff58b6d36ad88ddd02a7c5556b8ee886d8861dead1aad0e7ea084c88bdf12b4a",
+          "rngState": 469051970
+        },
+        {
+          "label": "token_sword",
+          "action": {
+            "type": "playCard",
+            "cardId": "generated-11"
+          },
+          "sha256": "5569315ff6656c54be3419cf080a9ee472c7122451ff20c67c0cdc49a651300c",
+          "rngState": 469051970
+        },
+        {
+          "label": "oracle_sword_grind",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-3"
+          },
+          "sha256": "8d216583bba352c73786b473d6d6df85b0359b55180d14fd0166775f0c75682d",
+          "rngState": 469051970
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "6250a2e4e1cbb3fed4f0901191d93d8f3d768234005b0a1a8c2d0c81bd692f81",
+          "rngState": 469051970
+        }
+      ]
+    },
+    {
+      "name": "summon-attack-block-guard-death-normal",
+      "classId": "necromancer",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-necromancer\",\"rngState\":2621153234,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":2,\"strength\":30,\"weak\":3,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2}},\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"necromancer_bodyguard\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"necromancer_unleash\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"necromancer_afterlife\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"necromancer_guard\",\"upgraded\":false}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"necromancer_bodyguard\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"necromancer_unleash\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"necromancer_afterlife\",\"upgraded\":false}],\"drawPile\":[{\"uid\":\"baseline-3\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"necromancer_guard\",\"upgraded\":false}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張りが立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"necromancer\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "necromancer_bodyguard",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "4b3ead450c49b1590f8be63e8cbd9e5b3030c9e8080d6e9294db4599bfc109c7",
+          "rngState": 2621153234
+        },
+        {
+          "label": "necromancer_unleash",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "764b1fc82b58485e4fac7331ba484ded9e1b7400a5e8e23d772ec50fdfd4ac11",
+          "rngState": 2621153234
+        },
+        {
+          "label": "necromancer_afterlife",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "8ce27737909d548c7dcef87e57845cbb74f6e8eed5cc7829f5f8a2dac17d6fd0",
+          "rngState": 2621153234
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "56c78c5e8fa826bbd65fa66f494d72263d123b78e4b610fe090c9b65c877c817",
+          "rngState": 2621153234
+        }
+      ]
+    },
+    {
+      "name": "summon-sweep-independent-hit-normal",
+      "classId": "necromancer",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-necromancer\",\"rngState\":3252988904,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":3,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"全体検証\",\"description\":\"プレイヤーと岩霊に10ダメージ。\",\"damage\":10,\"allTargets\":true}},\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"necromancer_soul_strike\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"necromancer_guard\",\"upgraded\":false}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"necromancer_soul_strike\",\"upgraded\":false}],\"drawPile\":[{\"uid\":\"baseline-1\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"necromancer_guard\",\"upgraded\":false}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張りが立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"necromancer\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":9,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "necromancer_soul_strike",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "5ae5a6292afb23341a36d0e564314acd6519775a986de6b1438dbd9c0a46a42e",
+          "rngState": 789587421
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "9c9d5d21667c735e5889fcf6d294718bbef02bac85e568559da6a0b6a1481d61",
+          "rngState": 789587421
+        }
+      ]
+    },
+    {
+      "name": "fist-hp-payment-strength-block-multihit-normal",
+      "classId": "berserker",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-berserker\",\"rngState\":1281755617,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":13,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2}},\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"berserker_inflame\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"berserker_offering\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"berserker_body_slam\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"berserker_challenge\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-13\",\"cardId\":\"berserker_guard\",\"upgraded\":false}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"berserker_inflame\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"berserker_offering\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"berserker_body_slam\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"berserker_challenge\",\"upgraded\":false}],\"drawPile\":[{\"uid\":\"baseline-4\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"berserker_guard\",\"upgraded\":false},{\"uid\":\"baseline-13\",\"cardId\":\"berserker_guard\",\"upgraded\":false}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張りが立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"berserker\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "berserker_inflame",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "0c6592f4eabd8a7c1e4d51db1a9a2209f81ea4a11c5283bc807f47603036f5db",
+          "rngState": 1281755617
+        },
+        {
+          "label": "berserker_offering",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "8ef267e9a259b3e72deb9b204ce7dc3f409553988497bd3e77c9047028edb823",
+          "rngState": 1281755617
+        },
+        {
+          "label": "berserker_body_slam",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "01eb128f8c87eb4c32b7d4005e03f79fb3eb5feee0066c3cff3e971aba3dd896",
+          "rngState": 1281755617
+        },
+        {
+          "label": "berserker_challenge",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-3"
+          },
+          "sha256": "b4461e744278ac690a1a7f1f6bd88768dd3565c0ecb147ca7b5696d7d3224560",
+          "rngState": 1281755617
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "acf55be2f3696f9a6cb85cc1bc975efcedc3941a422975dc30d270744fc7823b",
+          "rngState": 1281755617
+        }
+      ]
+    },
+    {
+      "name": "knife-generation-bonus-poison-tick-normal",
+      "classId": "assassin",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-assassin\",\"rngState\":2765094930,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":0,\"strength\":2,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":12,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2}},\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"assassin_accuracy\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"assassin_blade_dance\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"assassin_deadly_poison\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"assassin_guard\",\"upgraded\":false}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"assassin_accuracy\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"assassin_blade_dance\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"assassin_deadly_poison\",\"upgraded\":false}],\"drawPile\":[{\"uid\":\"baseline-3\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-11\",\"cardId\":\"assassin_guard\",\"upgraded\":false},{\"uid\":\"baseline-12\",\"cardId\":\"assassin_guard\",\"upgraded\":false}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張りが立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"assassin\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "assassin_accuracy",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "71eb238e8db503cfa6f059e13ffa9ef174e63e0f5dc581987d46e66bbfffd711",
+          "rngState": 2765094930
+        },
+        {
+          "label": "assassin_blade_dance",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "97d4054d5a434037680ae9e7d6228c4abbf3185c6c8246334333dcb9c53765f2",
+          "rngState": 2765094930
+        },
+        {
+          "label": "token_knife",
+          "action": {
+            "type": "playCard",
+            "cardId": "generated-6"
+          },
+          "sha256": "e5913620d7d0819e2b9cc1d1cebd4f3cf7f082952a9e5b29fc0a6731668c55de",
+          "rngState": 2765094930
+        },
+        {
+          "label": "assassin_deadly_poison",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "c5a2a80d60c3b0ef34d63b155eca81a74ae7957a2a7e36feaad08e383fa686ef",
+          "rngState": 2765094930
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "670a3f703fe9ae6efa8e7f913940529f281cac60321b159b8d699e6ffa2a6705",
+          "rngState": 2765094930
+        }
+      ]
+    },
+    {
+      "name": "orbs-overflow-repeat-passive-upgraded",
+      "classId": "machinist",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-machinist\",\"rngState\":729957532,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},\"enemies\":[{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},{\"id\":\"candle_moth\",\"name\":\"灯籠の石蛾\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"candle_moth-1\"}],\"selectedEnemyId\":\"grit_scout-0\",\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"machinist_cold_wave\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"machinist_dual_cast\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"machinist_hotfix\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"machinist_glacier\",\"upgraded\":true},{\"uid\":\"baseline-4\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-13\",\"cardId\":\"machinist_guard\",\"upgraded\":true}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"machinist_cold_wave\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"machinist_dual_cast\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"machinist_hotfix\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"machinist_glacier\",\"upgraded\":true}],\"drawPile\":[{\"uid\":\"baseline-4\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-13\",\"cardId\":\"machinist_guard\",\"upgraded\":true}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張り・灯籠の石蛾が立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"machinist\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":2,\"temporaryFocus\":0,\"orbs\":[\"lightning\",\"frost\",\"lightning\"],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "machinist_cold_wave",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "6cd2ed551528acbbcb830916a727be01829cdbbeb390065f560101b26aac3b46",
+          "rngState": 2561523345
+        },
+        {
+          "label": "machinist_dual_cast",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "7f98a706768c573ed176190367ecc1a3d9982143ecbea8907efba4ceba707ae2",
+          "rngState": 2561523345
+        },
+        {
+          "label": "machinist_hotfix",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "49888926dc5ad4cf7b684faabd42ca861f467537ec2ee57fca52812d42c551e3",
+          "rngState": 2561523345
+        },
+        {
+          "label": "machinist_glacier",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-3"
+          },
+          "sha256": "32b7e28c1fa8474ea23bed45ac14bbd7fa3f305cec5b27a8441fcbb5823d1826",
+          "rngState": 2561523345
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "1f7263873325a04f85364ecd9b42532384c77911d6d26e6520d5d6f24258d92e",
+          "rngState": 98121862
+        }
+      ]
+    },
+    {
+      "name": "orbs-negative-focus-upgraded",
+      "classId": "machinist",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-machinist\",\"rngState\":729957532,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},\"enemies\":[{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},{\"id\":\"candle_moth\",\"name\":\"灯籠の石蛾\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"candle_moth-1\"}],\"selectedEnemyId\":\"grit_scout-0\",\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"machinist_dual_cast\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"machinist_zap\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"machinist_hotfix\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"machinist_cold_wave\",\"upgraded\":true},{\"uid\":\"baseline-4\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-13\",\"cardId\":\"machinist_guard\",\"upgraded\":true}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"machinist_dual_cast\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"machinist_zap\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"machinist_hotfix\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"machinist_cold_wave\",\"upgraded\":true}],\"drawPile\":[{\"uid\":\"baseline-4\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"machinist_guard\",\"upgraded\":true},{\"uid\":\"baseline-13\",\"cardId\":\"machinist_guard\",\"upgraded\":true}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張り・灯籠の石蛾が立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"machinist\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":-6,\"temporaryFocus\":0,\"orbs\":[\"frost\",\"lightning\"],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "machinist_dual_cast",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "5636f8bfb208240c2708993c488c2337197fadba212dc4c951f69b05209a47c9",
+          "rngState": 98121862
+        },
+        {
+          "label": "machinist_zap",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "51904c65fcbafaf17e5ed12730687721be545c4e8fa67cae2598e564c190b710",
+          "rngState": 98121862
+        },
+        {
+          "label": "machinist_hotfix",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "75417ec949c289bf40dcb3b702f3a620d70d8e58e42109b033ae43c6efafef34",
+          "rngState": 98121862
+        },
+        {
+          "label": "machinist_cold_wave",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-3"
+          },
+          "sha256": "a4661e2c4acfea090320cefaa55b1ec4a725d7b1a5306f72aed879acecfd673f",
+          "rngState": 98121862
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "caea08ce1bfc92cfee69882118ac2ba2ded1748d2257c190ee4cc8d8c9044712",
+          "rngState": 1929687675
+        }
+      ]
+    },
+    {
+      "name": "stars-reference-forge-reset-upgraded",
+      "classId": "oracle",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-oracle\",\"rngState\":469051970,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},\"enemies\":[{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"grit_scout-0\"},{\"id\":\"candle_moth\",\"name\":\"灯籠の石蛾\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2},\"instanceId\":\"candle_moth-1\"}],\"selectedEnemyId\":\"grit_scout-0\",\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"oracle_awe\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"oracle_star_burst\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"oracle_manifest\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"oracle_sword_grind\",\"upgraded\":true},{\"uid\":\"baseline-4\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-13\",\"cardId\":\"oracle_guard\",\"upgraded\":true}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"oracle_awe\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"oracle_star_burst\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"oracle_manifest\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"oracle_sword_grind\",\"upgraded\":true}],\"drawPile\":[{\"uid\":\"baseline-4\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"oracle_guard\",\"upgraded\":true},{\"uid\":\"baseline-13\",\"cardId\":\"oracle_guard\",\"upgraded\":true}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張り・灯籠の石蛾が立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"oracle\",\"classResources\":{\"stars\":7,\"starsGainedThisTurn\":0,\"forge\":3,\"ostyHp\":0,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "oracle_awe",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "d28f44b0922eff3162ee8d18e6d8e85f150306991bc698f802e0d4e7df679a2d",
+          "rngState": 469051970
+        },
+        {
+          "label": "oracle_star_burst",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "1187e2df4e4e03c379d1b628e6bb0d1835f81bf68c6c5de862c50eb37de12e03",
+          "rngState": 469051970
+        },
+        {
+          "label": "oracle_manifest",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "769df21c76bcac9224f471be44fa028520e323a3bb60fdcff3609109d80c0dba",
+          "rngState": 469051970
+        },
+        {
+          "label": "token_sword",
+          "action": {
+            "type": "playCard",
+            "cardId": "generated-11"
+          },
+          "sha256": "a3a091c3351565f0537e20ae326a27469de409e42fbaa1cd9e135ff5f7735c5c",
+          "rngState": 469051970
+        },
+        {
+          "label": "oracle_sword_grind",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-3"
+          },
+          "sha256": "8657aab8a75b61b03171fa97b118f64f555ef0d4604bc116020c04996494cced",
+          "rngState": 469051970
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "ce5cb04087fe5e3760ef47a1295428b14ad8498c2ba9876610cbba524375aacc",
+          "rngState": 469051970
+        }
+      ]
+    },
+    {
+      "name": "summon-attack-block-guard-death-upgraded",
+      "classId": "necromancer",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-necromancer\",\"rngState\":2621153234,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":2,\"strength\":30,\"weak\":3,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2}},\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"necromancer_bodyguard\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"necromancer_unleash\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"necromancer_afterlife\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-4\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"necromancer_guard\",\"upgraded\":true}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"necromancer_bodyguard\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"necromancer_unleash\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"necromancer_afterlife\",\"upgraded\":true}],\"drawPile\":[{\"uid\":\"baseline-3\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-4\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"necromancer_guard\",\"upgraded\":true}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張りが立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"necromancer\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "necromancer_bodyguard",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "8081ec0f7b0a0a7f242d43b82790f0f0e4ca8dd2703300690cdac9ca5c76392c",
+          "rngState": 2621153234
+        },
+        {
+          "label": "necromancer_unleash",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "61fc1e0d94146502874544f4f0123b0b5039801b195dae4232e5ca50ab6cfb54",
+          "rngState": 2621153234
+        },
+        {
+          "label": "necromancer_afterlife",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "de30f61047fabc277f91d0d7008feb5653d35891d40d371cff32c87129d9f8ab",
+          "rngState": 2621153234
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "2f52d7b9b1dcd5880db88a43913dcde0cb5cabc849b443e04d187a5b2ef22a72",
+          "rngState": 2621153234
+        }
+      ]
+    },
+    {
+      "name": "summon-sweep-independent-hit-upgraded",
+      "classId": "necromancer",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-necromancer\",\"rngState\":3252988904,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":3,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"全体検証\",\"description\":\"プレイヤーと岩霊に10ダメージ。\",\"damage\":10,\"allTargets\":true}},\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"necromancer_soul_strike\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-4\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"necromancer_guard\",\"upgraded\":true}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"necromancer_soul_strike\",\"upgraded\":true}],\"drawPile\":[{\"uid\":\"baseline-1\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-4\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"necromancer_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"necromancer_guard\",\"upgraded\":true}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張りが立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"necromancer\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":9,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "necromancer_soul_strike",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "d2c8aab0856886bb36ce5a6d120357d925f5e89a7a3f86fe267b6d83007342c5",
+          "rngState": 789587421
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "4cad681cfd172589051f61fa9bbde8879032f543e93afec16f9caccf602a0004",
+          "rngState": 789587421
+        }
+      ]
+    },
+    {
+      "name": "fist-hp-payment-strength-block-multihit-upgraded",
+      "classId": "berserker",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-berserker\",\"rngState\":1281755617,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":13,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2}},\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"berserker_inflame\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"berserker_offering\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"berserker_body_slam\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"berserker_challenge\",\"upgraded\":true},{\"uid\":\"baseline-4\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-13\",\"cardId\":\"berserker_guard\",\"upgraded\":true}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"berserker_inflame\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"berserker_offering\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"berserker_body_slam\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"berserker_challenge\",\"upgraded\":true}],\"drawPile\":[{\"uid\":\"baseline-4\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"berserker_guard\",\"upgraded\":true},{\"uid\":\"baseline-13\",\"cardId\":\"berserker_guard\",\"upgraded\":true}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張りが立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"berserker\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "berserker_inflame",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "fd70f330d5942d189a1d08a9b724df089f4951cecd2cc6a90bd1a084b0a8b2c8",
+          "rngState": 1281755617
+        },
+        {
+          "label": "berserker_offering",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "9398839ef7847d53caeaf972cf1d850b22d834ce426797fa1f1c5cd0d5449fed",
+          "rngState": 1281755617
+        },
+        {
+          "label": "berserker_body_slam",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "f6e5a8007cc6504605657ee7ea4612e665f24ec2e70b6e2503c1c48a85ce3395",
+          "rngState": 1281755617
+        },
+        {
+          "label": "berserker_challenge",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-3"
+          },
+          "sha256": "6d6eb9e9d8ffb8f7c891376ec56cad29359a4f72d6c8b296d833cd902a4ff5e4",
+          "rngState": 1281755617
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "db9a7163ed5714a82ae124bb6f501caefb682892c2e733c6719e65095689edd7",
+          "rngState": 1281755617
+        }
+      ]
+    },
+    {
+      "name": "knife-generation-bonus-poison-tick-upgraded",
+      "classId": "assassin",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-assassin\",\"rngState\":2765094930,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":0,\"strength\":2,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":12,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2}},\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"assassin_accuracy\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"assassin_blade_dance\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"assassin_deadly_poison\",\"upgraded\":true},{\"uid\":\"baseline-3\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-4\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"assassin_guard\",\"upgraded\":true}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"assassin_accuracy\",\"upgraded\":true},{\"uid\":\"baseline-1\",\"cardId\":\"assassin_blade_dance\",\"upgraded\":true},{\"uid\":\"baseline-2\",\"cardId\":\"assassin_deadly_poison\",\"upgraded\":true}],\"drawPile\":[{\"uid\":\"baseline-3\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-4\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-5\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-6\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-7\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-8\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-9\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-10\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-11\",\"cardId\":\"assassin_guard\",\"upgraded\":true},{\"uid\":\"baseline-12\",\"cardId\":\"assassin_guard\",\"upgraded\":true}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張りが立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"assassin\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "assassin_accuracy",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "0d8a39972f7fdb1f1f6715d3a7359a37cde9044720396e0b87dbeadac2114438",
+          "rngState": 2765094930
+        },
+        {
+          "label": "assassin_blade_dance",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-1"
+          },
+          "sha256": "e583b410907bac07b846cad97085af9f8dfd417913cb76262d554506551eaa17",
+          "rngState": 2765094930
+        },
+        {
+          "label": "token_knife",
+          "action": {
+            "type": "playCard",
+            "cardId": "generated-6"
+          },
+          "sha256": "86a0f0a4181daa2000208d67a26fa3b1ebde76ef1174bb91999567134bf14694",
+          "rngState": 2765094930
+        },
+        {
+          "label": "assassin_deadly_poison",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-2"
+          },
+          "sha256": "4414babf8536b6ea2c7ef177c583ddff3b83f1c9ba2664c765e9ac84445d4add",
+          "rngState": 2765094930
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "3af00b6e04dbf00fa53051c747732de2fdb08c1f3272e8a8c37d5835dc87f950",
+          "rngState": 2765094930
+        }
+      ]
+    },
+    {
+      "name": "doom-hp-threshold-victory",
+      "classId": "necromancer",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-necromancer\",\"rngState\":3252988904,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":13,\"maxHp\":13,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2}},\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"necromancer_doom_draw\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"necromancer_guard\",\"upgraded\":false}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"necromancer_doom_draw\",\"upgraded\":false}],\"drawPile\":[{\"uid\":\"baseline-1\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"necromancer_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"necromancer_guard\",\"upgraded\":false}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張りが立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"necromancer\",\"classResources\":{\"stars\":0,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "necromancer_doom_draw",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "f1111979ac4c7acab37d7957458cfbfa6f8580f24818b8b6f2d64ceceb350da2",
+          "rngState": 3252988904
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "60b026636f5b1b9f25bc16a12fb8b588d006b5a95c3c157df1d4cc8b8c4408f8",
+          "rngState": 3252988904
+        }
+      ]
+    },
+    {
+      "name": "star-bank-alone-does-not-enable-burst",
+      "classId": "oracle",
+      "initial": "{\"version\":1,\"combat\":{\"version\":1,\"seed\":\"pre-class-ui-oracle\",\"rngState\":3564289123,\"turn\":1,\"phase\":\"player\",\"player\":{\"id\":\"iwason_keito\",\"name\":\"岩尊けいと\",\"hp\":80,\"maxHp\":80,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0},\"enemy\":{\"id\":\"grit_scout\",\"name\":\"砂利の見張り\",\"hp\":500,\"maxHp\":500,\"block\":0,\"strength\":0,\"weak\":0,\"vulnerable\":0,\"poison\":0,\"intentIndex\":0,\"intent\":{\"kind\":\"attack\",\"label\":\"検証用の二連撃\",\"description\":\"10ダメージを2回。\",\"damage\":10,\"hits\":2}},\"energy\":30,\"maxEnergy\":3,\"jitto\":0,\"deck\":[{\"uid\":\"baseline-0\",\"cardId\":\"oracle_star_burst\",\"upgraded\":false},{\"uid\":\"baseline-1\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"oracle_guard\",\"upgraded\":false}],\"hand\":[{\"uid\":\"baseline-0\",\"cardId\":\"oracle_star_burst\",\"upgraded\":false}],\"drawPile\":[{\"uid\":\"baseline-1\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-2\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-3\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-4\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-5\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-6\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-7\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-8\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-9\",\"cardId\":\"oracle_guard\",\"upgraded\":false},{\"uid\":\"baseline-10\",\"cardId\":\"oracle_guard\",\"upgraded\":false}],\"discardPile\":[],\"exhaustPile\":[],\"powers\":[],\"stillness\":0,\"cardsPlayedThisTurn\":0,\"stats\":{\"cardsPlayed\":0,\"damageDealt\":0},\"log\":[{\"id\":1,\"turn\":1,\"text\":\"岩尊けいと、入塔。「ほいっと〜」 砂利の見張りが立ちはだかる。\",\"kind\":\"info\"}],\"events\":[],\"nextId\":2,\"classId\":\"oracle\",\"classResources\":{\"stars\":19,\"starsGainedThisTurn\":0,\"forge\":0,\"ostyHp\":0,\"focus\":0,\"temporaryFocus\":0,\"orbs\":[],\"nextTurnEnergy\":0}}}",
+      "steps": [
+        {
+          "label": "oracle_star_burst",
+          "action": {
+            "type": "playCard",
+            "cardId": "baseline-0"
+          },
+          "sha256": "827b80380c004f3226cd24632450f581af7d15584e018ebfa6a379b9d8bc0c88",
+          "rngState": 3564289123
+        },
+        {
+          "label": "endTurn",
+          "action": {
+            "type": "endTurn"
+          },
+          "sha256": "744984772fb01e0ea917001c7b61e4619446ee0ad6747696bb7feb0648b67304",
+          "rngState": 3564289123
+        }
+      ]
+    }
+  ]
+}

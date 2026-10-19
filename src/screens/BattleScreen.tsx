@@ -7,10 +7,10 @@ import { CardView } from '../components/CardView';
 import { BattleHand } from '../components/BattleHand';
 import { Modal } from '../components/Modal';
 import { RockDeity, StoneSentinel } from '../components/CharacterArt';
-import { CLASS_DEFINITIONS } from '../data/classes';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { BattleEffects } from '../components/BattleEffects';
 import { CardFlights } from '../components/CardFlights';
+import { ClassResourceHud, EnemyResourceForecast, OrbSlots, OstyCompanion, StarEnergyHud } from '../components/classResources/ClassResourceHud';
 
 type Pile = 'drawPile' | 'discardPile' | 'exhaustPile' | 'powers';
 const keepChoiceOpen = () => {};
@@ -210,7 +210,8 @@ export function BattleScreen({
     <main
       data-presentation-busy={presentation?.busy ? 'true' : 'false'}
       data-presentation-cue={presentation?.cue?.kind ?? 'idle'}
-      className={`battle-screen cinematic-battle ${presentation?.settings.reducedMotion || presentation?.settings.speed === 'instant' ? 'motion-reduced' : ''} ${presentation?.settings.speed === 'fast' ? 'presentation-fast' : ''} ${divine ? 'is-divine' : ''} ${resolving ? 'is-presenting' : ''} ${multiple ? 'multi-enemy' : ''} ${campaign ? 'campaign-battle' : ''}`}
+      data-player-class={state.classId ?? 'legacy'}
+      className={`battle-screen cinematic-battle ${state.classId ? 'has-class-resources' : ''} ${presentation?.settings.reducedMotion || presentation?.settings.speed === 'instant' ? 'motion-reduced' : ''} ${presentation?.settings.speed === 'fast' ? 'presentation-fast' : ''} ${divine ? 'is-divine' : ''} ${resolving ? 'is-presenting' : ''} ${multiple ? 'multi-enemy' : ''} ${campaign ? 'campaign-battle' : ''}`}
     >
       {presentation && <CardFlights {...presentation} />}
       <section className="battle-heading">
@@ -236,16 +237,6 @@ export function BattleScreen({
           {presentation?.busy && <button className="battle-skip-button" onClick={presentation.skip} aria-label="戦闘演出をスキップ">演出をスキップ <span>»</span></button>}
         </div>
       </section>
-
-      {state.classId && state.classResources && <section className="class-combat-resources" aria-label="職業固有リソース">
-        <span className="class-resource-name">{CLASS_DEFINITIONS[state.classId].glyph} {CLASS_DEFINITIONS[state.classId].displayName}</span>
-        {state.classId === 'berserker' && <span title="筋力は攻撃1ヒットごとのダメージに加算されます。">筋力 <b>{state.player.strength}</b> <small>HPの消費も力に変える</small></span>}
-        {state.classId === 'assassin' && <span title="ナイフは生成カードです。使用すると廃棄され、戦闘終了後はデッキに残りません。">ナイフ強化 <b>+{state.powerStacks?.knifeDamage ?? 0}</b> <small>毒・ドロー・連撃</small></span>}
-        {state.classId === 'oracle' && <><span title="星はカード効果で獲得する、この職業のリソースです。">✦ 星 <b>{state.classResources.stars}</b></span><span>今ターンの✦ <b>{state.classResources.starsGainedThisTurn}</b></span><span title="鍛造は聖剣のダメージを強化します。">鍛造 <b>{state.classResources.forge}</b></span></>}
-        {state.classId === 'necromancer' && <span title="召喚カードでオスティのHPを増やします。HPが0の間は、オスティによる攻撃は発動しません。">岩霊オスティ HP <b>{state.classResources.ostyHp}</b> <small>召喚・破滅・ソウル</small></span>}
-        {state.classId === 'machinist' && <><span title="集中力はライトニングとフロストの効果量を増減します。一時集中力はターン終了時に失われます。">集中力 <b>{state.classResources.focus}</b></span><span className="orb-resource-list" title="オーブは最大3個。上限を超えると右端を解放します。">オーブ {state.classResources.orbs.length ? state.classResources.orbs.map((orb, index) => <b className={`orb-resource orb-${orb}`} key={index}>{orb === 'lightning' ? '⚡' : '❄'}</b>) : <small>なし</small>}</span></>}
-        {state.classResources.nextTurnEnergy > 0 && <span>次ターン ⚡+{state.classResources.nextTurnEnergy}</span>}
-      </section>}
 
       {(selectedDefinition?.description || selectedDefinition?.gimmick) && <aside className="enemy-field-guide" aria-label="選択中の敵の特徴">
         <div><span>敵の特徴</span><b>{selectedEnemy.name}</b>{selectedEnemy.intentPhase !== undefined && <span className="enemy-phase-label">行動変化済み</span>}</div>
@@ -284,10 +275,13 @@ export function BattleScreen({
           </div>
           <div className="character-stage">
             <div className="character-shadow" />
-            <div className="actor-motion" data-battle-actor="player" data-fallen={fallenActors.has('player') || undefined}><RockDeity deified={divine} /></div>
+            <div className="actor-motion" data-battle-actor="player" data-fallen={fallenActors.has('player') || undefined}><RockDeity deified={divine} classId={state.classId} /></div>
+            {state.classId === 'machinist' && <OrbSlots state={state} />}
+            {state.classId === 'necromancer' && <OstyCompanion state={state} cue={presentation?.cue} />}
             {state.player.block > 0 && <div className="block-aura" aria-hidden="true" />}
           </div>
           <HealthBar actor={state.player} player />
+          <ClassResourceHud state={state} />
         </div>
         <div className="arena-center">
           <span className="versus-label">試練</span>
@@ -383,6 +377,7 @@ export function BattleScreen({
                     </span>
                   </button>
                   <HealthBar actor={actor} />
+                  <EnemyResourceForecast state={state} enemy={actor} />
                 </div>
               );
             })}
@@ -432,6 +427,7 @@ export function BattleScreen({
               <span className="target-label">選択中</span>
             </button>
             <HealthBar actor={enemy} />
+            <EnemyResourceForecast state={state} enemy={enemy} />
           </div>
         )}
         {presentation && <BattleEffects cue={presentation.cue} sequence={presentation.sequence} settings={presentation.settings} busy={presentation.busy} duration={presentation.duration} />}
@@ -532,6 +528,7 @@ export function BattleScreen({
               <small>毎ターン {state.maxEnergy} 回復</small>
             </div>
           </div>
+          <StarEnergyHud state={state} />
           <button
             className="end-turn-button"
             onClick={onEndTurn}

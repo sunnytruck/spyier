@@ -128,7 +128,7 @@ export default function App() {
     (action: CombatAction) => {
       const current = latest.current;
       const before = current.screen === 'run' ? current.run?.combat : current.practice;
-      if (!before || before.phase !== 'player' || actionLocked.current || current.modal) return false;
+      if (!before || before.phase !== 'player' || actionLocked.current || current.modal || document.querySelector('.class-resource-modal')) return false;
       actionLocked.current = true;
       let after: CombatState;
       let cues: CombatCue[];
@@ -180,6 +180,7 @@ export default function App() {
         event.ctrlKey ||
         event.metaKey ||
         event.repeat ||
+        document.querySelector('[role="dialog"]') ||
         ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) ||
         target.isContentEditable ||
         modal ||
@@ -552,7 +553,7 @@ export default function App() {
           </p>
           <div className="pile-grid">
             {(run?.deck ?? practice?.deck ?? []).map((card) => (
-              <CardView card={card} key={card.uid} inspect />
+              <CardView card={card} key={card.uid} state={shownCombat?.phase === 'player' ? shownCombat : undefined} inspect />
             ))}
           </div>
         </Modal>
@@ -604,7 +605,7 @@ export default function App() {
               {[...pileCards]
                 .sort((a, b) => a.cardId.localeCompare(b.cardId))
                 .map((card) => (
-                  <CardView key={card.uid} card={card} inspect />
+                  <CardView key={card.uid} card={card} state={shownCombat ?? undefined} inspect />
                 ))}
             </div>
           ) : (

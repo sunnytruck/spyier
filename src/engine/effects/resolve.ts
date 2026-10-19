@@ -1,4 +1,3 @@
-import { CARD_DEFINITIONS } from '../../data/cards';
 import type { Actor, CardDefinition, CardInstance, CombatState, Effect, EnemyState } from '../../types/game';
 import { drawInto } from '../actions/draw';
 import { calculateDamage } from '../combat/damage';
@@ -11,7 +10,7 @@ import {
   healPlayer,
 } from '../combat/state';
 import { findEnemy, getEnemies, getEnemyKey } from '../combat/targets';
-import { channelOrbs, evokeOrb, fetchGeneratedCard, generateCards, resources, summonAttack } from '../combat/resources';
+import { attackCardBase, channelOrbs, evokeOrb, fetchGeneratedCard, generateCards, resources, summonAttack } from '../combat/resources';
 import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace';
 
 export interface EffectContext {
@@ -32,12 +31,8 @@ type Resolver<T extends Effect['type']> = (
 /** Composable effect handlers know effect types, never card IDs. */
 const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
   damage: (state, effect, _card, context) => {
-    const base =
-      effect.amount +
-      (effect.fromBlock ? state.player.block : 0) +
-      (effect.fromForge ? resources(state).forge : 0) +
-      (context.sourceCard && CARD_DEFINITIONS[context.sourceCard.cardId]?.tags?.includes('knife') ? state.powerStacks?.knifeDamage ?? 0 : 0) +
-      (state.jitto >= 100 ? (effect.divineBonus ?? 0) : 0);
+    if (effect.fromForge) resources(state);
+    const base = attackCardBase(state, effect, context.sourceCard);
     const targets =
       effect.all || context.all
         ? getEnemies(state).filter((enemy) => enemy.hp > 0)
@@ -129,10 +124,11 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
     current.stars = Math.max(0, current.stars + effect.amount);
     current.starsGainedThisTurn += Math.max(0, effect.amount);
     appendLog(state, `星 ✦ +${effect.amount}。`);
-    emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'stars', amount: effect.amount });
+    emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'stars', amount: effect.amount, resourceAction: 'gain' });
   },
   starBurst: (state, effect, _card, context) => {
     const gained = resources(state).starsGainedThisTurn;
+    emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'stars', amount: 0, resourceAction: 'reference', label: `当ターンの星${gained}を参照` });
     if (gained <= 0) return;
     const amount = gained * effect.amount;
     const enemies = effect.all ? getEnemies(state).filter((enemy) => enemy.hp > 0) : [findEnemy(state, context.targetId)].filter((enemy) => enemy !== undefined);
@@ -144,12 +140,13 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
   forge: (state, effect) => {
     resources(state).forge += effect.amount;
     appendLog(state, `鍛造 +${effect.amount}。鍛造剣の威力が上がる。`);
-    emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'forge', amount: effect.amount });
+    emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'forge', amount: effect.amount, resourceAction: 'forge' });
   },
   summon: (state, effect) => {
+    const wasActive = (state.classResources?.ostyHp ?? 0) > 0;
     resources(state).ostyHp += effect.amount;
     appendLog(state, `召喚体のHP +${effect.amount}。`);
-    emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'ostyHp', amount: effect.amount });
+    emitCombatCue(state, { kind: 'resource', targetId: 'osty', resource: 'ostyHp', amount: effect.amount, resourceAction: wasActive ? 'grow' : 'summon' });
   },
   summonDamage: (state, effect, _card, context) => summonAttack(state, effect.amount, effect.plusSummonHp ?? false, context.targetId),
   doom: (state, effect, _card, context) => {

@@ -1,7 +1,16 @@
 import { useId } from 'react';
+import type { ClassId } from '../types/game';
+import { ClassCharacterArt } from './ClassCharacterArt';
+
+export { OstyArt } from './ClassCharacterArt';
+
+/** Stable artwork boundary: custom illustrations can replace the class vectors here. */
+export function RockDeity({ deified = false, classId }: { deified?: boolean; classId?: ClassId }) {
+  return classId ? <ClassCharacterArt classId={classId} deified={deified} /> : <LegacyRockDeity deified={deified} />;
+}
 
 /** Original, self-contained vector artwork for the combat prototype. */
-export function RockDeity({ deified = false }: { deified?: boolean }) {
+function LegacyRockDeity({ deified = false }: { deified?: boolean }) {
   const id = useId().replace(/:/g, '');
   return (
     <svg

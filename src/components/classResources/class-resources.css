@@ -1,0 +1,135 @@
+/* Class information lives around the actor; the shared HP/energy controls keep their places. */
+.app .has-class-resources .battle-arena { height: auto; min-height: 480px; padding-top: 45px; }
+.app .has-class-resources .combatant--player { padding-bottom: 18px; }
+.app .has-class-resources[data-player-class='machinist'] .combatant--player .character-stage { height: 315px; }
+.app .has-class-resources .combatant--enemy > .enemy-target { order: 1; }
+.app .has-class-resources .combatant--enemy > .enemy-status { position: relative; top: auto; left: auto; right: auto; order: 2; justify-content: center; width: 100%; margin: 7px 0; }
+.app .has-class-resources .combatant--enemy > .health-info { order: 3; }
+.app .has-class-resources .combatant--enemy > .enemy-resource-forecast { order: 4; }
+.app .class-resource-shelf { width: min(100%, 290px); margin-top: 13px; padding: 9px 11px; border: 1px solid #aa986641; border-radius: 5px; background: linear-gradient(135deg, #263326f2, #151f18e8); color: #e5ddbf; font-family: var(--sans); position: relative; z-index: 6; }
+.app .class-resource-profession { display: block; color: #cfcca9; font-size: 11px; line-height: 1.6; letter-spacing: .04em; }
+.app .class-resource-readout { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 48px; padding: 2px 0; border: 0; background: none; color: inherit; text-align: left; font-family: var(--sans); }
+.app .class-resource-readout > small { max-width: 135px; color: #cad0b7; font-size: 12px; line-height: 1.65; }
+.app .resource-stat { display: flex; flex-direction: column; gap: 1px; font-size: 11px; line-height: 1.5; }
+.app .resource-stat > :first-child { color: #f0d49c; font-size: 17px; }
+.app .resource-stat b { font-family: var(--sans); font-size: 25px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.app .resource-stat .resource-motion { display: inline-flex; gap: 6px; align-items: center; }
+.app .resource-stat b i { font-size: 15px; font-style: normal; color: #bacab9; font-weight: 400; }
+.app .class-resource-shelf--berserker .resource-stat > :first-child { color: #f1b391; }
+.app .class-resource-shelf--assassin .resource-stat > :first-child { color: #bae29b; }
+.app .class-resource-shelf--necromancer .resource-stat b { font-size: 20px; color: #c8b8ef; }
+.app .class-resource-shelf--machinist .resource-stat > :first-child { color: #a5daed; }
+.app .resource-focus { font-size: 13px; color: #c8dfdf; text-align: right; }
+.app .resource-focus .resource-motion { display: block; }
+.app .resource-focus b { font-size: 19px; color: #bef0f6; font-variant-numeric: tabular-nums; }
+.app .resource-focus small, .app .resource-next-energy { display: block; font-size: 11px; color: #c4ccb2; line-height: 1.7; }
+.app .resource-next-energy { border-top: 1px solid #b4ba8130; padding-top: 5px; margin-top: 2px; }
+.app :is(.class-resource-readout, .class-orb-slot, .osty-companion, .star-energy, .enemy-resource-forecast):focus-visible { outline: 2px solid #e6c87f; outline-offset: 4px; }
+.app :is(.class-resource-readout, .class-orb-slot, .osty-companion, .star-energy, .enemy-resource-forecast) { cursor: pointer; touch-action: manipulation; }
+
+/* Orbs retain an explicit stable slot index, including each empty slot. */
+.app .class-orb-slots { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.app .class-orb-slot { position: absolute; top: 15px; width: 62px; min-height: 76px; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #d9e9e5; padding: 0; border: 0; background: none; font-family: var(--sans); pointer-events: auto; }
+.app .class-orb-slot:nth-child(1) { left: 0; }
+.app .class-orb-slot:nth-child(2) { left: calc(50% - 31px); top: -43px; }
+.app .class-orb-slot:nth-child(3) { right: 0; }
+.app .class-orb-slot .resource-motion { width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid #b5c7b568; background: radial-gradient(circle at 30% 28%, #4e5c5440, #1b2a25e8 72%); box-shadow: 0 0 0 4px #15312b5c; }
+.app .orb-slot-symbol { font-size: 28px; font-weight: 600; line-height: 1; }
+.app .orb-slot--lightning .resource-motion { color: #fff2a1; border-color: #edda7d; background: radial-gradient(circle at 35% 25%, #dfe9ab80, #74550de8 75%); box-shadow: 0 0 15px #b89b2c4f, 0 0 0 4px #b7a04a20; }
+.app .orb-slot--lightning .orb-slot-symbol { transform: skew(-12deg); font-size: 36px; }
+.app .orb-slot--frost .resource-motion { color: #cef7ff; border-radius: 10px; border-color: #8bd8e9; background: radial-gradient(circle at 35% 25%, #8ddbed88, #245a78d9 75%); box-shadow: 0 0 13px #64d5f644, 0 0 0 4px #7cbacc18; }
+.app .orb-slot--empty .resource-motion { border-style: dashed; box-shadow: none; color: #9cae9e; background: #102017a1; }
+.app .orb-slot-name { font-size: 11px; color: #d3dfcc; line-height: 1.4; white-space: nowrap; }
+.app .orb-next-label { color: #f6e2a6; font-size: 10px; line-height: 1.3; background: #332d15eb; border: 1px solid #cdb36b80; padding: 2px 4px; border-radius: 3px; white-space: nowrap; }
+.app .orb-slot--next .resource-motion { outline: 1px solid #f1d584; outline-offset: 3px; }
+
+/* A companion is a separate actor and can receive the same presentation anchors as an enemy. */
+.app [data-player-class='necromancer'] .combatant--player .actor-motion > .character-art { width: 215px; height: 263px; left: 34%; transform: translateX(-50%); }
+.app .osty-companion { position: absolute; width: 90px; right: -4px; bottom: 8px; padding: 0; display: flex; align-items: center; flex-direction: column; border: 0; background: none; color: #dfd8f4; z-index: 5; font-family: var(--sans); transform-origin: 50% 80%; }
+.app .osty-companion > .resource-motion { display: block; width: 90px; height: 114px; transform-origin: 50% 80%; }
+.app .osty-companion .osty-art { position: static; width: 100%; height: 100%; max-width: none; filter: drop-shadow(0 0 8px #6b61b955); }
+.app .osty-unit-name { font-size: 11px; line-height: 1.6; color: #ddd4f2; white-space: nowrap; }
+.app .osty-unit-hp { display: flex; align-items: baseline; gap: 5px; line-height: 1.4; background: #1b1925ed; border: 1px solid #b4a1df85; border-radius: 4px; padding: 1px 9px; }
+.app .osty-unit-hp > span { font-size: 11px; color: #cec1e3; }
+.app .osty-unit-hp b { font-size: 20px; font-weight: 700; color: #eee1ff; font-variant-numeric: tabular-nums; }
+.app .osty-unit-state { color: #c7bce1; font-size: 11px; margin-top: 3px; }
+.app .osty-absent .resource-motion { opacity: .42; filter: grayscale(.35); }
+.app .osty-absent .osty-unit-hp { border-style: dashed; color: #a9a1b7; }
+.app .osty-dissolving .resource-motion { filter: drop-shadow(0 0 11px #a694ea); }
+
+/* Stars occupy their own labelled diamond, alongside the shared circular energy gauge. */
+.app .turn-controls:has(.star-energy) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px 18px; align-items: center; }
+.app .turn-controls:has(.star-energy) .end-turn-button { grid-column: 1 / -1; width: 100%; }
+.app .star-energy { display: flex; align-items: center; gap: 10px; border: 0; background: none; color: #f1deb1; padding: 0 2px; text-align: left; font-family: var(--sans); min-height: 48px; }
+.app .star-energy-gem { display: inline-flex; min-width: 49px; height: 49px; justify-content: center; align-items: center; gap: 2px; position: relative; color: #ffedbd; border: 1px solid #d0b87890; border-radius: 9px; background: radial-gradient(circle at 35% 25%, #b5a2673d, #3b321ba8); box-shadow: 0 0 13px #d8bc4e24; }
+.app .star-energy-gem > span { color: #d8c0f2; font-size: 15px; }
+.app .star-energy-gem b { font-size: 28px; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+.app .star-energy-label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; white-space: nowrap; }
+.app .star-energy-label small { color: #d3cbb0; font-size: 11px; line-height: 1.4; }
+.app .star-energy-label small b { color: #f2dfa7; font-weight: 600; }
+
+.app .enemy-resource-forecast { width: min(100%, 280px); margin-top: 10px; display: flex; justify-content: center; flex-wrap: wrap; gap: 5px 10px; font-family: var(--sans); padding: 0; border: 0; background: none; }
+.app .enemy-resource-forecast > span { display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap; justify-content: center; color: #c7dfa4; border: 1px solid #96b66c4a; background: #172519eb; padding: 5px 7px; border-radius: 4px; font-size: 12px; line-height: 1.4; }
+.app .enemy-resource-forecast b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.app .enemy-resource-forecast small { width: 100%; text-align: center; color: #c5d4b6; font-size: 11px; line-height: 1.5; }
+.app .enemy-resource-forecast .doom-forecast { color: #d2c3f3; background: #231d2eeb; border-color: #a894ce60; }
+.app .enemy-resource-forecast .doom-forecast small { color: #d2c4e6; }
+.app .enemy-resource-forecast .doom-ready { border-color: #e1bef2; box-shadow: 0 0 10px #bb8be021; }
+.app .class-resource-modal { width: min(560px, calc(100% - 24px)); }
+.app .class-resource-detail-copy { color: #d4d8c1; font-family: var(--sans); font-size: 14px; line-height: 1.85; overflow-wrap: anywhere; }
+.app .class-resource-detail-copy p { margin: 15px 0; }
+.app .class-resource-detail-copy strong { color: #f2db9e; font-weight: 600; }
+.app .class-resource-detail-copy h3 { color: #ecdbb2; font-size: 16px; margin: 23px 0 10px; }
+.app .class-resource-detail-copy dl { margin: 18px 0; }
+.app .class-resource-detail-copy dl > div { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 10px; border-top: 1px solid #b0ac7735; padding: 10px 0; }
+.app .class-resource-detail-copy dt { color: #d3c087; }
+.app .class-resource-detail-copy dd { margin: 0; }
+.app .class-resource-detail-copy ul { padding-left: 20px; margin: 15px 0; }
+.app .class-resource-detail-copy li + li { margin-top: 10px; }
+.app .resource-card-preview { width: min(100%, 280px); margin: 20px auto 5px; }
+.app .resource-lethal-warning { color: #ffc4ad; font-style: normal; }
+
+@media (max-width: 1000px) and (min-width: 601px) {
+  .app .has-class-resources.multi-enemy .battle-arena { grid-template-columns: minmax(220px, .9fr) 60px minmax(0, 1.6fr); }
+  .app .has-class-resources.multi-enemy .combatant--player { margin-left: 12px; margin-right: 5px; }
+  .app .class-resource-shelf { padding: 8px; }
+}
+@media (max-width: 600px) {
+  .app .has-class-resources .battle-arena, .app .has-class-resources.multi-enemy .battle-arena { height: auto; min-height: 650px; padding-top: 45px; grid-template-columns: minmax(0, 1fr) 90px; grid-template-rows: minmax(330px, auto) minmax(300px, auto); }
+  .app .has-class-resources .combatant--player, .app .has-class-resources.multi-enemy .combatant--player { width: min(100%, 235px); margin: 0 auto; grid-column: 1; grid-row: 1; padding: 0 8px 18px; align-self: end; }
+  .app .has-class-resources .arena-center, .app .has-class-resources.multi-enemy .arena-center { grid-column: 2; grid-row: 1; padding: 0 8px 80px 0; margin: 0; align-self: end; }
+  .app .has-class-resources .combatant--enemy { grid-column: 1 / -1; grid-row: 2; margin: 0; width: 100%; padding-top: 20px; }
+  .app .has-class-resources .combatant--enemy > .enemy-intent { position: relative; top: auto; left: auto; right: auto; transform: none; order: 0; width: min(100% - 20px, 300px); min-width: 0; margin: 0 auto 14px; }
+  .app .has-class-resources .enemy-formation { grid-column: 1 / -1; grid-row: 2; padding-top: 15px; }
+  .app .has-class-resources .combatant--player .character-stage { height: 210px; }
+  .app .has-class-resources[data-player-class='machinist'] .combatant--player .character-stage { height: 250px; }
+  .app .has-class-resources .combatant--player .actor-motion > .character-art { width: 210px; height: 235px; }
+  .app .has-class-resources .combatant--player .actor-status { top: -32px; left: 3px; }
+  .app .has-class-resources .combatant--player .actor-name { flex-direction: row; flex-wrap: wrap; gap: 5px 8px; }
+  .app .class-resource-shelf { width: 100%; padding: 8px 9px; margin-top: 11px; }
+  .app .class-resource-profession { font-size: 11px; }
+  .app .class-resource-readout { gap: 8px; }
+  .app .class-resource-readout > small { font-size: 11px; max-width: 115px; }
+  .app .resource-stat b { font-size: 23px; }
+  .app .resource-focus { font-size: 12px; }
+  .app .resource-focus b { font-size: 18px; }
+  .app .class-orb-slot { width: 57px; top: 14px; }
+  .app .class-orb-slot:nth-child(2) { top: -44px; left: calc(50% - 28px); }
+  .app .class-orb-slot .resource-motion { width: 41px; height: 41px; }
+  .app .has-class-resources[data-player-class='machinist'] .combatant--player .actor-status { top: -82px; }
+  .app .has-class-resources[data-player-class='necromancer'] .combatant--player .actor-motion > .character-art { width: 175px; height: 220px; left: 32%; }
+  .app .osty-companion { right: -3px; width: 80px; bottom: 4px; }
+  .app .osty-companion > .resource-motion { width: 80px; height: 103px; }
+  .app .osty-unit-name { font-size: 10px; }
+  .app .osty-unit-hp b { font-size: 18px; }
+  .app .turn-controls:has(.star-energy) { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 14px; }
+  .app .turn-controls:has(.star-energy) .energy { gap: 8px; }
+  .app .star-energy-gem { min-width: 45px; height: 45px; }
+  .app .star-energy-gem b { font-size: 26px; }
+  .app .star-energy { gap: 8px; }
+  .app .enemy-resource-forecast { margin-top: 8px; gap: 5px; }
+  .app .formation-enemy .enemy-resource-forecast > span { width: 100%; padding: 5px 3px; gap: 3px; }
+  .app .enemy-resource-forecast small { font-size: 10px; }
+  .app .class-resource-detail-copy { font-size: 14px; }
+  .app .class-resource-detail-copy dl > div { grid-template-columns: 90px minmax(0, 1fr); }
+}

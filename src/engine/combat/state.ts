@@ -97,8 +97,11 @@ export function dealDamage(
     state.classResources.ostyHp -= absorbed;
     remaining -= absorbed;
     if (absorbed > 0) appendLog(state, `召喚体が${absorbed}ダメージを引き受けた。`);
-    if (absorbed > 0)
-      emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'ostyHp', amount: -absorbed });
+    if (absorbed > 0) {
+      emitCombatCue(state, { kind: 'resource', targetId: 'osty', resource: 'ostyHp', amount: -absorbed, absorbed, resourceAction: 'guard', label: '岩霊の護衛' });
+      if (state.classResources.ostyHp === 0)
+        emitCombatCue(state, { kind: 'resource', targetId: 'osty', resource: 'ostyHp', amount: 0, resourceAction: 'vanish', label: '岩霊の消滅' });
+    }
   }
   const damage = Math.min(actor.hp, remaining);
   actor.hp -= damage;

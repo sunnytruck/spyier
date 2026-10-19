@@ -3,6 +3,8 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import type { ClassId } from '../types/game';
 import { CardView } from '../components/CardView';
 import { Icon } from '../components/Icon';
+import { RockDeity } from '../components/CharacterArt';
+import { orbEffectValue, orbSlotCount } from '../engine/combat/resources';
 
 export function ClassSelectionScreen({ selected, onSelect, onStart, onBack }: {
   selected: ClassId;
@@ -40,12 +42,16 @@ export function ClassSelectionScreen({ selected, onSelect, onStart, onBack }: {
       </div>
       <section className="class-detail" aria-label={`${job.displayName}の詳細`}>
         <div className="class-detail-copy">
+          <figure className="class-selection-portrait" data-selected-character={selected}>
+            <RockDeity classId={selected} />
+            <figcaption><span>岩尊けいと</span>{job.displayName}の姿</figcaption>
+          </figure>
           <p className="section-kicker">YOUR PATH</p>
           <h2>{job.displayName}</h2>
           <p>{job.description}</p>
-          {selected === 'oracle' && <p className="class-rule-note">今回のルール: ✦は獲得数でカードを連携させます。TXTに記載のない星コストは設定していません。鍛造は聖剣を強化します。</p>}
-          {selected === 'necromancer' && <p className="class-rule-note">今回のルール: 岩霊はブロックで防ぎきれない攻撃をHPで引き受けます。岩霊のHPが0の間、召喚攻撃は不発です。破滅が敵のHP以上になると、敵ターン開始時に撃破します。</p>}
-          {selected === 'machinist' && <p className="class-rule-note">今回のルール: オーブは最大3個。雷はターン終了時3ダメージ、解放時8ダメージ。霜は終了時2ブロック、解放時5ブロック。集中力は各効果量を増やします。解放は右端から行います。</p>}
+          {selected === 'oracle' && <p className="class-rule-note">星は消費せず蓄積します。当ターンに得た星の数でカードが連携し、鍛造するほど保留できる聖剣が強くなります。</p>}
+          {selected === 'necromancer' && <p className="class-rule-note">岩霊は命令カードで攻撃し、通常攻撃のブロック後の残りを肩代わりします。全体攻撃は本体と岩霊に個別命中。敵ターン開始時、毒の処理後に破滅が敵HP以上なら撃破します。</p>}
+          {selected === 'machinist' && <p className="class-rule-note">オーブは最大{orbSlotCount()}個。雷はターン終了時{orbEffectValue('lightning', 'passive', 0)}ダメージ、解放時{orbEffectValue('lightning', 'evoke', 0)}ダメージ。霜は終了時{orbEffectValue('frost', 'passive', 0)}ブロック、解放時{orbEffectValue('frost', 'evoke', 0)}ブロック。集中力で効果量が増え、解放は右端から行います。</p>}
           <dl>
             <div><dt>初期HP</dt><dd>{job.maxHp}</dd></div>
             <div><dt>初期デッキ</dt><dd>{job.starterDeck.length}枚</dd></div>

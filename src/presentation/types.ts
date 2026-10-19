@@ -30,8 +30,12 @@ export interface CombatCue {
   effect?: string;
   fromZone?: string;
   toZone?: string;
+  /** Presentation-only position in the existing ordered orb array. */
+  orbIndex?: number;
+  orbMode?: 'channel' | 'passive' | 'evoke';
+  resourceAction?: string;
   frame: CombatState;
 }
 
 export type CombatCueInput = Omit<CombatCue, 'frame'>;
-export type CombatTraceContext = Pick<CombatCueInput, 'sourceId' | 'card' | 'effect' | 'label'>;
+export type CombatTraceContext = Pick<CombatCueInput, 'sourceId' | 'card' | 'effect' | 'label' | 'orbIndex' | 'orbMode' | 'resourceAction'>;

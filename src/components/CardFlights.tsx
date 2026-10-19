@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { CardInstance, GameSettings } from '../types/game';
 import type { CombatCue } from '../presentation/types';
+import { generatedCardEffect } from '../presentation/classEffects';
 import { CardView } from './CardView';
 import '../styles/card-flights.css';
 
@@ -113,15 +114,20 @@ export function CardFlights({ cue, sequence, duration = 220, settings, busy }: C
         ? center(current.rect)
         : destinationPile ? center(destinationPile)
           : { x: handCenter.x + (index - (shown.length - 1) / 2) * 32, y: handRect.top + height / 2 };
+      const generatedEffect = generatedCardEffect(card.cardId);
+      const resourceOrigin = cue.kind === 'generate' && generatedEffect.hudId
+        ? document.querySelector<HTMLElement>(`[data-resource-hud="${generatedEffect.hudId}"]`)?.getBoundingClientRect()
+        : undefined;
       const origin = cue.kind === 'generate'
-        ? { x: handCenter.x, y: Math.max(height * .6 + 10, handRect.top - height * .48) }
+        ? resourceOrigin ? center(resourceOrigin) : { x: handCenter.x, y: Math.max(height * .6 + 10, handRect.top - height * .48) }
         : sourcePile && cue.fromZone !== 'hand' && cue.fromZone !== 'played'
           ? center(sourcePile)
           : cached ? center(cached.rect)
             : { x: handCenter.x, y: handRect.top - height * .3 };
       const element = document.createElement('div');
-      element.className = `card-flight card-flight--${cue.kind}${low ? ' card-flight--light' : ''}`;
+      element.className = `card-flight card-flight--${cue.kind}${cue.kind === 'generate' ? ` card-flight--${generatedEffect.motif}` : ''}${low ? ' card-flight--light' : ''}`;
       element.dataset.cardFlight = card.uid;
+      element.dataset.generatedEffect = cue.kind === 'generate' ? generatedEffect.motif : '';
       element.dataset.toZone = cue.toZone ?? '';
       element.setAttribute('aria-hidden', 'true');
       element.inert = true;

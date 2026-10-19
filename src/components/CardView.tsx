@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CardDefinition, CardInstance, CombatState } from '../types/game';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { canPlayCard, getCardCost } from '../engine';
@@ -6,7 +6,9 @@ import { Icon } from './Icon';
 import { CLASS_DEFINITIONS } from '../data/classes';
 import { diffCardText, getCardPresentation, getCardUpgradePreview } from '../presentation/cardUpgrade';
 import { CardUpgradeToggle } from './CardUpgradeToggle';
+import { getCardRuntimeInfo } from '../presentation/cardRuntime';
 import '../styles/card-upgrade.css';
+import '../styles/card-runtime.css';
 
 const typeLabels = { attack: '攻撃', skill: 'スキル', power: 'パワー' };
 
@@ -75,6 +77,11 @@ export function CardView({
 }) {
   const [showAfter, setShowAfter] = useState(false);
   useEffect(() => setShowAfter(false), [card.uid, card.cardId, card.upgraded]);
+  const runtime = useMemo(() => getCardRuntimeInfo(
+    inspect && showUpgradePreview && showAfter && !card.upgraded
+      ? { ...card, upgraded: true } : card,
+    state,
+  ), [card.uid, card.cardId, card.upgraded, inspect, showUpgradePreview, showAfter, state]);
   const definition = CARD_DEFINITIONS[card.cardId];
   if (!definition) return null;
   const canToggle = inspect && showUpgradePreview && !card.upgraded && !definition.unupgradable;
@@ -118,6 +125,18 @@ export function CardView({
       </div>
       <CardArt definition={definition} />
       <div className="card-description">{renderDifference(text, comparison.description)}</div>
+      {runtime && (
+        <div className={`card-runtime${runtime.facts.some((fact) => fact.warning) ? ' has-risk' : ''}`} title={[runtime.explanation, ...runtime.facts.map((fact) => `${fact.summary}。${fact.detail}`)].join('\n')}>
+          <span className="card-runtime-label">{canToggle && showAfter ? '強化した場合の現在の効果' : '現在の効果'}</span>
+          {(inspect ? runtime.facts : runtime.facts.slice(0, 2)).map((fact, index) => (
+            <div className={`card-runtime-fact${fact.warning ? ' is-risk' : ''}`} key={`${fact.key}:${index}`}>
+              <span>{fact.warning ? '⚠ ' : ''}{fact.summary}</span>
+              {inspect && <small>{fact.detail}</small>}
+            </div>
+          ))}
+          {inspect && <small className="card-runtime-note">{runtime.explanation}</small>}
+        </div>
+      )}
       {inspect && (
         <div className="card-metadata">
           <span>{owner}{definition.tokenOnly ? '・生成専用' : ''}</span>
@@ -154,7 +173,7 @@ export function CardView({
       className={`game-card game-card--${definition.type} ${playable ? 'is-playable' : 'is-unplayable'}`}
       onClick={() => onPlay?.(card.uid)}
       disabled={!playable}
-      aria-label={`${label}、コスト${cost}。${text}${!playable ? '、使用できません' : ''}`}
+      aria-label={`${label}、コスト${cost}。${text}${runtime ? ` 現在の効果：${runtime.facts.map((fact) => `${fact.summary}。${fact.detail}`).join(' ')}` : ''}${!playable ? '、使用できません' : ''}`}
     >
       {inner}
     </button>
