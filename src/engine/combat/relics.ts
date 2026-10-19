@@ -2,6 +2,7 @@ import { RELIC_DEFINITIONS } from '../../data/relics';
 import type { CombatState } from '../../types/game';
 import { drawInto } from '../actions/draw';
 import { appendLog, applyGauge, gainBlock, healPlayer } from './state';
+import { emitCombatCue } from '../../presentation/trace';
 
 type RelicTrigger = 'combatStart' | 'turnStart' | 'firstAttack' | 'victory';
 
@@ -24,12 +25,14 @@ export function triggerRelics(state: CombatState, trigger: RelicTrigger): void {
         break;
       case 'strength':
         state.player.strength += amount;
+        emitCombatCue(state, { kind: 'status', sourceId: 'player', targetId: 'player', status: 'strength', amount, label: relic.name });
         break;
       case 'draw':
         drawInto(state, amount);
         break;
       case 'energy':
         state.energy += amount;
+        emitCombatCue(state, { kind: 'resource', sourceId: 'player', targetId: 'player', resource: 'energy', amount, label: relic.name });
         break;
       case 'heal':
         healPlayer(state, amount);

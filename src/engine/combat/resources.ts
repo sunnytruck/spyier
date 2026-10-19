@@ -9,6 +9,7 @@ import type {
 import { nextRandom } from '../random';
 import { appendLog, dealDamage, gainBlock } from './state';
 import { findEnemy, getEnemies } from './targets';
+import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace';
 
 /** Kept in one place so provisional keyword tuning does not change card data. */
 export const CLASS_RULES = {
@@ -60,6 +61,12 @@ export function generateCards(
   }
   if (generated.length)
     appendLog(state, `「${CARD_DEFINITIONS[cardId].name}」を${generated.length}枚生成。`);
+  if (generated.length) {
+    const toHand = generated.filter((card) => state.hand.some((held) => held.uid === card.uid));
+    const elsewhere = generated.filter((card) => !toHand.some((held) => held.uid === card.uid));
+    if (toHand.length) emitCombatCue(state, { kind: 'generate', card: toHand[0], cards: toHand, toZone: 'hand', amount: toHand.length });
+    if (elsewhere.length) emitCombatCue(state, { kind: 'generate', card: elsewhere[0], cards: elsewhere, toZone: destination === 'hand' ? 'discardPile' : destination, amount: elsewhere.length });
+  }
   return generated;
 }
 
@@ -70,10 +77,13 @@ export function fetchGeneratedCard(state: CombatState, cardId: string): void {
     appendLog(state, '手札の上限50枚のため、呼び戻しは行わない。');
     return;
   }
-  for (const zone of [state.drawPile, state.discardPile, state.exhaustPile]) {
+  for (const zoneName of ['drawPile', 'discardPile', 'exhaustPile'] as const) {
+    const zone = state[zoneName];
     const index = zone.findIndex((card) => card.cardId === cardId);
     if (index < 0) continue;
-    state.hand.push(...zone.splice(index, 1));
+    const fetched = zone.splice(index, 1);
+    state.hand.push(...fetched);
+    emitCombatCue(state, { kind: 'draw', card: fetched[0], cards: fetched, fromZone: zoneName, toZone: 'hand', label: '呼び戻し' });
     return;
   }
   generateCards(state, cardId, 1, 'hand');
@@ -83,7 +93,7 @@ function triggerOrb(state: CombatState, orb: OrbType, evoke: boolean): void {
   const focus = resources(state).focus;
   if (orb === 'frost') {
     const amount = (evoke ? CLASS_RULES.frostEvoke : CLASS_RULES.frostPassive) + focus;
-    gainBlock(state, 'player', Math.max(0, amount));
+    withCombatTraceContext(state, { sourceId: 'player', effect: 'orbFrost' }, () => gainBlock(state, 'player', Math.max(0, amount)));
     return;
   }
   const enemies = getEnemies(state).filter((enemy) => enemy.hp > 0);
@@ -92,13 +102,14 @@ function triggerOrb(state: CombatState, orb: OrbType, evoke: boolean): void {
   state.rngState = random.state;
   const enemy = enemies[Math.floor(random.value * enemies.length)];
   const amount = (evoke ? CLASS_RULES.lightningEvoke : CLASS_RULES.lightningPassive) + focus;
-  dealDamage(state, 'enemy', Math.max(0, amount), false, enemy);
+  withCombatTraceContext(state, { sourceId: 'player', effect: 'orbLightning' }, () => dealDamage(state, 'enemy', Math.max(0, amount), false, enemy));
 }
 
 /** Repeating an evoke repeats the same rightmost orb, then removes it once. */
 export function evokeOrb(state: CombatState, times: number): void {
   const orb = resources(state).orbs.pop();
   if (!orb) return;
+  emitCombatCue(state, { kind: 'resource', sourceId: 'player', targetId: 'player', resource: orb, amount: -1, label: '解放' });
   for (let hit = 0; hit < Math.max(0, times) && state.phase === 'player'; hit += 1)
     triggerOrb(state, orb, true);
   appendLog(state, `${orb === 'lightning' ? '雷' : '氷'}オーブを${times}回解放。`);
@@ -112,7 +123,10 @@ export function channelOrbs(state: CombatState, orb: OrbType, amount: number): v
     count += 1
   ) {
     if (current.orbs.length >= CLASS_RULES.orbSlots) evokeOrb(state, 1);
-    if (state.phase === 'player') current.orbs.push(orb);
+    if (state.phase === 'player') {
+      current.orbs.push(orb);
+      emitCombatCue(state, { kind: 'resource', sourceId: 'player', targetId: 'player', resource: orb, amount: 1, label: '生成' });
+    }
   }
   appendLog(state, `${orb === 'lightning' ? '雷' : '氷'}オーブを${amount}個生成。`);
 }
@@ -137,5 +151,5 @@ export function summonAttack(
     appendLog(state, '召喚体がいないため、召喚攻撃は発動しない。');
     return;
   }
-  dealDamage(state, 'enemy', amount + (plusSummonHp ? current.ostyHp : 0), false, enemy);
+  withCombatTraceContext(state, { sourceId: 'player', effect: 'summonDamage' }, () => dealDamage(state, 'enemy', amount + (plusSummonHp ? current.ostyHp : 0), false, enemy));
 }

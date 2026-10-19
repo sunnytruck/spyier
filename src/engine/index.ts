@@ -10,6 +10,7 @@ import { triggerRelics } from './combat/relics';
 import { resolveEffects } from './effects/resolve';
 import { createClassResources } from './combat/resources';
 import { seedToState, shuffle } from './random';
+import { emitCombatCue, inheritCombatTrace, withCombatTraceContext } from '../presentation/trace';
 
 export { calculateDamage } from './combat/damage';
 export { predictEnemyDamage } from './combat/turn';
@@ -133,10 +134,18 @@ export function canPlayCard(state: CombatState, cardUid: string, targetId?: stri
 
 function settlePlayedCard(state: CombatState, card: CardInstance): void {
   const definition = CARD_DEFINITIONS[card.cardId];
-  if (definition.type === 'power') state.powers.push(card);
-  else if (card.upgraded ? definition.upgradedExhaust ?? definition.exhaust : definition.exhaust)
+  let toZone: 'powers' | 'exhaustPile' | 'discardPile';
+  if (definition.type === 'power') {
+    state.powers.push(card);
+    toZone = 'powers';
+  } else if (card.upgraded ? definition.upgradedExhaust ?? definition.exhaust : definition.exhaust) {
     state.exhaustPile.push(card);
-  else state.discardPile.push(card);
+    toZone = 'exhaustPile';
+  } else {
+    state.discardPile.push(card);
+    toZone = 'discardPile';
+  }
+  emitCombatCue(state, { kind: toZone === 'exhaustPile' ? 'exhaust' : toZone === 'powers' ? 'power' : 'discard', sourceId: 'player', card, cards: [card], fromZone: 'played', toZone });
 }
 
 function potionRelevantState(state: CombatState): string {
@@ -188,6 +197,7 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
   }
 
   const next = structuredClone(state);
+  inheritCombatTrace(state, next);
   normalizeInto(next);
   next.events = [];
   if (action.type === 'selectEnemy') {
@@ -197,10 +207,12 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
   if (action.type === 'chooseCards') {
     const choice = next.pendingChoice!;
     const chosen = new Set(action.cardIds);
+    const chosenCards = next.hand.filter((card) => chosen.has(card.uid));
     const destination = choice.mode === 'discard' ? next.discardPile : next.exhaustPile;
     destination.push(...next.hand.filter((card) => chosen.has(card.uid)));
     next.hand = next.hand.filter((card) => !chosen.has(card.uid));
     delete next.pendingChoice;
+    emitCombatCue(next, { kind: choice.mode, sourceId: 'player', cards: chosenCards, fromZone: 'hand', toZone: choice.mode === 'discard' ? 'discardPile' : 'exhaustPile' });
     appendLog(
       next,
       `${action.cardIds.length}枚を${choice.mode === 'discard' ? '捨て札にした' : '廃棄した'}。`,
@@ -250,16 +262,19 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
   next.cardsPlayedThisTurn += 1;
   next.stats.cardsPlayed += 1;
   appendLog(next, `「${definition.name}${card.upgraded ? '+' : ''}」を使用。`);
-  if (definition.type === 'attack') {
-    triggerRelics(next, 'firstAttack');
-    if (next.powerStacks?.blockOnAttack) gainBlock(next, 'player', next.powerStacks.blockOnAttack);
-  }
-  resolveEffects(
-    next,
-    card.upgraded ? definition.upgradedEffects : definition.effects,
-    definition,
-    { targetId, sourceCard: card, xEnergy: paidEnergy },
-  );
+  emitCombatCue(next, { kind: 'cardPlay', sourceId: 'player', targetId, card, fromZone: 'hand', toZone: 'played', label: definition.name });
+  withCombatTraceContext(next, { sourceId: 'player', card }, () => {
+    if (definition.type === 'attack') {
+      triggerRelics(next, 'firstAttack');
+      if (next.powerStacks?.blockOnAttack) gainBlock(next, 'player', next.powerStacks.blockOnAttack);
+    }
+    resolveEffects(
+      next,
+      card.upgraded ? definition.upgradedEffects : definition.effects,
+      definition,
+      { targetId, sourceCard: card, xEnergy: paidEnergy },
+    );
+  });
   if (!next.pendingChoice) settlePlayedCard(next, card);
   if (next.phase === 'victory') triggerRelics(next, 'victory');
   normalizeInto(next);
@@ -269,6 +284,7 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
 /** Public utility is immutable, like the reducer. This never grants passive gauge. */
 export function changeGauge(state: CombatState, delta: number): CombatState {
   const next = structuredClone(state);
+  inheritCombatTrace(state, next);
   normalizeInto(next);
   applyGauge(next, delta);
   return next;

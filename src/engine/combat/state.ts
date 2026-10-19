@@ -1,5 +1,6 @@
 import type { BattleLog, CombatEvent, CombatState, EnemyState, Target } from '../../types/game';
 import { findEnemy, getEnemies, getEnemyKey, normalizeInto } from './targets';
+import { emitCombatCue, traceCombatDeaths } from '../../presentation/trace';
 
 /** Internal helpers deliberately mutate a reducer-owned clone, never live UI state. */
 export function appendLog(
@@ -27,11 +28,15 @@ export function emitEvent(
 }
 
 export function finishIfNeeded(state: CombatState): boolean {
-  if (state.phase !== 'player') return true;
+  if (state.phase !== 'player') {
+    traceCombatDeaths(state);
+    return true;
+  }
   if (state.player.hp <= 0) {
     state.player.hp = 0;
     state.phase = 'defeat';
     appendLog(state, '岩尊けいとは静かに横たわった。「8時か、ねんねやな」', 'result');
+    traceCombatDeaths(state);
     return true;
   }
   if (getEnemies(state).every((enemy) => enemy.hp <= 0)) {
@@ -40,8 +45,10 @@ export function finishIfNeeded(state: CombatState): boolean {
     });
     state.phase = 'victory';
     appendLog(state, `ほいっと〜！ 敵をすべて鎮めた。じっと教の勝利！`, 'result');
+    traceCombatDeaths(state);
     return true;
   }
+  traceCombatDeaths(state);
   return false;
 }
 
@@ -58,6 +65,11 @@ export function gainBlock(
   actor.block += gained;
   emitEvent(state, target, 'block', gained, enemy);
   appendLog(state, `${actor.name}は${gained}ブロックを得た。`, 'block');
+  emitCombatCue(state, {
+    kind: 'block',
+    targetId: target === 'player' ? 'player' : getEnemyKey(actor as EnemyState),
+    amount: gained,
+  });
 }
 
 /** Returns actual HP damage; poison uses bypassBlock. */
@@ -71,14 +83,20 @@ export function dealDamage(
   const actor = target === 'player' ? state.player : (enemy ?? findEnemy(state));
   if (!actor || actor.hp <= 0) return 0;
   const raw = Math.max(0, Math.floor(amount));
+  const targetId = target === 'player' ? 'player' : getEnemyKey(actor as EnemyState);
+  emitCombatCue(state, { kind: 'attack', targetId, amount: raw });
   const blocked = bypassBlock ? 0 : Math.min(actor.block, raw);
   actor.block -= blocked;
   let remaining = raw - blocked;
+  let absorbedBySummon = 0;
   if (target === 'player' && !bypassBlock && state.classResources && state.classResources.ostyHp > 0) {
     const absorbed = Math.min(state.classResources.ostyHp, remaining);
+    absorbedBySummon = absorbed;
     state.classResources.ostyHp -= absorbed;
     remaining -= absorbed;
     if (absorbed > 0) appendLog(state, `召喚体が${absorbed}ダメージを引き受けた。`);
+    if (absorbed > 0)
+      emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'ostyHp', amount: -absorbed });
   }
   const damage = Math.min(actor.hp, remaining);
   actor.hp -= damage;
@@ -96,6 +114,8 @@ export function dealDamage(
     'damage',
   );
   normalizeInto(state);
+  emitCombatCue(state, { kind: 'impact', targetId, amount: damage, blocked,
+    ...(absorbedBySummon > 0 ? { absorbed: absorbedBySummon } : {}) });
   finishIfNeeded(state);
   return damage;
 }
@@ -105,6 +125,7 @@ export function healPlayer(state: CombatState, amount: number): void {
   state.player.hp += healed;
   emitEvent(state, 'player', 'heal', healed);
   if (healed > 0) appendLog(state, `${healed}HP回復。`);
+  if (healed > 0) emitCombatCue(state, { kind: 'heal', targetId: 'player', amount: healed });
 }
 
 export function applyGauge(state: CombatState, delta: number): void {
@@ -118,4 +139,5 @@ export function applyGauge(state: CombatState, delta: number): void {
     appendLog(state, '神格化！ 岩尊神拳に神の力が宿った。', 'gauge');
   if (old === 100 && state.jitto < 100)
     appendLog(state, '神格化が解けた。再びじっとを積み重ねよう。', 'gauge');
+  emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'jitto', amount: difference });
 }

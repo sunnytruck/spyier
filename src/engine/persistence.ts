@@ -355,6 +355,9 @@ export function loadSettings(): GameSettings {
       return {
         speed: settings.speed as GameSettings['speed'],
         reducedMotion: settings.reducedMotion,
+        ...(oneOf(settings.effectsQuality, ['auto', 'full', 'low'])
+          ? { effectsQuality: settings.effectsQuality as GameSettings['effectsQuality'] }
+          : {}),
       };
   } catch {
     /* Settings failures never prevent playing. */

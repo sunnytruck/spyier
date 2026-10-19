@@ -8,11 +8,13 @@ export function RunHud({
   onDeck,
   onRelics,
   onPotion,
+  disabled = false,
 }: {
   state: RunState;
   onDeck: () => void;
   onRelics: () => void;
   onPotion: (slot: number) => void;
+  disabled?: boolean;
 }) {
   const player =
     state.screen === 'combat' && state.combat
@@ -61,7 +63,7 @@ export function RunHud({
               className={`potion-slot ${potion ? 'is-filled' : ''}`}
               data-potion-slot={slot}
               key={slot}
-              disabled={!potion || state.screen !== 'combat' || state.combat?.phase !== 'player'}
+              disabled={disabled || !potion || state.screen !== 'combat' || state.combat?.phase !== 'player' || !!state.combat?.pendingChoice}
               onClick={() => onPotion(slot)}
               title={
                 potion

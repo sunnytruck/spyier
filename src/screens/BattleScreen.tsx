@@ -1,18 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
-import type { Actor, CombatEvent, CombatState, EnemyState } from '../types/game';
+import { useEffect, useState } from 'react';
+import type { Actor, CombatState, EnemyState, GameSettings } from '../types/game';
+import type { CombatCue } from '../presentation/types';
 import { getEnemies, getEnemyKey, predictEnemyDamage } from '../engine';
 import { Icon } from '../components/Icon';
 import { CardView } from '../components/CardView';
+import { BattleHand } from '../components/BattleHand';
 import { Modal } from '../components/Modal';
 import { RockDeity, StoneSentinel } from '../components/CharacterArt';
 import { CLASS_DEFINITIONS } from '../data/classes';
+import { BattleEffects } from '../components/BattleEffects';
+import { CardFlights } from '../components/CardFlights';
 
 type Pile = 'drawPile' | 'discardPile' | 'exhaustPile' | 'powers';
 const keepChoiceOpen = () => {};
 interface BattleProps {
   state: CombatState;
   resolving: boolean;
-  onPlay: (uid: string, targetId?: string) => void;
+  onPlay: (uid: string, targetId?: string) => boolean | void;
   onSelectEnemy?: (targetId: string) => void;
   campaign?: boolean;
   floor?: number;
@@ -22,6 +26,14 @@ interface BattleProps {
   onRestart: () => void;
   onReplay: () => void;
   onTitle: () => void;
+  presentation?: {
+    cue: CombatCue | null;
+    sequence: number;
+    duration?: number;
+    settings: GameSettings;
+    skip: () => void;
+    busy: boolean;
+  };
 }
 
 function StatusChips({ actor, stillness = 0 }: { actor: Actor; stillness?: number }) {
@@ -108,7 +120,8 @@ function HealthBar({ actor, player = false }: { actor: Actor; player?: boolean }
           aria-valuemin={0}
           aria-valuemax={actor.maxHp}
         >
-          <span style={{ width: `${Math.max(0, actor.hp / actor.maxHp) * 100}%` }} />
+          <span className="health-trail" style={{ width: `${Math.max(0, actor.hp / actor.maxHp) * 100}%` }} />
+          <span className="health-fill" style={{ width: `${Math.max(0, actor.hp / actor.maxHp) * 100}%` }} />
         </div>
         <span className="health-value">
           <b>{actor.hp}</b>
@@ -138,11 +151,11 @@ export function BattleScreen({
   onSelectEnemy,
   campaign = false,
   floor,
+  presentation,
 }: BattleProps) {
-  const [floats, setFloats] = useState<CombatEvent[]>([]);
   const [logOpen, setLogOpen] = useState(false);
   const [chosenCards, setChosenCards] = useState<string[]>([]);
-  const lastEventId = useRef(Math.max(0, ...state.events.map((event) => event.id)));
+  const [fallenActors, setFallenActors] = useState<Set<string>>(() => new Set());
   const divine = state.jitto === 100;
   const lastLog = state.log[state.log.length - 1];
   const enemies = getEnemies(state);
@@ -165,56 +178,24 @@ export function BattleScreen({
           : 'flame';
 
   useEffect(() => setChosenCards([]), [state.pendingChoice]);
-
   useEffect(() => {
-    const newEvents = state.events.filter((event) => event.id > lastEventId.current);
-    lastEventId.current = Math.max(lastEventId.current, ...state.events.map((event) => event.id));
-    if (!newEvents.length) {
-      setFloats([]);
-      return;
+    const newlyFallen: string[] = [];
+    if (presentation?.cue?.kind === 'death' && presentation.cue.targetId) newlyFallen.push(presentation.cue.targetId);
+    if (!presentation?.busy) {
+      if (state.player.hp <= 0) newlyFallen.push('player');
+      for (const actor of getEnemies(state)) if (actor.hp <= 0) newlyFallen.push(getEnemyKey(actor));
     }
-    setFloats(newEvents);
-    const timer = setTimeout(() => setFloats([]), 1400);
-    return () => clearTimeout(timer);
-  }, [state.events]);
+    if (newlyFallen.length) setFallenActors((current) => newlyFallen.every((id) => current.has(id)) ? current : new Set([...current, ...newlyFallen]));
+  }, [presentation?.cue, presentation?.busy, state]);
 
-  function eventFloats(target: 'player' | 'enemy', enemyId?: string) {
-    return (
-      <div className="event-floats" aria-hidden="true">
-        {floats
-          .filter(
-            (event) =>
-              event.target === target &&
-              (target === 'player' || !enemyId || !event.enemyId || event.enemyId === enemyId),
-          )
-          .map((event, index) => (
-            <span
-              key={event.id}
-              style={{
-                marginLeft: `${(index % 3) * 26 - 26}px`,
-                animationDelay: `${index * 70}ms`,
-              }}
-              className={`combat-float float-${event.kind}`}
-            >
-              {event.kind === 'damage' || event.amount < 0 ? '−' : '+'}
-              {Math.abs(event.amount)}
-              {event.kind === 'block'
-                ? ' 防御'
-                : event.kind === 'gauge'
-                  ? ' じっと'
-                  : event.kind === 'power'
-                    ? ' 静寂'
-                    : ''}
-            </span>
-          ))}
-      </div>
-    );
-  }
 
   return (
     <main
-      className={`battle-screen ${divine ? 'is-divine' : ''} ${resolving ? 'is-resolving' : ''} ${multiple ? 'multi-enemy' : ''} ${campaign ? 'campaign-battle' : ''}`}
+      data-presentation-busy={presentation?.busy ? 'true' : 'false'}
+      data-presentation-cue={presentation?.cue?.kind ?? 'idle'}
+      className={`battle-screen cinematic-battle ${presentation?.settings.reducedMotion || presentation?.settings.speed === 'instant' ? 'motion-reduced' : ''} ${presentation?.settings.speed === 'fast' ? 'presentation-fast' : ''} ${divine ? 'is-divine' : ''} ${resolving ? 'is-presenting' : ''} ${multiple ? 'multi-enemy' : ''} ${campaign ? 'campaign-battle' : ''}`}
     >
+      {presentation && <CardFlights {...presentation} />}
       <section className="battle-heading">
         <div>
           <p className="eyebrow">
@@ -232,9 +213,10 @@ export function BattleScreen({
           </span>
           <span className="turn-tag">
             <span className="turn-dot" />
-            {resolving ? '敵が行動中' : 'あなたのターン'}
+            {resolving ? '戦闘を演出中' : 'あなたのターン'}
             <b>{String(state.turn).padStart(2, '0')}</b>
           </span>
+          {presentation?.busy && <button className="battle-skip-button" onClick={presentation.skip} aria-label="戦闘演出をスキップ">演出をスキップ <span>»</span></button>}
         </div>
       </section>
 
@@ -279,8 +261,7 @@ export function BattleScreen({
           </div>
           <div className="character-stage">
             <div className="character-shadow" />
-            <RockDeity deified={divine} />
-            {eventFloats('player')}
+            <div className="actor-motion" data-battle-actor="player" data-fallen={fallenActors.has('player') || undefined}><RockDeity deified={divine} /></div>
             {state.player.block > 0 && <div className="block-aura" aria-hidden="true" />}
           </div>
           <HealthBar actor={state.player} player />
@@ -372,15 +353,7 @@ export function BattleScreen({
                     onClick={() => onSelectEnemy?.(enemyId)}
                   >
                     <div className="character-shadow" />
-                    <StoneSentinel
-                      hurt={floats.some(
-                        (event) =>
-                          event.target === 'enemy' &&
-                          event.enemyId === enemyId &&
-                          event.kind === 'damage',
-                      )}
-                    />
-                    {eventFloats('enemy', enemyId)}
+                    <div className="actor-motion" data-battle-actor={enemyId} data-fallen={fallenActors.has(enemyId) || undefined}><StoneSentinel /></div>
                     <span className="target-label">
                       {dead ? '撃破' : selected ? '選択中' : 'クリックで選択'}
                     </span>
@@ -430,21 +403,20 @@ export function BattleScreen({
               aria-label={`攻撃対象に選択：${enemy.name}`}
             >
               <div className="character-shadow" />
-              <StoneSentinel
-                hurt={floats.some((event) => event.target === 'enemy' && event.kind === 'damage')}
-              />
-              {eventFloats('enemy', getEnemyKey(enemy))}
+              <div className="actor-motion" data-battle-actor={getEnemyKey(enemy)} data-fallen={fallenActors.has(getEnemyKey(enemy)) || undefined}><StoneSentinel /></div>
               <span className="target-label">選択中</span>
             </button>
             <HealthBar actor={enemy} />
           </div>
         )}
+        {presentation && <BattleEffects cue={presentation.cue} sequence={presentation.sequence} settings={presentation.settings} busy={presentation.busy} duration={presentation.duration} />}
       </section>
 
       <section className="battle-controls" aria-label="戦闘操作">
         <div className="pile-controls">
           <button
             className="pile-button"
+            data-battle-pile="drawPile"
             onClick={() => onOpenPile('drawPile')}
             aria-label={`山札を確認、${state.drawPile.length}枚`}
           >
@@ -459,6 +431,7 @@ export function BattleScreen({
           </button>
           <button
             className="pile-button"
+            data-battle-pile="discardPile"
             onClick={() => onOpenPile('discardPile')}
             aria-label={`捨て札を確認、${state.discardPile.length}枚`}
           >
@@ -473,6 +446,7 @@ export function BattleScreen({
           </button>
           <button
             className="pile-button pile-button--minor"
+            data-battle-pile="exhaustPile"
             onClick={() => onOpenPile('exhaustPile')}
             aria-label={`廃棄札を確認、${state.exhaustPile.length}枚`}
           >
@@ -484,6 +458,7 @@ export function BattleScreen({
           {state.powers.length > 0 && (
             <button
               className="pile-button pile-button--minor"
+              data-battle-pile="powers"
               onClick={() => onOpenPile('powers')}
               aria-label={`発動中のパワー、${state.powers.length}枚`}
             >
@@ -537,7 +512,7 @@ export function BattleScreen({
             onClick={onEndTurn}
             disabled={resolving || state.phase !== 'player' || !!state.pendingChoice}
           >
-            {resolving ? '敵が行動中…' : 'ターン終了'}
+            {resolving ? '演出中…' : 'ターン終了'}
             <span>
               <kbd>E</kbd>
               <Icon name="chevron" size={17} />
@@ -546,46 +521,7 @@ export function BattleScreen({
         </div>
       </section>
 
-      <section className="hand-section" aria-label="手札">
-        <div className="hand-heading">
-          <div>
-            <span className="section-kicker">YOUR HAND</span>
-            <h2>
-              手札 <span>{state.hand.length}枚</span>
-            </h2>
-          </div>
-          <p>
-            {state.energy === 0
-              ? 'エナジーを使い切りました。ターンを終了して次の手札へ。'
-              : 'カードをクリックして使用'}
-            <span className="shortcut-hint">
-              <kbd>1</kbd>〜<kbd>5</kbd> でも選択
-            </span>
-          </p>
-        </div>
-        <div className="hand-cards">
-          {state.hand.map((card, index) => (
-            <CardView
-              key={card.uid}
-              card={card}
-              state={state}
-              onPlay={(uid) => onPlay(uid, selectedId)}
-              position={index}
-              disabled={resolving}
-            />
-          ))}
-          {!state.hand.length && (
-            <div className="empty-hand">
-              <Icon name="cards" size={32} />
-              <p>
-                手札を使い切りました。
-                <br />
-                <span>ターンを終了すると、新しく5枚ドローします。</span>
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
+      <BattleHand state={state} disabled={resolving} onPlay={onPlay} settings={presentation?.settings} />
 
       <footer className="battle-footer">
         <button
@@ -639,7 +575,7 @@ export function BattleScreen({
         {enemies.filter((actor) => actor.hp > 0).length}体 。じっとゲージ{state.jitto}。
       </div>
 
-      {state.pendingChoice && <Modal title={`手札から${state.pendingChoice.amount}枚${state.pendingChoice.mode === 'discard' ? '捨てる' : '廃棄する'}`} subtitle="CHOOSE YOUR CARDS" onClose={keepChoiceOpen} dismissible={false} wide>
+      {state.pendingChoice && !presentation?.busy && <Modal title={`手札から${state.pendingChoice.amount}枚${state.pendingChoice.mode === 'discard' ? '捨てる' : '廃棄する'}`} subtitle="CHOOSE YOUR CARDS" onClose={keepChoiceOpen} dismissible={false} wide>
         <p className="modal-intro">カードを選び、確定すると効果の続きを解決します。{state.pendingChoice.mode === 'exhaust' ? '廃棄したカードは、この戦闘では山札に戻りません。' : '捨てたカードは捨て札に移ります。'}</p>
         <div className="pending-choice-grid">
           {state.hand.map((card) => {
@@ -653,7 +589,7 @@ export function BattleScreen({
         <div className="pending-choice-confirm"><span>選択 {chosenCards.length} / {state.pendingChoice.amount}枚</span><button className="primary-button" disabled={chosenCards.length !== state.pendingChoice.amount} onClick={() => onChooseCards?.(chosenCards)}>選択を確定して続ける <Icon name="arrow" size={16} /></button></div>
       </Modal>}
 
-      {!campaign && state.phase !== 'player' && (
+      {!campaign && !presentation?.busy && state.phase !== 'player' && (
         <Modal
           title={state.phase === 'victory' ? '教えは、岩をも砕く。' : '8時か、ねんねやな。'}
           subtitle={state.phase === 'victory' ? 'VICTORY · 試練突破' : 'DEFEAT · また、じっと。'}

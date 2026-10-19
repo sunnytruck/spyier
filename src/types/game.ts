@@ -219,4 +219,5 @@ export type CombatAction =
 export interface GameSettings {
   speed: 'normal' | 'fast' | 'instant';
   reducedMotion: boolean;
+  effectsQuality?: 'auto' | 'full' | 'low';
 }

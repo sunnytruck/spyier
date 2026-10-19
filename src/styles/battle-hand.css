@@ -1,0 +1,138 @@
+.battle-hand .battle-hand-cards {
+  perspective: 1000px;
+  padding-top: 28px;
+  padding-bottom: 18px;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+}
+.battle-hand .battle-hand-slot {
+  position: relative;
+  flex: 0 0 auto;
+  transform: translateY(var(--fan-rise, 0px)) rotate(var(--fan-angle, 0deg));
+  transform-origin: center 130%;
+  transition: transform 180ms cubic-bezier(.2,.75,.3,1), opacity 100ms;
+  animation: hand-card-arrive 300ms cubic-bezier(.17,.75,.25,1) backwards;
+  animation-delay: var(--draw-delay, 0ms);
+}
+.battle-hand .battle-hand-slot > .game-card {
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+.battle-hand .battle-hand-slot:hover,
+.battle-hand .battle-hand-slot:focus-within {
+  z-index: 12;
+  transform: translateY(-8px) rotate(0deg);
+}
+.battle-hand .battle-hand-slot > .game-card.is-playable:hover {
+  transform: translateY(-9px) scale(1.065);
+  cursor: grab;
+}
+.battle-hand .battle-hand-slot.is-card-dragging {
+  transform: translateY(0) rotate(0);
+}
+.battle-hand .battle-hand-slot.is-card-dragging > .game-card {
+  opacity: .13;
+  transform: none;
+  filter: saturate(.3);
+  border-style: dashed;
+}
+.battle-screen[data-card-drag] { user-select: none; }
+.battle-screen[data-card-drag="enemy"] [data-enemy-id]:not(:disabled) {
+  box-shadow: inset 0 0 24px #d7a66120;
+}
+.battle-screen [data-card-drop="valid"] {
+  outline: 2px solid #e9c779;
+  outline-offset: -5px;
+  box-shadow: 0 0 34px #e2b65a46, inset 0 0 25px #e4bf6c32;
+  border-radius: 12px;
+}
+.battle-screen [data-card-drop="invalid"] {
+  outline: 1px solid #b9856c66;
+  outline-offset: -4px;
+}
+.battle-card-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1200;
+  pointer-events: none;
+  transform-origin: center 62%;
+  will-change: transform;
+  filter: drop-shadow(0 18px 22px #0009);
+  contain: layout style;
+}
+.battle-card-ghost > .game-card,
+.battle-card-ghost > .game-card.is-playable {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  margin: 0;
+  transform: none;
+  opacity: 1;
+  transition: none;
+  border-color: #e8cb82;
+  box-shadow: 0 0 22px #e2b65a2b, inset 0 0 0 3px #1a211b;
+}
+.battle-card-ghost.is-lightweight { filter: none; }
+.card-drag-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1195;
+  pointer-events: none;
+  opacity: 0;
+  color: #c7b599;
+  contain: layout style;
+}
+.card-drag-overlay[data-valid="true"] { color: #f2d283; }
+.card-targeting-curve {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  filter: drop-shadow(0 0 5px #d5b15b55);
+}
+.card-targeting-curve > path {
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-dasharray: 5 5;
+  stroke-linecap: round;
+}
+.card-drag-overlay[data-quality="low"] .card-targeting-curve { filter: none; }
+.card-drop-hint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 7px 11px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: #1c2017ef;
+  color: inherit;
+  box-shadow: 0 3px 12px #0008;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.battle-hand[data-motion="fast"] .battle-hand-slot { animation-duration: 160ms; }
+.battle-hand[data-motion="instant"] .battle-hand-slot {
+  animation: none;
+  transition: none;
+  transform: none;
+}
+.battle-hand[data-motion="instant"] .battle-hand-slot > .game-card:hover {
+  transform: none;
+}
+@keyframes hand-card-arrive {
+  from { opacity: 0; transform: translate3d(-65px, 65px, 0) rotate(-13deg) scale(.78); }
+  to { opacity: 1; transform: translateY(var(--fan-rise, 0px)) rotate(var(--fan-angle, 0deg)); }
+}
+@media (max-width: 700px) {
+  .battle-hand .battle-hand-cards { justify-content: flex-start; padding-top: 22px; }
+  .battle-hand .battle-hand-slot { transform: none; --fan-angle: 0deg !important; --fan-rise: 0px !important; }
+  .battle-hand .hand-heading > p { max-width: 185px; }
+  .battle-hand .shortcut-hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .battle-hand .battle-hand-slot,
+  .battle-hand .battle-hand-slot > .game-card { animation: none; transition: none; }
+}

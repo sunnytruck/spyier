@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CardInstance, ClassId, CombatAction, CombatState, GameSettings } from './types/game';
 import type { RunAction, RunState } from './types/run';
 import { createRun, reduceRun } from './engine/run';
@@ -22,6 +22,10 @@ import { CardView } from './components/CardView';
 import { Modal } from './components/Modal';
 import { RockDeity } from './components/CharacterArt';
 import { BattleScreen } from './screens/BattleScreen';
+import { captureCombatTransition } from './presentation/trace';
+import { useBattlePresentation } from './presentation/useBattlePresentation';
+import { useReducedMotion } from './presentation/useReducedMotion';
+import type { CombatCue } from './presentation/types';
 import './styles/game.css';
 import './styles/campaign.css';
 import './styles/class-system.css';
@@ -53,15 +57,21 @@ export default function App() {
   const combat = screen === 'run' ? (run?.combat ?? null) : practice;
   const [settings, setSettings] = useState<GameSettings>(() => loadSettings());
   const [modal, setModal] = useState<ModalName>(null);
-  const [resolving, setResolving] = useState(false);
   const [sessionId, setSessionId] = useState(0);
   const [seed, setSeed] = useState('');
   const [selectedClassId, setSelectedClassId] = useState<ClassId>(CLASS_IDS[0]);
   const [storageWarning, setStorageWarning] = useState<string | null>(
     () => getRunSaveWarning() ?? getSaveWarning(),
   );
-  const actionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const actionLocked = useRef(false);
+  const systemReducedMotion = useReducedMotion();
+  const motionSettings = useMemo(() => ({ ...settings, reducedMotion: settings.reducedMotion || systemReducedMotion }), [settings, systemReducedMotion]);
+  const presentation = useBattlePresentation(motionSettings);
+  const { play: playPresentation, cancel: cancelPresentation } = presentation;
+  const resolving = presentation.busy;
+  const shownCombat = presentation.displayState ?? combat;
+  const latest = useRef({ run, practice, screen, modal });
+  latest.current = { run, practice, screen, modal };
   const closeModal = useCallback(() => setModal(null), []);
 
   useEffect(() => {
@@ -79,80 +89,86 @@ export default function App() {
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
-  useEffect(
-    () => () => {
-      if (actionTimer.current) clearTimeout(actionTimer.current);
-    },
-    [],
-  );
+
+  const showEntrance = useCallback((state: CombatState) => {
+    const opening = { ...state, hand: [], drawPile: [...state.drawPile, ...state.hand] };
+    actionLocked.current = true;
+    playPresentation(opening, [{ kind: 'draw', sourceId: 'player', targetId: 'player', cards: state.hand,
+      fromZone: 'drawPile', toZone: 'hand', label: '最初の手札', frame: state }], state,
+      () => { actionLocked.current = false; });
+  }, [playPresentation]);
 
   function startGame(sameSeed?: string) {
-    if (actionTimer.current) clearTimeout(actionTimer.current);
+    cancelPresentation();
     actionLocked.current = false;
-    setResolving(false);
-    setPractice(createCombat(sameSeed ?? (seed.trim() || freshSeed())));
+    const next = createCombat(sameSeed ?? (seed.trim() || freshSeed()));
+    latest.current.practice = next;
+    setPractice(next);
+    saveGame(next);
     setSessionId((current) => current + 1);
     setScreen('battle');
     setModal(null);
+    showEntrance(next);
   }
 
   function startRun(sameSeed?: string, classId?: ClassId) {
-    if (actionTimer.current) clearTimeout(actionTimer.current);
+    cancelPresentation();
     actionLocked.current = false;
-    setResolving(false);
-    setRun(createRun(sameSeed ?? (seed.trim() || freshSeed()), classId));
+    const next = createRun(sameSeed ?? (seed.trim() || freshSeed()), classId);
+    latest.current.run = next;
+    setRun(next);
     setSessionId((current) => current + 1);
     setScreen('run');
     setModal(null);
   }
 
-  const dispatchRun = useCallback(
-    (action: RunAction) => {
-      if (actionLocked.current || resolving) return;
-      setRun((current) => (current ? reduceRun(current, action) : current));
-    },
-    [resolving],
-  );
-
   const dispatch = useCallback(
     (action: CombatAction) => {
-      if (!combat || combat.phase !== 'player' || actionLocked.current || modal) return;
-      const apply = () => {
-        if (screen === 'run')
-          setRun((current) => (current ? reduceRun(current, { type: 'combat', action }) : current));
-        else setPractice((current) => (current ? reduceCombat(current, action) : current));
-      };
-      if (action.type === 'selectEnemy') {
-        apply();
-        return;
-      }
+      const current = latest.current;
+      const before = current.screen === 'run' ? current.run?.combat : current.practice;
+      if (!before || before.phase !== 'player' || actionLocked.current || current.modal) return false;
       actionLocked.current = true;
-      const duration =
-        settings.reducedMotion || settings.speed === 'instant'
-          ? 0
-          : settings.speed === 'fast'
-            ? 110
-            : action.type === 'endTurn'
-              ? 440
-              : 180;
-      if (action.type === 'endTurn' && duration > 0) {
-        setResolving(true);
-        actionTimer.current = setTimeout(() => {
-          apply();
-          setResolving(false);
-          actionLocked.current = false;
-        }, duration);
+      let after: CombatState;
+      let cues: CombatCue[];
+      if (current.screen === 'run' && current.run) {
+        const transition = captureCombatTransition(before, () => reduceRun(current.run!, { type: 'combat', action }));
+        if (transition.result === current.run) { actionLocked.current = false; return false; }
+        latest.current.run = transition.result;
+        setRun(transition.result);
+        saveRun(transition.result);
+        after = transition.result.combat!;
+        cues = transition.cues;
       } else {
-        apply();
-        if (duration > 0)
-          actionTimer.current = setTimeout(() => {
-            actionLocked.current = false;
-          }, duration);
-        else actionLocked.current = false;
+        const transition = captureCombatTransition(before, () => reduceCombat(before, action));
+        if (transition.result === before) { actionLocked.current = false; return false; }
+        latest.current.practice = transition.result;
+        setPractice(transition.result);
+        saveGame(transition.result);
+        after = transition.result;
+        cues = transition.cues;
       }
+      // The authoritative result is already saved. Only its presentation is delayed.
+      playPresentation(before, cues, after, () => { actionLocked.current = false; });
+      return true;
     },
-    [combat, modal, settings, screen],
+    [playPresentation],
   );
+
+  const dispatchRun = useCallback((action: RunAction) => {
+    if (action.type === 'combat') { dispatch(action.action); return; }
+    if (action.type === 'usePotion') {
+      dispatch({ type: 'usePotion', slot: action.slot, targetId: action.targetId }); return;
+    }
+    if (actionLocked.current) return;
+    const current = latest.current.run;
+    if (!current) return;
+    const next = reduceRun(current, action);
+    if (next === current) return;
+    latest.current.run = next;
+    setRun(next);
+    saveRun(next);
+    if (next.screen === 'combat' && current.screen !== 'combat' && next.combat) showEntrance(next.combat);
+  }, [dispatch, showEntrance]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -198,11 +214,14 @@ export default function App() {
     modal === 'discardPile' ||
     modal === 'exhaustPile' ||
     modal === 'powers';
-  const pileCards: CardInstance[] = combat && isPileModal ? combat[modal] : [];
+  const pileCards: CardInstance[] = shownCombat && isPileModal ? shownCombat[modal] : [];
+  const shownRun = run && presentation.displayState
+    ? { ...run, screen: 'combat' as const, hp: presentation.displayState.player.hp, combat: presentation.displayState }
+    : run;
 
   return (
     <div
-      className={`app ${settings.reducedMotion ? 'reduced-motion' : ''} speed-${settings.speed}`}
+      className={`app ${motionSettings.reducedMotion ? 'reduced-motion' : ''} speed-${settings.speed} effects-${settings.effectsQuality ?? 'auto'}`}
     >
       <header className="topbar">
         <button
@@ -220,9 +239,10 @@ export default function App() {
             <small>じっと教の塔</small>
           </span>
         </button>
-        {screen === 'run' && run ? (
+        {screen === 'run' && shownRun ? (
           <RunHud
-            state={run}
+            state={shownRun}
+            disabled={resolving}
             onDeck={() => setModal('deck')}
             onRelics={() => setModal('relics')}
             onPotion={(slot) =>
@@ -336,7 +356,7 @@ export default function App() {
       ) : screen === 'classes' ? (
         <ClassSelectionScreen selected={selectedClassId} onSelect={setSelectedClassId}
           onStart={() => startRun(undefined, selectedClassId)} onBack={() => setScreen('title')} />
-      ) : screen === 'run' && run && run.screen !== 'combat' ? (
+      ) : screen === 'run' && run && run.screen !== 'combat' && !resolving ? (
         <RunScreens
           state={run}
           onAction={dispatchRun}
@@ -344,20 +364,22 @@ export default function App() {
           onReplay={() => startRun(run.seed, run.classId)}
           onTitle={() => setScreen('title')}
         />
-      ) : combat ? (
+      ) : shownCombat ? (
         <BattleScreen
           key={`${sessionId}-${screen === 'run' ? run?.currentNodeId : 'practice'}`}
-          state={combat}
+          state={shownCombat}
           campaign={screen === 'run'}
           floor={screen === 'run' ? run?.floor : undefined}
           resolving={resolving}
+          presentation={{ cue: presentation.activeCue, sequence: presentation.activeSequence,
+            duration: presentation.activeDuration, settings: motionSettings, skip: presentation.skip, busy: resolving }}
           onPlay={(cardId, targetId) => dispatch({ type: 'playCard', cardId, targetId })}
           onSelectEnemy={(targetId) => dispatch({ type: 'selectEnemy', targetId })}
           onEndTurn={() => dispatch({ type: 'endTurn' })}
           onChooseCards={(cardIds) => dispatch({ type: 'chooseCards', cardIds })}
           onOpenPile={(pile) => setModal(pile)}
           onRestart={() => startGame(freshSeed())}
-          onReplay={() => startGame(combat.seed)}
+          onReplay={() => startGame(shownCombat.seed)}
           onTitle={() => setScreen('title')}
         />
       ) : null}
@@ -389,6 +411,21 @@ export default function App() {
                 ))}
               </div>
             </div>
+            <div className="setting-row">
+              <div>
+                <h3>演出の負荷</h3>
+                <p>軽量では粒子数と描画解像度を抑えます。戦闘の結果は変わりません。</p>
+              </div>
+              <div className="segmented-control" aria-label="演出品質">
+                {(['auto', 'full', 'low'] as const).map((quality) => (
+                  <button key={quality} aria-pressed={(settings.effectsQuality ?? 'auto') === quality}
+                    className={(settings.effectsQuality ?? 'auto') === quality ? 'active' : ''}
+                    onClick={() => setSettings((current) => ({ ...current, effectsQuality: quality }))}>
+                    {quality === 'auto' ? '自動' : quality === 'full' ? '標準' : '軽量'}
+                  </button>
+                ))}
+              </div>
+            </div>
             <label className="setting-row">
               <div>
                 <h3>アニメーションを短縮</h3>
@@ -414,6 +451,8 @@ export default function App() {
               <button
                 className="text-button danger-text"
                 onClick={() => {
+                  cancelPresentation();
+                  actionLocked.current = false;
                   clearGame();
                   clearRun();
                   setPractice(null);
@@ -436,7 +475,7 @@ export default function App() {
               <span className="help-number">01</span>
               <h3>カードで、ほいっと。</h3>
               <p>
-                カードをクリックして使用。左上の数字だけエナジーを消費します。複数の敵はクリックで対象を選んでから攻撃。すべての敵のHPを0にすれば勝利です。
+                カードはクリック、または対象へドラッグして使用します。左上の数字だけエナジーを消費します。攻撃や毒のカードは敵へ、防御などはフィールドへ放してください。無効な場所へ放すと消費せず戻ります。
               </p>
               <small>
                 <kbd>1</kbd>〜<kbd>5</kbd> 手札を使用
