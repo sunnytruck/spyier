@@ -19,6 +19,20 @@
 .card-runtime.has-risk { border-color: #e49b7299; background: #371b18e8; }
 .card-runtime .is-risk { color: #ffb89a; }
 .app .inspect-card .card-runtime-fact { font-size: 13px; }
+.card-acquisition-badge {
+  align-self: flex-start;
+  margin: 8px 12px 0;
+  padding: 3px 8px;
+  border: 1px solid #d8bc7780;
+  border-radius: 3px;
+  color: #f5dfaa;
+  background: #443519;
+  font-family: var(--sans, "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif);
+  font-size: 12px;
+  line-height: 1.65;
+  font-weight: 650;
+}
+.card-temporary-upgrade { display: block; margin: 0 12px 9px; color: #c6efaa; font-size: 12px; line-height: 1.7; }
 @media (max-width: 600px) {
   .card-runtime { margin-right: 10px; margin-left: 10px; padding: 7px; }
 }

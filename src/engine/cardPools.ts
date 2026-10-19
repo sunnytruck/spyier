@@ -1,5 +1,6 @@
 import { CARD_DEFINITIONS, LEGACY_CARD_IDS } from '../data/cards';
 import type { ClassId } from '../types/game';
+import { isBlessingAcquisitionCard, isNormalAcquisitionCard } from './cardAcquisition';
 
 export type CardAcquisitionSource = 'combat' | 'shop' | 'event';
 
@@ -20,7 +21,7 @@ export function getCardPool(
   policy: EventCardPoolPolicy = {},
 ): string[] {
   // Old runs have no class. Freeze their original pool and order for save/seed compatibility.
-  if (!classId) return [...LEGACY_CARD_IDS];
+  if (!classId) return LEGACY_CARD_IDS.filter((id) => isNormalAcquisitionCard(CARD_DEFINITIONS[id]));
 
   const permittedClasses = new Set<string>();
   if (source === 'combat') permittedClasses.add(classId);
@@ -40,9 +41,18 @@ export function getCardPool(
       (card) =>
         card.classId !== undefined &&
         permittedClasses.has(card.classId) &&
-        !card.tokenOnly &&
-        card.rewardEligible !== false &&
+        isNormalAcquisitionCard(card) &&
         (!whitelist || whitelist.has(card.id)),
     )
+    .map((card) => card.id);
+}
+
+/** An optional character whitelist can only narrow explicit, implemented blessing cards. */
+export function getBlessingCardPool(classId: ClassId | undefined, characterCardIds?: readonly string[]): string[] {
+  const whitelist = characterCardIds ? new Set(characterCardIds) : null;
+  return Object.values(CARD_DEFINITIONS)
+    .filter((card) => isBlessingAcquisitionCard(card) &&
+      (card.classId === 'colorless' || (classId !== undefined && card.classId === classId)) &&
+      (!whitelist || whitelist.has(card.id)))
     .map((card) => card.id);
 }

@@ -1,0 +1,2291 @@
+{
+  "sourceCommit": "51974c9f02054e8d89c2092df2b020ac98efc8ce",
+  "oracleMap": {
+    "version": 2,
+    "run": {
+      "version": 2,
+      "seed": "pre-blessing-oracle",
+      "classId": "oracle",
+      "rewardRules": "rarity-v1",
+      "rngState": 2753035654,
+      "screen": "map",
+      "floor": 0,
+      "currentNodeId": null,
+      "map": {
+        "floors": 12,
+        "nodes": [
+          {
+            "id": "floor-1-0",
+            "floor": 1,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-2-0"
+            ]
+          },
+          {
+            "id": "floor-1-1",
+            "floor": 1,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-2-1",
+              "floor-2-2"
+            ]
+          },
+          {
+            "id": "floor-1-2",
+            "floor": 1,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-2-2"
+            ]
+          },
+          {
+            "id": "floor-2-0",
+            "floor": 2,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-3-0"
+            ]
+          },
+          {
+            "id": "floor-2-1",
+            "floor": 2,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-3-1",
+              "floor-3-2"
+            ]
+          },
+          {
+            "id": "floor-2-2",
+            "floor": 2,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-3-2"
+            ]
+          },
+          {
+            "id": "floor-3-0",
+            "floor": 3,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-4-0"
+            ]
+          },
+          {
+            "id": "floor-3-1",
+            "floor": 3,
+            "lane": 1,
+            "type": "shop",
+            "connections": [
+              "floor-4-0"
+            ]
+          },
+          {
+            "id": "floor-3-2",
+            "floor": 3,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-4-1",
+              "floor-4-2"
+            ]
+          },
+          {
+            "id": "floor-4-0",
+            "floor": 4,
+            "lane": 0,
+            "type": "treasure",
+            "connections": [
+              "floor-5-0"
+            ]
+          },
+          {
+            "id": "floor-4-1",
+            "floor": 4,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-5-1"
+            ]
+          },
+          {
+            "id": "floor-4-2",
+            "floor": 4,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-5-1",
+              "floor-5-2"
+            ]
+          },
+          {
+            "id": "floor-5-0",
+            "floor": 5,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-6-0"
+            ]
+          },
+          {
+            "id": "floor-5-1",
+            "floor": 5,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-6-0",
+              "floor-6-1"
+            ]
+          },
+          {
+            "id": "floor-5-2",
+            "floor": 5,
+            "lane": 2,
+            "type": "event",
+            "connections": [
+              "floor-6-2"
+            ]
+          },
+          {
+            "id": "floor-6-0",
+            "floor": 6,
+            "lane": 0,
+            "type": "elite",
+            "connections": [
+              "floor-7-0"
+            ]
+          },
+          {
+            "id": "floor-6-1",
+            "floor": 6,
+            "lane": 1,
+            "type": "elite",
+            "connections": [
+              "floor-7-0",
+              "floor-7-1"
+            ]
+          },
+          {
+            "id": "floor-6-2",
+            "floor": 6,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-7-2"
+            ]
+          },
+          {
+            "id": "floor-7-0",
+            "floor": 7,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-8-0"
+            ]
+          },
+          {
+            "id": "floor-7-1",
+            "floor": 7,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-8-0",
+              "floor-8-1"
+            ]
+          },
+          {
+            "id": "floor-7-2",
+            "floor": 7,
+            "lane": 2,
+            "type": "event",
+            "connections": [
+              "floor-8-1",
+              "floor-8-2"
+            ]
+          },
+          {
+            "id": "floor-8-0",
+            "floor": 8,
+            "lane": 0,
+            "type": "elite",
+            "connections": [
+              "floor-9-0"
+            ]
+          },
+          {
+            "id": "floor-8-1",
+            "floor": 8,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-9-0",
+              "floor-9-1"
+            ]
+          },
+          {
+            "id": "floor-8-2",
+            "floor": 8,
+            "lane": 2,
+            "type": "rest",
+            "connections": [
+              "floor-9-2"
+            ]
+          },
+          {
+            "id": "floor-9-0",
+            "floor": 9,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-10-0"
+            ]
+          },
+          {
+            "id": "floor-9-1",
+            "floor": 9,
+            "lane": 1,
+            "type": "rest",
+            "connections": [
+              "floor-10-0",
+              "floor-10-1"
+            ]
+          },
+          {
+            "id": "floor-9-2",
+            "floor": 9,
+            "lane": 2,
+            "type": "shop",
+            "connections": [
+              "floor-10-2"
+            ]
+          },
+          {
+            "id": "floor-10-0",
+            "floor": 10,
+            "lane": 0,
+            "type": "shop",
+            "connections": [
+              "floor-11-0",
+              "floor-11-1"
+            ]
+          },
+          {
+            "id": "floor-10-1",
+            "floor": 10,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-11-1"
+            ]
+          },
+          {
+            "id": "floor-10-2",
+            "floor": 10,
+            "lane": 2,
+            "type": "event",
+            "connections": [
+              "floor-11-2"
+            ]
+          },
+          {
+            "id": "floor-11-0",
+            "floor": 11,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-1",
+            "floor": 11,
+            "lane": 1,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-2",
+            "floor": 11,
+            "lane": 2,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-12-1",
+            "floor": 12,
+            "lane": 1,
+            "type": "boss",
+            "connections": []
+          }
+        ]
+      },
+      "visited": [],
+      "hp": 76,
+      "maxHp": 76,
+      "gold": 90,
+      "deck": [
+        {
+          "uid": "card-1",
+          "cardId": "oracle_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-2",
+          "cardId": "oracle_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-3",
+          "cardId": "oracle_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-4",
+          "cardId": "oracle_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-5",
+          "cardId": "oracle_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-6",
+          "cardId": "oracle_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-7",
+          "cardId": "oracle_awe",
+          "upgraded": false
+        },
+        {
+          "uid": "card-8",
+          "cardId": "oracle_solar_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-9",
+          "cardId": "oracle_manifest",
+          "upgraded": false
+        },
+        {
+          "uid": "card-10",
+          "cardId": "oracle_star_burst",
+          "upgraded": false
+        }
+      ],
+      "relicIds": [
+        "amber_spark"
+      ],
+      "potions": [
+        "spring_water",
+        null,
+        null
+      ],
+      "combat": null,
+      "reward": null,
+      "shop": null,
+      "eventId": null,
+      "eventHistory": [],
+      "eventResult": null,
+      "eventCombat": null,
+      "nextCardId": 11,
+      "stats": {
+        "battlesWon": 0,
+        "elitesDefeated": 0,
+        "cardsAdded": 0
+      },
+      "log": [
+        "岩尊けいと、第一階層へ。「ほいっと〜」。予告と手札を見て、進む道を選ぼう。"
+      ]
+    }
+  },
+  "necroCombat": {
+    "version": 2,
+    "run": {
+      "version": 2,
+      "seed": "pre-blessing-necro",
+      "classId": "necromancer",
+      "rewardRules": "rarity-v1",
+      "rngState": 3682871305,
+      "screen": "combat",
+      "floor": 1,
+      "currentNodeId": "floor-1-0",
+      "map": {
+        "floors": 12,
+        "nodes": [
+          {
+            "id": "floor-1-0",
+            "floor": 1,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-2-0"
+            ]
+          },
+          {
+            "id": "floor-1-1",
+            "floor": 1,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-2-0"
+            ]
+          },
+          {
+            "id": "floor-1-2",
+            "floor": 1,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-2-1",
+              "floor-2-2"
+            ]
+          },
+          {
+            "id": "floor-2-0",
+            "floor": 2,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-3-0",
+              "floor-3-1"
+            ]
+          },
+          {
+            "id": "floor-2-1",
+            "floor": 2,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-3-1",
+              "floor-3-2"
+            ]
+          },
+          {
+            "id": "floor-2-2",
+            "floor": 2,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-3-2"
+            ]
+          },
+          {
+            "id": "floor-3-0",
+            "floor": 3,
+            "lane": 0,
+            "type": "event",
+            "connections": [
+              "floor-4-0"
+            ]
+          },
+          {
+            "id": "floor-3-1",
+            "floor": 3,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-4-0",
+              "floor-4-1"
+            ]
+          },
+          {
+            "id": "floor-3-2",
+            "floor": 3,
+            "lane": 2,
+            "type": "rest",
+            "connections": [
+              "floor-4-1",
+              "floor-4-2"
+            ]
+          },
+          {
+            "id": "floor-4-0",
+            "floor": 4,
+            "lane": 0,
+            "type": "shop",
+            "connections": [
+              "floor-5-0"
+            ]
+          },
+          {
+            "id": "floor-4-1",
+            "floor": 4,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-5-0"
+            ]
+          },
+          {
+            "id": "floor-4-2",
+            "floor": 4,
+            "lane": 2,
+            "type": "event",
+            "connections": [
+              "floor-5-1",
+              "floor-5-2"
+            ]
+          },
+          {
+            "id": "floor-5-0",
+            "floor": 5,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-6-0"
+            ]
+          },
+          {
+            "id": "floor-5-1",
+            "floor": 5,
+            "lane": 1,
+            "type": "elite",
+            "connections": [
+              "floor-6-0"
+            ]
+          },
+          {
+            "id": "floor-5-2",
+            "floor": 5,
+            "lane": 2,
+            "type": "elite",
+            "connections": [
+              "floor-6-1",
+              "floor-6-2"
+            ]
+          },
+          {
+            "id": "floor-6-0",
+            "floor": 6,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-7-0"
+            ]
+          },
+          {
+            "id": "floor-6-1",
+            "floor": 6,
+            "lane": 1,
+            "type": "treasure",
+            "connections": [
+              "floor-7-0",
+              "floor-7-1"
+            ]
+          },
+          {
+            "id": "floor-6-2",
+            "floor": 6,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-7-1",
+              "floor-7-2"
+            ]
+          },
+          {
+            "id": "floor-7-0",
+            "floor": 7,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-8-0"
+            ]
+          },
+          {
+            "id": "floor-7-1",
+            "floor": 7,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-8-1",
+              "floor-8-2"
+            ]
+          },
+          {
+            "id": "floor-7-2",
+            "floor": 7,
+            "lane": 2,
+            "type": "shop",
+            "connections": [
+              "floor-8-2"
+            ]
+          },
+          {
+            "id": "floor-8-0",
+            "floor": 8,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-9-0"
+            ]
+          },
+          {
+            "id": "floor-8-1",
+            "floor": 8,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-9-0"
+            ]
+          },
+          {
+            "id": "floor-8-2",
+            "floor": 8,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-9-1",
+              "floor-9-2"
+            ]
+          },
+          {
+            "id": "floor-9-0",
+            "floor": 9,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-10-0",
+              "floor-10-1"
+            ]
+          },
+          {
+            "id": "floor-9-1",
+            "floor": 9,
+            "lane": 1,
+            "type": "elite",
+            "connections": [
+              "floor-10-2"
+            ]
+          },
+          {
+            "id": "floor-9-2",
+            "floor": 9,
+            "lane": 2,
+            "type": "elite",
+            "connections": [
+              "floor-10-2"
+            ]
+          },
+          {
+            "id": "floor-10-0",
+            "floor": 10,
+            "lane": 0,
+            "type": "event",
+            "connections": [
+              "floor-11-0",
+              "floor-11-1"
+            ]
+          },
+          {
+            "id": "floor-10-1",
+            "floor": 10,
+            "lane": 1,
+            "type": "treasure",
+            "connections": [
+              "floor-11-1",
+              "floor-11-2"
+            ]
+          },
+          {
+            "id": "floor-10-2",
+            "floor": 10,
+            "lane": 2,
+            "type": "event",
+            "connections": [
+              "floor-11-2"
+            ]
+          },
+          {
+            "id": "floor-11-0",
+            "floor": 11,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-1",
+            "floor": 11,
+            "lane": 1,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-2",
+            "floor": 11,
+            "lane": 2,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-12-1",
+            "floor": 12,
+            "lane": 1,
+            "type": "boss",
+            "connections": []
+          }
+        ]
+      },
+      "visited": [
+        "floor-1-0"
+      ],
+      "hp": 74,
+      "maxHp": 74,
+      "gold": 90,
+      "deck": [
+        {
+          "uid": "card-1",
+          "cardId": "necromancer_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-2",
+          "cardId": "necromancer_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-3",
+          "cardId": "necromancer_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-4",
+          "cardId": "necromancer_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-5",
+          "cardId": "necromancer_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-6",
+          "cardId": "necromancer_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-7",
+          "cardId": "necromancer_bodyguard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-8",
+          "cardId": "necromancer_unleash",
+          "upgraded": false
+        },
+        {
+          "uid": "card-9",
+          "cardId": "necromancer_soul_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-10",
+          "cardId": "necromancer_doom_draw",
+          "upgraded": false
+        }
+      ],
+      "relicIds": [
+        "gate_fragment"
+      ],
+      "potions": [
+        "spring_water",
+        null,
+        null
+      ],
+      "combat": {
+        "version": 1,
+        "seed": "iv2ph4:floor-1-0:648682439",
+        "rngState": 1660763852,
+        "turn": 1,
+        "phase": "player",
+        "player": {
+          "id": "iwason_keito",
+          "name": "岩尊けいと",
+          "hp": 74,
+          "maxHp": 74,
+          "block": 7,
+          "strength": 0,
+          "weak": 0,
+          "vulnerable": 0,
+          "poison": 0
+        },
+        "enemy": {
+          "id": "quarry_crab",
+          "name": "採石ガニ",
+          "hp": 38,
+          "maxHp": 38,
+          "block": 0,
+          "strength": 0,
+          "weak": 0,
+          "vulnerable": 0,
+          "poison": 0,
+          "intentIndex": 0,
+          "intent": {
+            "kind": "attack",
+            "label": "石ばさみ",
+            "description": "基礎9ダメージ。",
+            "damage": 9,
+            "hits": 1
+          }
+        },
+        "energy": 3,
+        "maxEnergy": 3,
+        "jitto": 0,
+        "deck": [
+          {
+            "uid": "card-1",
+            "cardId": "necromancer_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-2",
+            "cardId": "necromancer_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-3",
+            "cardId": "necromancer_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-4",
+            "cardId": "necromancer_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-5",
+            "cardId": "necromancer_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-6",
+            "cardId": "necromancer_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-7",
+            "cardId": "necromancer_bodyguard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-8",
+            "cardId": "necromancer_unleash",
+            "upgraded": false
+          },
+          {
+            "uid": "card-9",
+            "cardId": "necromancer_soul_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-10",
+            "cardId": "necromancer_doom_draw",
+            "upgraded": false
+          }
+        ],
+        "hand": [
+          {
+            "uid": "card-6",
+            "cardId": "necromancer_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-8",
+            "cardId": "necromancer_unleash",
+            "upgraded": false
+          },
+          {
+            "uid": "card-2",
+            "cardId": "necromancer_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-3",
+            "cardId": "necromancer_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-1",
+            "cardId": "necromancer_strike",
+            "upgraded": false
+          }
+        ],
+        "drawPile": [
+          {
+            "uid": "card-7",
+            "cardId": "necromancer_bodyguard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-5",
+            "cardId": "necromancer_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-10",
+            "cardId": "necromancer_doom_draw",
+            "upgraded": false
+          },
+          {
+            "uid": "card-4",
+            "cardId": "necromancer_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-9",
+            "cardId": "necromancer_soul_strike",
+            "upgraded": false
+          }
+        ],
+        "discardPile": [],
+        "exhaustPile": [],
+        "powers": [],
+        "stillness": 0,
+        "cardsPlayedThisTurn": 0,
+        "stats": {
+          "cardsPlayed": 0,
+          "damageDealt": 0
+        },
+        "log": [
+          {
+            "id": 1,
+            "turn": 1,
+            "text": "岩尊けいと、入塔。「ほいっと〜」 採石ガニが立ちはだかる。",
+            "kind": "info"
+          },
+          {
+            "id": 2,
+            "turn": 1,
+            "text": "レリック「門のかけら」が発動。",
+            "kind": "info"
+          },
+          {
+            "id": 4,
+            "turn": 1,
+            "text": "岩尊けいとは7ブロックを得た。",
+            "kind": "block"
+          }
+        ],
+        "events": [
+          {
+            "id": 3,
+            "target": "player",
+            "kind": "block",
+            "amount": 7
+          }
+        ],
+        "nextId": 5,
+        "classId": "necromancer",
+        "classResources": {
+          "stars": 0,
+          "starsGainedThisTurn": 0,
+          "forge": 0,
+          "ostyHp": 0,
+          "focus": 0,
+          "temporaryFocus": 0,
+          "orbs": [],
+          "nextTurnEnergy": 0
+        },
+        "relicIds": [
+          "gate_fragment"
+        ],
+        "relicCounters": {
+          "gate_fragment": 1
+        },
+        "potions": [
+          "spring_water",
+          null,
+          null
+        ]
+      },
+      "reward": null,
+      "shop": null,
+      "eventId": null,
+      "eventHistory": [],
+      "eventResult": null,
+      "eventCombat": null,
+      "nextCardId": 11,
+      "stats": {
+        "battlesWon": 0,
+        "elitesDefeated": 0,
+        "cardsAdded": 0
+      },
+      "log": [
+        "岩尊けいと、第一階層へ。「ほいっと〜」。予告と手札を見て、進む道を選ぼう。",
+        "1階：敵との戦闘。"
+      ]
+    }
+  },
+  "machinistVictory": {
+    "version": 2,
+    "run": {
+      "version": 2,
+      "seed": "class-balance-1",
+      "classId": "machinist",
+      "rewardRules": "rarity-v1",
+      "rngState": 1295699968,
+      "screen": "victory",
+      "floor": 12,
+      "currentNodeId": "floor-12-1",
+      "map": {
+        "floors": 12,
+        "nodes": [
+          {
+            "id": "floor-1-0",
+            "floor": 1,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-2-0"
+            ]
+          },
+          {
+            "id": "floor-1-1",
+            "floor": 1,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-2-1"
+            ]
+          },
+          {
+            "id": "floor-1-2",
+            "floor": 1,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-2-1",
+              "floor-2-2"
+            ]
+          },
+          {
+            "id": "floor-2-0",
+            "floor": 2,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-3-0"
+            ]
+          },
+          {
+            "id": "floor-2-1",
+            "floor": 2,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-3-0",
+              "floor-3-1"
+            ]
+          },
+          {
+            "id": "floor-2-2",
+            "floor": 2,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-3-1",
+              "floor-3-2"
+            ]
+          },
+          {
+            "id": "floor-3-0",
+            "floor": 3,
+            "lane": 0,
+            "type": "event",
+            "connections": [
+              "floor-4-0"
+            ]
+          },
+          {
+            "id": "floor-3-1",
+            "floor": 3,
+            "lane": 1,
+            "type": "event",
+            "connections": [
+              "floor-4-0",
+              "floor-4-1"
+            ]
+          },
+          {
+            "id": "floor-3-2",
+            "floor": 3,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-4-1",
+              "floor-4-2"
+            ]
+          },
+          {
+            "id": "floor-4-0",
+            "floor": 4,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-5-0",
+              "floor-5-1"
+            ]
+          },
+          {
+            "id": "floor-4-1",
+            "floor": 4,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-5-2"
+            ]
+          },
+          {
+            "id": "floor-4-2",
+            "floor": 4,
+            "lane": 2,
+            "type": "rest",
+            "connections": [
+              "floor-5-2"
+            ]
+          },
+          {
+            "id": "floor-5-0",
+            "floor": 5,
+            "lane": 0,
+            "type": "event",
+            "connections": [
+              "floor-6-0",
+              "floor-6-1"
+            ]
+          },
+          {
+            "id": "floor-5-1",
+            "floor": 5,
+            "lane": 1,
+            "type": "elite",
+            "connections": [
+              "floor-6-1"
+            ]
+          },
+          {
+            "id": "floor-5-2",
+            "floor": 5,
+            "lane": 2,
+            "type": "elite",
+            "connections": [
+              "floor-6-2"
+            ]
+          },
+          {
+            "id": "floor-6-0",
+            "floor": 6,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-7-0",
+              "floor-7-1"
+            ]
+          },
+          {
+            "id": "floor-6-1",
+            "floor": 6,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-7-1"
+            ]
+          },
+          {
+            "id": "floor-6-2",
+            "floor": 6,
+            "lane": 2,
+            "type": "battle",
+            "connections": [
+              "floor-7-2"
+            ]
+          },
+          {
+            "id": "floor-7-0",
+            "floor": 7,
+            "lane": 0,
+            "type": "event",
+            "connections": [
+              "floor-8-0"
+            ]
+          },
+          {
+            "id": "floor-7-1",
+            "floor": 7,
+            "lane": 1,
+            "type": "battle",
+            "connections": [
+              "floor-8-0",
+              "floor-8-1"
+            ]
+          },
+          {
+            "id": "floor-7-2",
+            "floor": 7,
+            "lane": 2,
+            "type": "shop",
+            "connections": [
+              "floor-8-1",
+              "floor-8-2"
+            ]
+          },
+          {
+            "id": "floor-8-0",
+            "floor": 8,
+            "lane": 0,
+            "type": "battle",
+            "connections": [
+              "floor-9-0"
+            ]
+          },
+          {
+            "id": "floor-8-1",
+            "floor": 8,
+            "lane": 1,
+            "type": "treasure",
+            "connections": [
+              "floor-9-0",
+              "floor-9-1"
+            ]
+          },
+          {
+            "id": "floor-8-2",
+            "floor": 8,
+            "lane": 2,
+            "type": "event",
+            "connections": [
+              "floor-9-1",
+              "floor-9-2"
+            ]
+          },
+          {
+            "id": "floor-9-0",
+            "floor": 9,
+            "lane": 0,
+            "type": "event",
+            "connections": [
+              "floor-10-0"
+            ]
+          },
+          {
+            "id": "floor-9-1",
+            "floor": 9,
+            "lane": 1,
+            "type": "elite",
+            "connections": [
+              "floor-10-1"
+            ]
+          },
+          {
+            "id": "floor-9-2",
+            "floor": 9,
+            "lane": 2,
+            "type": "elite",
+            "connections": [
+              "floor-10-1",
+              "floor-10-2"
+            ]
+          },
+          {
+            "id": "floor-10-0",
+            "floor": 10,
+            "lane": 0,
+            "type": "shop",
+            "connections": [
+              "floor-11-0"
+            ]
+          },
+          {
+            "id": "floor-10-1",
+            "floor": 10,
+            "lane": 1,
+            "type": "shop",
+            "connections": [
+              "floor-11-1",
+              "floor-11-2"
+            ]
+          },
+          {
+            "id": "floor-10-2",
+            "floor": 10,
+            "lane": 2,
+            "type": "treasure",
+            "connections": [
+              "floor-11-2"
+            ]
+          },
+          {
+            "id": "floor-11-0",
+            "floor": 11,
+            "lane": 0,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-1",
+            "floor": 11,
+            "lane": 1,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-11-2",
+            "floor": 11,
+            "lane": 2,
+            "type": "rest",
+            "connections": [
+              "floor-12-1"
+            ]
+          },
+          {
+            "id": "floor-12-1",
+            "floor": 12,
+            "lane": 1,
+            "type": "boss",
+            "connections": []
+          }
+        ]
+      },
+      "visited": [
+        "floor-1-0",
+        "floor-2-0",
+        "floor-3-0",
+        "floor-4-0",
+        "floor-5-0",
+        "floor-6-0",
+        "floor-7-0",
+        "floor-8-0",
+        "floor-9-0",
+        "floor-10-0",
+        "floor-11-0",
+        "floor-12-1"
+      ],
+      "hp": 61,
+      "maxHp": 72,
+      "gold": 211,
+      "deck": [
+        {
+          "uid": "card-1",
+          "cardId": "machinist_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-2",
+          "cardId": "machinist_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-3",
+          "cardId": "machinist_strike",
+          "upgraded": false
+        },
+        {
+          "uid": "card-4",
+          "cardId": "machinist_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-5",
+          "cardId": "machinist_guard",
+          "upgraded": true
+        },
+        {
+          "uid": "card-6",
+          "cardId": "machinist_guard",
+          "upgraded": false
+        },
+        {
+          "uid": "card-7",
+          "cardId": "machinist_zap",
+          "upgraded": false
+        },
+        {
+          "uid": "card-8",
+          "cardId": "machinist_dual_cast",
+          "upgraded": false
+        },
+        {
+          "uid": "card-9",
+          "cardId": "machinist_ball_lightning",
+          "upgraded": false
+        },
+        {
+          "uid": "card-10",
+          "cardId": "machinist_cold_wave",
+          "upgraded": false
+        },
+        {
+          "uid": "card-11",
+          "cardId": "machinist_ice_lance",
+          "upgraded": false
+        },
+        {
+          "uid": "card-12",
+          "cardId": "machinist_tempest",
+          "upgraded": false
+        },
+        {
+          "uid": "card-13",
+          "cardId": "machinist_compile",
+          "upgraded": false
+        },
+        {
+          "uid": "card-14",
+          "cardId": "stone_doubt",
+          "upgraded": false
+        },
+        {
+          "uid": "card-15",
+          "cardId": "machinist_boot",
+          "upgraded": false
+        },
+        {
+          "uid": "card-16",
+          "cardId": "machinist_ice_lance",
+          "upgraded": false
+        },
+        {
+          "uid": "card-17",
+          "cardId": "stone_doubt",
+          "upgraded": false
+        },
+        {
+          "uid": "card-18",
+          "cardId": "machinist_ball_lightning",
+          "upgraded": false
+        }
+      ],
+      "relicIds": [
+        "layered_charm",
+        "moss_vial",
+        "waking_hourglass"
+      ],
+      "potions": [
+        "spring_water",
+        null,
+        null
+      ],
+      "combat": {
+        "version": 1,
+        "seed": "mducx8:floor-12-1:2377014197",
+        "rngState": 3823042648,
+        "turn": 12,
+        "phase": "victory",
+        "player": {
+          "id": "iwason_keito",
+          "name": "岩尊けいと",
+          "hp": 61,
+          "maxHp": 72,
+          "block": 2,
+          "strength": 0,
+          "weak": 0,
+          "vulnerable": 0,
+          "poison": 0
+        },
+        "enemy": {
+          "id": "tower_abbot",
+          "name": "塔主・ねんね大岩",
+          "hp": 0,
+          "maxHp": 220,
+          "block": 0,
+          "strength": 6,
+          "weak": 0,
+          "vulnerable": 0,
+          "poison": 0,
+          "intentIndex": 3,
+          "intent": {
+            "kind": "debuff",
+            "label": "ねんねの誘い",
+            "description": "基礎20ダメージ。プレイヤーに弱体2。",
+            "damage": 20,
+            "hits": 1,
+            "weak": 2
+          }
+        },
+        "energy": 0,
+        "maxEnergy": 3,
+        "jitto": 0,
+        "deck": [
+          {
+            "uid": "card-1",
+            "cardId": "machinist_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-2",
+            "cardId": "machinist_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-3",
+            "cardId": "machinist_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-4",
+            "cardId": "machinist_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-5",
+            "cardId": "machinist_guard",
+            "upgraded": true
+          },
+          {
+            "uid": "card-6",
+            "cardId": "machinist_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-7",
+            "cardId": "machinist_zap",
+            "upgraded": false
+          },
+          {
+            "uid": "card-8",
+            "cardId": "machinist_dual_cast",
+            "upgraded": false
+          },
+          {
+            "uid": "card-9",
+            "cardId": "machinist_ball_lightning",
+            "upgraded": false
+          },
+          {
+            "uid": "card-10",
+            "cardId": "machinist_cold_wave",
+            "upgraded": false
+          },
+          {
+            "uid": "card-11",
+            "cardId": "machinist_ice_lance",
+            "upgraded": false
+          },
+          {
+            "uid": "card-12",
+            "cardId": "machinist_tempest",
+            "upgraded": false
+          },
+          {
+            "uid": "card-13",
+            "cardId": "machinist_compile",
+            "upgraded": false
+          },
+          {
+            "uid": "card-14",
+            "cardId": "stone_doubt",
+            "upgraded": false
+          },
+          {
+            "uid": "card-15",
+            "cardId": "machinist_boot",
+            "upgraded": false
+          },
+          {
+            "uid": "card-16",
+            "cardId": "machinist_ice_lance",
+            "upgraded": false
+          },
+          {
+            "uid": "card-17",
+            "cardId": "stone_doubt",
+            "upgraded": false
+          }
+        ],
+        "hand": [
+          {
+            "uid": "card-9",
+            "cardId": "machinist_ball_lightning",
+            "upgraded": false
+          },
+          {
+            "uid": "card-16",
+            "cardId": "machinist_ice_lance",
+            "upgraded": false
+          },
+          {
+            "uid": "card-5",
+            "cardId": "machinist_guard",
+            "upgraded": true
+          },
+          {
+            "uid": "card-13",
+            "cardId": "machinist_compile",
+            "upgraded": false
+          }
+        ],
+        "drawPile": [
+          {
+            "uid": "card-6",
+            "cardId": "machinist_guard",
+            "upgraded": false
+          },
+          {
+            "uid": "card-17",
+            "cardId": "stone_doubt",
+            "upgraded": false
+          },
+          {
+            "uid": "card-2",
+            "cardId": "machinist_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-7",
+            "cardId": "machinist_zap",
+            "upgraded": false
+          },
+          {
+            "uid": "card-14",
+            "cardId": "stone_doubt",
+            "upgraded": false
+          },
+          {
+            "uid": "card-1",
+            "cardId": "machinist_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-10",
+            "cardId": "machinist_cold_wave",
+            "upgraded": false
+          },
+          {
+            "uid": "card-11",
+            "cardId": "machinist_ice_lance",
+            "upgraded": false
+          },
+          {
+            "uid": "card-3",
+            "cardId": "machinist_strike",
+            "upgraded": false
+          },
+          {
+            "uid": "card-8",
+            "cardId": "machinist_dual_cast",
+            "upgraded": false
+          },
+          {
+            "uid": "card-4",
+            "cardId": "machinist_guard",
+            "upgraded": false
+          }
+        ],
+        "discardPile": [
+          {
+            "uid": "card-12",
+            "cardId": "machinist_tempest",
+            "upgraded": false
+          }
+        ],
+        "exhaustPile": [
+          {
+            "uid": "card-15",
+            "cardId": "machinist_boot",
+            "upgraded": false
+          }
+        ],
+        "powers": [],
+        "stillness": 0,
+        "cardsPlayedThisTurn": 1,
+        "stats": {
+          "cardsPlayed": 25,
+          "damageDealt": 220
+        },
+        "log": [
+          {
+            "id": 254,
+            "turn": 8,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 255,
+            "turn": 8,
+            "text": "塔主・ねんね大岩の「ねんねの誘い」！",
+            "kind": "info"
+          },
+          {
+            "id": 257,
+            "turn": 8,
+            "text": "岩尊けいとに1ダメージ（23ブロック）。",
+            "kind": "damage"
+          },
+          {
+            "id": 258,
+            "turn": 8,
+            "text": "岩尊けいとに弱体 +2。",
+            "kind": "info"
+          },
+          {
+            "id": 259,
+            "turn": 9,
+            "text": "ターン9。朝活しよ。エナジーを回復し、5枚引く。",
+            "kind": "info"
+          },
+          {
+            "id": 260,
+            "turn": 9,
+            "text": "レリック「地層のお守り」が発動。",
+            "kind": "info"
+          },
+          {
+            "id": 262,
+            "turn": 9,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 263,
+            "turn": 9,
+            "text": "捨て札をシャッフルして山札に戻した。",
+            "kind": "info"
+          },
+          {
+            "id": 264,
+            "turn": 9,
+            "text": "「凍土の岩槍」を使用。",
+            "kind": "info"
+          },
+          {
+            "id": 266,
+            "turn": 9,
+            "text": "塔主・ねんね大岩に14ダメージ。",
+            "kind": "damage"
+          },
+          {
+            "id": 268,
+            "turn": 9,
+            "text": "岩尊けいとは5ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 269,
+            "turn": 9,
+            "text": "氷オーブを1回解放。",
+            "kind": "info"
+          },
+          {
+            "id": 271,
+            "turn": 9,
+            "text": "岩尊けいとは5ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 272,
+            "turn": 9,
+            "text": "氷オーブを1回解放。",
+            "kind": "info"
+          },
+          {
+            "id": 274,
+            "turn": 9,
+            "text": "岩尊けいとは5ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 275,
+            "turn": 9,
+            "text": "氷オーブを1回解放。",
+            "kind": "info"
+          },
+          {
+            "id": 276,
+            "turn": 9,
+            "text": "氷オーブを3個生成。",
+            "kind": "info"
+          },
+          {
+            "id": 277,
+            "turn": 9,
+            "text": "ターン9を終了。",
+            "kind": "info"
+          },
+          {
+            "id": 279,
+            "turn": 9,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 281,
+            "turn": 9,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 283,
+            "turn": 9,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 284,
+            "turn": 9,
+            "text": "塔主・ねんね大岩の「おやすみの一撃」！",
+            "kind": "info"
+          },
+          {
+            "id": 285,
+            "turn": 9,
+            "text": "岩尊けいとに0ダメージ（22ブロック）。",
+            "kind": "damage"
+          },
+          {
+            "id": 286,
+            "turn": 10,
+            "text": "ターン10。朝活しよ。エナジーを回復し、5枚引く。",
+            "kind": "info"
+          },
+          {
+            "id": 287,
+            "turn": 10,
+            "text": "レリック「地層のお守り」が発動。",
+            "kind": "info"
+          },
+          {
+            "id": 289,
+            "turn": 10,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 290,
+            "turn": 10,
+            "text": "「凍土の岩槍」を使用。",
+            "kind": "info"
+          },
+          {
+            "id": 292,
+            "turn": 10,
+            "text": "塔主・ねんね大岩に14ダメージ。",
+            "kind": "damage"
+          },
+          {
+            "id": 294,
+            "turn": 10,
+            "text": "岩尊けいとは5ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 295,
+            "turn": 10,
+            "text": "氷オーブを1回解放。",
+            "kind": "info"
+          },
+          {
+            "id": 297,
+            "turn": 10,
+            "text": "岩尊けいとは5ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 298,
+            "turn": 10,
+            "text": "氷オーブを1回解放。",
+            "kind": "info"
+          },
+          {
+            "id": 300,
+            "turn": 10,
+            "text": "岩尊けいとは5ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 301,
+            "turn": 10,
+            "text": "氷オーブを1回解放。",
+            "kind": "info"
+          },
+          {
+            "id": 302,
+            "turn": 10,
+            "text": "氷オーブを3個生成。",
+            "kind": "info"
+          },
+          {
+            "id": 303,
+            "turn": 10,
+            "text": "ターン10を終了。",
+            "kind": "info"
+          },
+          {
+            "id": 305,
+            "turn": 10,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 307,
+            "turn": 10,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 309,
+            "turn": 10,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 310,
+            "turn": 10,
+            "text": "塔主・ねんね大岩の「八時の鐘」！",
+            "kind": "info"
+          },
+          {
+            "id": 311,
+            "turn": 10,
+            "text": "岩尊けいとに0ダメージ（10ブロック）。",
+            "kind": "damage"
+          },
+          {
+            "id": 312,
+            "turn": 10,
+            "text": "岩尊けいとに0ダメージ（10ブロック）。",
+            "kind": "damage"
+          },
+          {
+            "id": 314,
+            "turn": 10,
+            "text": "岩尊けいとに7ダメージ（3ブロック）。",
+            "kind": "damage"
+          },
+          {
+            "id": 316,
+            "turn": 10,
+            "text": "岩尊けいとに10ダメージ。",
+            "kind": "damage"
+          },
+          {
+            "id": 317,
+            "turn": 11,
+            "text": "ターン11。朝活しよ。エナジーを回復し、5枚引く。",
+            "kind": "info"
+          },
+          {
+            "id": 318,
+            "turn": 11,
+            "text": "レリック「地層のお守り」が発動。",
+            "kind": "info"
+          },
+          {
+            "id": 320,
+            "turn": 11,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 322,
+            "turn": 11,
+            "text": "15HP回復。",
+            "kind": "info"
+          },
+          {
+            "id": 323,
+            "turn": 11,
+            "text": "ポーション「岩清水」を使用。",
+            "kind": "info"
+          },
+          {
+            "id": 324,
+            "turn": 11,
+            "text": "「石板の並列読込」を使用。",
+            "kind": "info"
+          },
+          {
+            "id": 326,
+            "turn": 11,
+            "text": "塔主・ねんね大岩に7ダメージ。",
+            "kind": "damage"
+          },
+          {
+            "id": 327,
+            "turn": 11,
+            "text": "「琥珀の帯電拳」を使用。",
+            "kind": "info"
+          },
+          {
+            "id": 329,
+            "turn": 11,
+            "text": "塔主・ねんね大岩に7ダメージ。",
+            "kind": "damage"
+          },
+          {
+            "id": 331,
+            "turn": 11,
+            "text": "岩尊けいとは5ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 332,
+            "turn": 11,
+            "text": "氷オーブを1回解放。",
+            "kind": "info"
+          },
+          {
+            "id": 333,
+            "turn": 11,
+            "text": "雷オーブを1個生成。",
+            "kind": "info"
+          },
+          {
+            "id": 334,
+            "turn": 11,
+            "text": "「雷核の総動員」を使用。",
+            "kind": "info"
+          },
+          {
+            "id": 336,
+            "turn": 11,
+            "text": "塔主・ねんね大岩に8ダメージ。",
+            "kind": "damage"
+          },
+          {
+            "id": 337,
+            "turn": 11,
+            "text": "雷オーブを1回解放。",
+            "kind": "info"
+          },
+          {
+            "id": 338,
+            "turn": 11,
+            "text": "雷オーブを1個生成。",
+            "kind": "info"
+          },
+          {
+            "id": 339,
+            "turn": 11,
+            "text": "ターン11を終了。",
+            "kind": "info"
+          },
+          {
+            "id": 341,
+            "turn": 11,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 343,
+            "turn": 11,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 345,
+            "turn": 11,
+            "text": "塔主・ねんね大岩に3ダメージ。",
+            "kind": "damage"
+          },
+          {
+            "id": 346,
+            "turn": 11,
+            "text": "塔主・ねんね大岩の「布団の結界」！",
+            "kind": "info"
+          },
+          {
+            "id": 348,
+            "turn": 11,
+            "text": "塔主・ねんね大岩は16ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 349,
+            "turn": 11,
+            "text": "塔主・ねんね大岩の筋力 +2。",
+            "kind": "info"
+          },
+          {
+            "id": 350,
+            "turn": 12,
+            "text": "ターン12。朝活しよ。エナジーを回復し、5枚引く。",
+            "kind": "info"
+          },
+          {
+            "id": 351,
+            "turn": 12,
+            "text": "レリック「地層のお守り」が発動。",
+            "kind": "info"
+          },
+          {
+            "id": 353,
+            "turn": 12,
+            "text": "岩尊けいとは2ブロックを得た。",
+            "kind": "block"
+          },
+          {
+            "id": 354,
+            "turn": 12,
+            "text": "捨て札をシャッフルして山札に戻した。",
+            "kind": "info"
+          },
+          {
+            "id": 355,
+            "turn": 12,
+            "text": "「雷核の総動員」を使用。",
+            "kind": "info"
+          },
+          {
+            "id": 356,
+            "turn": 12,
+            "text": "塔主・ねんね大岩に0ダメージ（8ブロック）。",
+            "kind": "damage"
+          },
+          {
+            "id": 357,
+            "turn": 12,
+            "text": "雷オーブを1回解放。",
+            "kind": "info"
+          },
+          {
+            "id": 358,
+            "turn": 12,
+            "text": "塔主・ねんね大岩に0ダメージ（8ブロック）。",
+            "kind": "damage"
+          },
+          {
+            "id": 359,
+            "turn": 12,
+            "text": "雷オーブを1回解放。",
+            "kind": "info"
+          },
+          {
+            "id": 361,
+            "turn": 12,
+            "text": "塔主・ねんね大岩に8ダメージ。",
+            "kind": "damage"
+          },
+          {
+            "id": 362,
+            "turn": 12,
+            "text": "ほいっと〜！ 敵をすべて鎮めた。じっと教の勝利！",
+            "kind": "result"
+          },
+          {
+            "id": 363,
+            "turn": 12,
+            "text": "雷オーブを1回解放。",
+            "kind": "info"
+          },
+          {
+            "id": 364,
+            "turn": 12,
+            "text": "雷オーブを3個生成。",
+            "kind": "info"
+          }
+        ],
+        "events": [
+          {
+            "id": 360,
+            "target": "enemy",
+            "kind": "damage",
+            "amount": 8
+          }
+        ],
+        "nextId": 365,
+        "classId": "machinist",
+        "classResources": {
+          "stars": 0,
+          "starsGainedThisTurn": 0,
+          "forge": 0,
+          "ostyHp": 0,
+          "focus": 0,
+          "temporaryFocus": 0,
+          "orbs": [
+            "frost",
+            "frost"
+          ],
+          "nextTurnEnergy": 0
+        },
+        "relicIds": [
+          "layered_charm",
+          "moss_vial",
+          "waking_hourglass"
+        ],
+        "relicCounters": {
+          "moss_vial": 1,
+          "turn:layered_charm": 12,
+          "layered_charm": 12,
+          "turn:waking_hourglass": 2,
+          "waking_hourglass": 1
+        },
+        "potions": [
+          null,
+          null,
+          null
+        ]
+      },
+      "reward": null,
+      "shop": null,
+      "eventId": null,
+      "eventHistory": [
+        "core_workshop",
+        "stone_contract",
+        "stone_eraser",
+        "sealed_mine"
+      ],
+      "eventResult": null,
+      "eventCombat": null,
+      "nextCardId": 19,
+      "stats": {
+        "battlesWon": 6,
+        "elitesDefeated": 0,
+        "cardsAdded": 8
+      },
+      "log": [
+        "岩尊けいと、第一階層へ。「ほいっと〜」。予告と手札を見て、進む道を選ぼう。",
+        "1階：敵との戦闘。",
+        "戦闘に勝利。27ゴールドを得た。カードを1枚選ぶか、見送ろう。",
+        "「凍土の岩槍」をデッキに加えた。ほいっと〜。",
+        "2階：敵との戦闘。",
+        "戦闘に勝利。20ゴールドを得た。カードを1枚選ぶか、見送ろう。",
+        "「雷核の総動員」をデッキに加えた。ほいっと〜。",
+        "機巧師の朝いち工房：余った部品を売る。25ゴールドを得る。",
+        "4階：敵との戦闘。",
+        "戦闘に勝利。23ゴールドを得た。カードを1枚選ぶか、見送ろう。",
+        "「石板の並列読込」をデッキに加えた。ほいっと〜。",
+        "「石心の迷い」をデッキに加えた。ほいっと〜。",
+        "読まずに押す石印：明日の自分を信じる。90ゴールドを得る。使用不能の呪い「石心の迷い」1枚をデッキに加える。",
+        "6階：敵との戦闘。",
+        "戦闘に勝利。20ゴールドを得た。カードを1枚選ぶか、見送ろう。",
+        "「朝活起動手順」をデッキに加えた。ほいっと〜。",
+        "忘却の石消し屋：磨きくじを引く。30ゴールドを払い、ランダムな未強化カード1枚を強化する。",
+        "8階：敵との戦闘。",
+        "戦闘に勝利。26ゴールドを得た。カードを1枚選ぶか、見送ろう。",
+        "「凍土の岩槍」をデッキに加えた。ほいっと〜。",
+        "「石心の迷い」をデッキに加えた。ほいっと〜。",
+        "封印されたへそくり：気まずさごと持ち帰る。未所持レリックを1個得る。使用不能の呪い「石心の迷い」1枚をデッキに加える。",
+        "休憩してHPを12回復。「朝活しよ」。",
+        "12階：塔主との戦闘。",
+        "戦闘に勝利。75ゴールドを得た。カードを1枚選ぶか、見送ろう。",
+        "「琥珀の帯電拳」をデッキに加えた。ほいっと〜。",
+        "第一階層を突破！ 塔主を鎮め、じっと教の教えは次の階層へ。「ほいっと〜！」"
+      ]
+    }
+  }
+}

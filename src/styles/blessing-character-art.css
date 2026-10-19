@@ -1,0 +1,27 @@
+.blessing-character-art { display: block; width: 100%; height: auto; overflow: visible; contain: layout style; }
+.blessing-character-art .blessing-figure,
+.blessing-character-art .blessing-familiar-deity { animation: blessing-art-arrive .55s ease-out both; }
+.blessing-character-art .blessing-ambient { transform-box: fill-box; transform-origin: center; animation: blessing-art-drift 8s ease-in-out infinite; }
+.blessing-character-art .blessing-ambient--orbit { animation-name: blessing-art-orbit; animation-duration: 20s; }
+.blessing-character-art .blessing-souls { animation-delay: -3s; }
+.blessing-character-art .blessing-glyphs { animation-name: blessing-art-forget; animation-duration: 7s; }
+.blessing-character-art .blessing-vanishing-fragments { animation-delay: -2s; animation-name: blessing-art-forget; }
+.blessing-character-art .blessing-chaos-signs > * { animation: blessing-art-forget 9s ease-in-out infinite, blessing-art-spectrum 18s ease-in-out infinite; }
+.blessing-character-art .blessing-chaos-signs > :nth-child(2n) { animation-delay: -3s; }
+.blessing-character-art .blessing-chaos-signs > :nth-child(3n) { animation-delay: -6s; }
+.speed-fast .blessing-character-art .blessing-figure,
+.blessing-fast .blessing-character-art .blessing-figure,
+.speed-fast .blessing-character-art .blessing-familiar-deity,
+.blessing-fast .blessing-character-art .blessing-familiar-deity { animation-duration: .25s; }
+.speed-instant .blessing-character-art *,
+.reduced-motion .blessing-character-art *,
+.motion-reduced .blessing-character-art *,
+.blessing-character-art.is-still * { animation: none !important; }
+@keyframes blessing-art-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes blessing-art-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes blessing-art-orbit { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes blessing-art-forget { 0%, 100% { opacity: .35; transform: translateY(0); } 50% { opacity: .8; transform: translateY(-3px); } }
+@keyframes blessing-art-spectrum { 0%, 100% { stroke: #a8d0ba; } 33% { stroke: #d2bbdf; } 66% { stroke: #dac78f; } }
+@media (prefers-reduced-motion: reduce) {
+  .blessing-character-art * { animation: none !important; }
+}

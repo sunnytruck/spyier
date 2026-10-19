@@ -1,4 +1,5 @@
 import type { Actor, CardDefinition, CardInstance, CombatState, Effect, EnemyState } from '../../types/game';
+import { CARD_DEFINITIONS } from '../../data/cards';
 import { drawInto } from '../actions/draw';
 import { calculateDamage } from '../combat/damage';
 import {
@@ -8,6 +9,7 @@ import {
   emitEvent,
   gainBlock,
   healPlayer,
+  finishIfNeeded,
 } from '../combat/state';
 import { findEnemy, getEnemies, getEnemyKey } from '../combat/targets';
 import { attackCardBase, attackHitCount, channelOrbs, evokeOrb, fetchGeneratedCard, generateCards, resources, summonAttack } from '../combat/resources';
@@ -135,6 +137,60 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
   discard: () => {},
   exhaustChoice: () => {},
   moveChoice: () => {},
+  moveRandom: (state, effect) => {
+    const moved: CardInstance[] = [];
+    for (let count = 0; count < Math.max(0, Math.floor(effect.amount)) && state[effect.from].length > 0 && state.hand.length < 50; count++) {
+      const random = nextRandom(state.rngState);
+      state.rngState = random.state;
+      const [card] = state[effect.from].splice(Math.floor(random.value * state[effect.from].length), 1);
+      state.hand.push(card);
+      moved.push(card);
+    }
+    if (moved.length) emitCombatCue(state, { kind: 'draw', cards: moved, card: moved[0], fromZone: effect.from, toZone: 'hand', amount: moved.length, label: 'ランダム回収' });
+  },
+  cardDamageBonus: (state, effect, _card, context) => {
+    if (!context.sourceCard) return;
+    const id = context.sourceCard.cardId;
+    state.cardDamageBonuses ??= {};
+    state.cardDamageBonuses[id] = (state.cardDamageBonuses[id] ?? 0) + effect.amount;
+    emitCombatCue(state, { kind: 'power', targetId: 'player', resource: 'cardDamageBonus', amount: effect.amount, label: '同名カードの威力上昇' });
+  },
+  loseMaxHp: (state, effect) => {
+    const lost = Math.min(state.player.maxHp, Math.max(0, Math.floor(effect.amount)));
+    state.player.maxHp -= lost;
+    state.player.hp = Math.min(state.player.hp, state.player.maxHp);
+    appendLog(state, `最大HPを${lost}失った。最大HP ${state.player.maxHp}。`);
+    emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'maxHp', amount: -lost, label: '最大HPの支払い' });
+    finishIfNeeded(state);
+  },
+  upgradeAll: (state, _effect, _card, context) => {
+    const cards = [...state.hand, ...state.drawPile, ...state.discardPile, ...state.exhaustPile, ...state.powers, ...state.deck, ...(state.generatedCards ?? []), ...(context.sourceCard ? [context.sourceCard] : [])];
+    const upgraded = new Set<string>();
+    for (const card of cards) {
+      if (card.upgraded || !CARD_DEFINITIONS[card.cardId] || CARD_DEFINITIONS[card.cardId].unupgradable) continue;
+      card.upgraded = true;
+      upgraded.add(card.uid);
+    }
+    if (upgraded.size) {
+      state.temporaryUpgrades = [...new Set([...(state.temporaryUpgrades ?? []), ...upgraded])];
+      appendLog(state, `${upgraded.size}枚をこの戦闘中だけ強化した。`);
+      emitCombatCue(state, { kind: 'power', targetId: 'player', resource: 'temporaryUpgrades', amount: upgraded.size, label: '全札・戦闘中強化' });
+    }
+  },
+  stun: (state, effect, _card, context) => {
+    const enemy = findEnemy(state, context.targetId);
+    if (!enemy) return;
+    const amount = Math.max(0, Math.floor(effect.amount));
+    if (amount === 0) return;
+    enemy.stun = (enemy.stun ?? 0) + amount;
+    emitCombatCue(state, { kind: 'status', targetId: getEnemyKey(enemy), status: 'stun', amount, label: 'スタン' });
+  },
+  intangible: (state, effect) => {
+    const amount = Math.max(0, Math.floor(effect.amount));
+    if (amount === 0) return;
+    state.intangible = (state.intangible ?? 0) + amount;
+    emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'intangible', amount, label: '霊体' });
+  },
   exhaustRandom: (state, effect) => {
     const moved: CardInstance[] = [];
     for (let index = 0; index < effect.amount && state.hand.length > 0; index++) {
@@ -295,7 +351,7 @@ export function resolveEffects(
           ...(context.xEnergy !== undefined ? { xEnergy: context.xEnergy } : {}),
         },
       };
-      appendLog(state, `${sourceZone === 'hand' ? '手札' : '捨て札'}から${amount}枚を${mode === 'retrieve' ? '手札に戻す' : mode === 'topdeck' ? '山札の一番上に置く' : mode === 'discard' ? '捨てる' : '廃棄する'}。カードを選んでください。`);
+      appendLog(state, `${sourceZone === 'hand' ? '手札' : sourceZone === 'drawPile' ? '山札' : '捨て札'}から${amount}枚を${mode === 'retrieve' ? '手札に戻す' : mode === 'topdeck' ? '山札の一番上に置く' : mode === 'discard' ? '捨てる' : '廃棄する'}。カードを選んでください。`);
       break;
     }
     const resolve = resolvers[effect.type] as (

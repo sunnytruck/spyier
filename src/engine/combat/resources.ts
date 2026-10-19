@@ -47,6 +47,7 @@ export function attackCardBase(
   target?: EnemyState,
 ): number {
   return scaledEffectAmount(state, effect, target) +
+    (sourceCard ? state.cardDamageBonuses?.[sourceCard.cardId] ?? 0 : 0) +
     (effect.fromBlock ? state.player.block : 0) +
     (effect.fromForge ? state.classResources?.forge ?? 0 : 0) +
     (sourceCard && CARD_DEFINITIONS[sourceCard.cardId]?.tags?.includes('knife')

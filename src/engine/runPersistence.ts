@@ -9,6 +9,8 @@ import { normalizeCombatState } from './index';
 import { validateMap } from './map';
 import { isValidCombatState } from './persistence';
 import { getCardPool } from './cardPools';
+import { isValidBlessingState } from './blessings';
+import { isActId } from '../data/acts';
 
 export const RUN_SAVE_KEY = 'iwason-spire:run:v2';
 let warning: string | null = null;
@@ -51,6 +53,7 @@ export function isValidRunState(value: unknown): value is RunState {
     !int(value.rngState, 0, 0xffffffff) ||
     !member(value.screen, [
       'map',
+      'blessing',
       'combat',
       'reward',
       'relic',
@@ -63,7 +66,7 @@ export function isValidRunState(value: unknown): value is RunState {
       'defeat',
     ]) ||
     !int(value.floor, 0, 12) ||
-    !int(value.maxHp, 1) ||
+    !int(value.maxHp) ||
     !int(value.hp, 0, value.maxHp) ||
     !int(value.gold) ||
     !int(value.nextCardId, 1) ||
@@ -85,6 +88,22 @@ export function isValidRunState(value: unknown): value is RunState {
   )
     return false;
   if (value.rewardRules !== undefined && (value.rewardRules !== 'rarity-v1' || value.classId === undefined)) return false;
+  if (value.maxHp === 0 && (value.screen !== 'defeat' || value.hp !== 0)) return false;
+  if (!isValidBlessingState(value as unknown as RunState)) return false;
+  if (value.act !== undefined) {
+    if (!isActId(value.act) || !int(value.maxActs, value.act, 3) ||
+      !Array.isArray(value.actHistory) || value.actHistory.length !== value.act - 1) return false;
+    for (const [index, prior] of value.actHistory.entries()) {
+      if (!record(prior) || prior.act !== index + 1 || !mapShape(prior.map) ||
+        !unique(prior.visited, (id) => text(id, 100), 12) || prior.visited.length !== 12 ||
+        !int(prior.maxHp, 1) || !int(prior.hp, 1, prior.maxHp) || !int(prior.gold)) return false;
+      const rooms = new Map(prior.map.nodes.map((node) => [node.id, node]));
+      const visited = prior.visited;
+      if (visited.some((id, floor) => rooms.get(id)?.floor !== floor + 1 ||
+        (floor > 0 && !rooms.get(visited[floor - 1])?.connections.includes(id)))) return false;
+      if (rooms.get(visited[11])?.type !== 'boss') return false;
+    }
+  } else if (value.maxActs !== undefined || value.actHistory !== undefined) return false;
 
   if (
     !Array.isArray(value.deck) ||
@@ -128,7 +147,7 @@ export function isValidRunState(value: unknown): value is RunState {
       return false;
   }
   if (value.floor === 0) {
-    if (value.currentNodeId !== null || value.screen !== 'map') return false;
+    if (value.currentNodeId !== null || !['map', 'blessing'].includes(value.screen)) return false;
   } else if (value.currentNodeId !== value.visited[value.visited.length - 1]) return false;
   const current =
     typeof value.currentNodeId === 'string' ? byId.get(value.currentNodeId) : undefined;
@@ -240,10 +259,12 @@ export function isValidRunState(value: unknown): value is RunState {
     if (value.screen === 'combat') {
       if (value.combat.deck.length !== value.deck.length) return false;
       const cards = new Map(value.deck.map((card) => [card.uid, card]));
+      const temporaryUpgrades = value.combat.temporaryUpgrades;
       if (
         !value.combat.deck.every((card) => {
           const original = cards.get(card.uid);
-          return original && original.cardId === card.cardId && original.upgraded === card.upgraded;
+          return original && original.cardId === card.cardId && (original.upgraded === card.upgraded ||
+            (!original.upgraded && card.upgraded && temporaryUpgrades?.includes(card.uid)));
         })
       )
         return false;
@@ -296,6 +317,9 @@ export function isValidRunState(value: unknown): value is RunState {
   if (value.screen === 'eventResult' && (current?.type !== 'event' || value.eventId === null || !value.eventResult)) return false;
   if (value.screen === 'shop' && (current?.type !== 'shop' || value.shop === null)) return false;
   if (['rest', 'upgrade'].includes(value.screen) && current?.type !== 'rest') return false;
+  if (value.screen === 'blessing' && (value.floor !== 0 || value.currentNodeId !== null ||
+    value.combat !== null || value.reward !== null || value.shop !== null || value.eventId !== null ||
+    value.eventResult != null || value.eventCombat != null || !value.blessing)) return false;
   if (value.screen !== 'defeat' && value.hp === 0) return false;
   if (
     value.screen === 'map' &&

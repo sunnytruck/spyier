@@ -1,13 +1,14 @@
 import { CARD_DEFINITIONS } from '../../data/cards';
 import { POTION_DEFINITIONS } from '../../data/potions';
 import { canPlayCard, getEnemies, getEnemyKey, predictEnemyDamage, reduceCombat } from '../../engine';
-import { getShopCardPrice, SHOP_PRICES } from '../../engine/run';
+import { canAscendAct, getShopCardPrice, reduceRun, SHOP_PRICES } from '../../engine/run';
 import { getPendingChoiceCards } from '../../engine/actions/choices';
 import { attackCardBase, attackHitCount } from '../../engine/combat/resources';
 import { canUpgradeCard } from '../../presentation/cardUpgrade';
 import type { CardInstance, CombatAction, CombatState, Effect } from '../../types/game';
 import type { RunAction, RunState } from '../../types/run';
 import { chooseRunAction } from './runDriver';
+import { chooseBlessingAction } from './blessingDriver';
 
 /** Approximate policy weights, never a production rule or a claim of optimal play. */
 function effectsValue(effects: Effect[]): number {
@@ -193,6 +194,8 @@ export function chooseClassCombatAction(state: CombatState): CombatAction {
 }
 
 export function chooseClassRunAction(state: RunState, options: { deckAware?: boolean } = {}): RunAction {
+  if (state.screen === 'blessing') return chooseBlessingAction(state, reduceRun, (card, upgraded) => cardValue(card.cardId, upgraded));
+  if (canAscendAct(state)) return { type: 'ascendAct' };
   const acquisitionValue = (id: string) => options.deckAware ? draftValue(id, state) : cardValue(id);
   if (state.screen === 'combat') return { type: 'combat', action: chooseClassCombatAction(state.combat!) };
   if (state.screen === 'reward') {

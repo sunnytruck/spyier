@@ -2,7 +2,7 @@ import type { Actor, CombatState, EnemyState } from '../../types/game';
 import { getEnemyDefinition } from '../../data/enemies';
 import { drawInto } from '../actions/draw';
 import { calculateDamage } from './damage';
-import { appendLog, dealDamage, finishIfNeeded, gainBlock } from './state';
+import { appendLog, capEnemyAttackDamage, dealDamage, finishIfNeeded, gainBlock } from './state';
 import { findEnemy, getEnemies, getEnemyKey } from './targets';
 import { triggerRelics } from './relics';
 import { generateCards, resources, triggerPassiveOrbs } from './resources';
@@ -81,7 +81,7 @@ export function resolveEndTurn(state: CombatState): void {
   const exhausted = [];
   for (const card of state.hand) {
     const definition = CARD_DEFINITIONS[card.cardId];
-    if (definition?.ethereal) {
+    if (card.upgraded ? definition?.upgradedEthereal ?? definition?.ethereal : definition?.ethereal) {
       state.exhaustPile.push(card);
       exhausted.push(card);
     }
@@ -119,6 +119,16 @@ export function resolveEndTurn(state: CombatState): void {
       continue;
     }
 
+    if ((enemy.stun ?? 0) > 0) {
+      appendLog(state, `${enemy.name}はスタンで行動を休んだ。`);
+      emitCombatCue(state, { kind: 'turn', sourceId: getEnemyKey(enemy), targetId: getEnemyKey(enemy), label: 'スタン・行動休止' });
+      enemy.stun! -= 1;
+      if (enemy.stun === 0) delete enemy.stun;
+      expireStatuses(enemy);
+      advanceEnemyIntent(enemy, state.turn + 1);
+      emitCombatCue(state, { kind: 'status', sourceId: getEnemyKey(enemy), targetId: getEnemyKey(enemy), status: 'stun', amount: -1, label: 'スタンを1回消費' });
+      continue;
+    }
     const intent = enemy.intent;
     appendLog(state, `${enemy.name}の「${intent.label}」！`);
     withCombatTraceContext(state, { sourceId: getEnemyKey(enemy), effect: 'enemyIntent', label: intent.label }, () => {
@@ -152,7 +162,7 @@ export function resolveEndTurn(state: CombatState): void {
             if (state.classResources!.ostyHp === 0)
               emitCombatCue(state, { kind: 'resource', sourceId: getEnemyKey(enemy), targetId: 'osty', resource: 'ostyHp', amount: 0, resourceAction: 'vanish', label: '岩霊の消滅' });
           }
-          dealDamage(state, 'player', damage, false, undefined, { bypassSummon: intent.allTargets });
+          dealDamage(state, 'player', damage, false, undefined, { bypassSummon: intent.allTargets, enemyAttack: true });
           if (state.phase === 'player' && (state.powerStacks?.thorns ?? 0) > 0) {
             withCombatTraceContext(state, { sourceId: 'player', effect: 'thorns' }, () => dealDamage(state, 'enemy', state.powerStacks!.thorns!, false, enemy));
           }
@@ -177,6 +187,11 @@ export function resolveEndTurn(state: CombatState): void {
     advanceEnemyIntent(enemy, state.turn + 1);
   }
 
+  if ((state.intangible ?? 0) > 0) {
+    state.intangible! -= 1;
+    if (state.intangible === 0) delete state.intangible;
+    emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'intangible', amount: -1, label: '霊体の残りターン' });
+  }
   expireTurnModifiers(state);
   state.turn += 1;
   state.player.block = 0;
@@ -211,7 +226,7 @@ export function predictEnemyDamage(state: CombatState, enemyId?: string): number
   const enemy = findEnemy(state, enemyId);
   if (!enemy) return 0;
   const intent = enemy.intent;
-  if (intent.damage === undefined || !enemySurvivesTurnStart(enemy)) return 0;
+  if (intent.damage === undefined || !enemySurvivesTurnStart(enemy) || (enemy.stun ?? 0) > 0) return 0;
   const { attacker, defender } = predictedEnemyAttackContext(state, enemy);
-  return calculateDamage(intent.damage, attacker, defender);
+  return capEnemyAttackDamage(state, calculateDamage(intent.damage, attacker, defender));
 }

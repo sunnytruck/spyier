@@ -1,6 +1,7 @@
 import { CARD_DEFINITIONS } from '../data/cards';
 import type { CardDefinition, Effect } from '../types/game';
 import { nextRandom } from './random';
+import { isNormalAcquisitionCard } from './cardAcquisition';
 
 export type RewardTier = 'battle' | 'elite' | 'boss' | 'shop';
 type Rarity = NonNullable<CardDefinition['rarity']>;
@@ -65,7 +66,7 @@ export function sampleCardRewards(
 ): { cardIds: string[]; rngState: number } {
   const remaining = [...new Set(pool)].filter((id) => {
     const card = CARD_DEFINITIONS[id];
-    return card && !card.tokenOnly && card.rewardEligible !== false && !previousChoices.includes(id);
+    return card && isNormalAcquisitionCard(card) && !previousChoices.includes(id);
   });
   const cardIds: string[] = [];
   const shownFamilies = new Set(previousChoices.flatMap((id) => [...cardBuildFamilies(CARD_DEFINITIONS[id])]));

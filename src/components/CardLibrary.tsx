@@ -4,6 +4,7 @@ import { CARD_DEFINITIONS } from '../data/cards';
 import { CLASS_DEFINITIONS, CLASS_IDS } from '../data/classes';
 import type { SourceCardCatalog } from '../types/catalog';
 import { CardView } from './CardView';
+import { getCardAcquisitionCategory } from '../engine/cardAcquisition';
 
 const sourceCards = (sourceCatalog as SourceCardCatalog).cards;
 const pageSize = 30;
@@ -14,9 +15,11 @@ export function CardLibrary() {
   const [owner, setOwner] = useState('all');
   const [shown, setShown] = useState(pageSize);
   const cards = Object.values(CARD_DEFINITIONS);
-  const generatedCount = cards.filter((card) => card.tokenOnly).length;
+  const generatedCount = cards.filter((card) => getCardAcquisitionCategory(card) === 'generatedOnly').length;
+  const blessingCount = cards.filter((card) => getCardAcquisitionCategory(card) === 'blessingOnly').length;
   const implemented = useMemo(() => new Set(Object.values(CARD_DEFINITIONS).flatMap((card) => card.sourceCardId ? [card.sourceCardId] : [])), []);
-  const generatedSources = useMemo(() => new Set(Object.values(CARD_DEFINITIONS).flatMap((card) => card.tokenOnly && card.sourceCardId ? [card.sourceCardId] : [])), []);
+  const generatedSources = useMemo(() => new Set(Object.values(CARD_DEFINITIONS).flatMap((card) => getCardAcquisitionCategory(card) === 'generatedOnly' && card.sourceCardId ? [card.sourceCardId] : [])), []);
+  const blessingSources = useMemo(() => new Set(Object.values(CARD_DEFINITIONS).flatMap((card) => getCardAcquisitionCategory(card) === 'blessingOnly' && card.sourceCardId ? [card.sourceCardId] : [])), []);
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const filteredPlayable = cards.filter((card) => (owner === 'all' || (card.classId ?? 'legacy') === owner) &&
     `${card.name} ${card.description} ${card.upgradedDescription}`.toLocaleLowerCase().includes(normalizedQuery));
@@ -25,7 +28,7 @@ export function CardLibrary() {
   const sourceClassName = (id: string) => id === 'colorless' ? '無色・共通' : CLASS_IDS.includes(id as typeof CLASS_IDS[number]) ? CLASS_DEFINITIONS[id as typeof CLASS_IDS[number]].displayName : 'じっと教・既存';
   function resetPage() { setShown(pageSize); }
   return <div className="card-library-content">
-    <p className="modal-intro">資料 {sourceCards.length}枚を収録。実装カード {cards.length}種類（基本札・呪い・生成専用{generatedCount}種類を含む）。資料と接続済み {implemented.size}種類。取得先は職業ごとに異なり、未実装カード・生成専用カードは報酬・商人に出現しません。</p>
+    <p className="modal-intro">資料 {sourceCards.length}枚を収録。実装カード {cards.length}種類（基本札・呪い・生成専用{generatedCount}種類・祝福限定{blessingCount}種類を含む）。資料と接続済み {implemented.size}種類。取得先は職業ごとに異なります。未実装・生成専用・祝福限定カードは通常報酬・商人に出現しません。</p>
     <div className="library-controls">
       <div className="segmented-control" aria-label="図鑑の表示内容">
         <button aria-pressed={tab === 'playable'} className={tab === 'playable' ? 'active' : ''} onClick={() => { setTab('playable'); resetPage(); }}>使用可能なカード</button>
@@ -44,13 +47,15 @@ export function CardLibrary() {
       {filteredReferences.slice(0, shown).map((card) => {
         const playable = implemented.has(card.id);
         const generatedOnly = generatedSources.has(card.id);
-        const status = generatedOnly ? '生成専用・使用可能' : playable ? '使用可能' : card.status === 'needs_review' ? '仕様確認が必要' : '未実装';
+        const blessingOnly = blessingSources.has(card.id);
+        const status = generatedOnly ? '生成専用・使用可能' : blessingOnly ? '祝福限定・使用可能' : playable ? '使用可能' : card.status === 'needs_review' ? '仕様確認が必要' : '未実装';
         return <article className="reference-card" key={card.id}>
           <div className="reference-card-heading"><h3>{card.sourceName}</h3><span className={`reference-status ${playable ? 'is-playable' : ''}`}>{status}</span></div>
           <p className="reference-owner">{sourceClassName(card.sourceClass)}</p>
           <dl><div><dt>通常 · コスト {card.normal.costRaw}</dt><dd>{card.normal.effectRaw}</dd></div><div><dt>強化 · コスト {card.upgraded.costRaw}</dt><dd>{card.upgraded.effectRaw}</dd></div></dl>
           {!playable && <p className="reference-unavailable">取得不可 · {card.status === 'needs_review' ? '原文の不足・曖昧な記述の確認が必要です。' : '効果処理と検証が完了するまで出現しません。'}</p>}
           {generatedOnly && <p className="reference-owner">カード効果で生成。通常の報酬・商人には出現しません。</p>}
+          {blessingOnly && <p className="reference-owner">各Act開始時の祝福から取得。無色カードですが、通常報酬・商人・一般イベントには出現しません。</p>}
           {card.issues.length > 0 && <details><summary>資料の確認事項 {card.issues.length}件</summary><ul>{card.issues.map((issue, index) => <li key={index}>{issue.message}</li>)}</ul></details>}
           <small>出典: {card.sourceFile} {card.sourceLine}行目 · 種別・レアリティは資料に記載なし</small>
         </article>;

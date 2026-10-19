@@ -20,7 +20,7 @@ const oneOf = (value: unknown, options: readonly string[]): value is string =>
   typeof value === 'string' && options.includes(value);
 
 function actor(value: unknown): boolean {
-  if (!record(value) || !text(value.id) || !text(value.name) || !integer(value.maxHp, 1))
+  if (!record(value) || !text(value.id) || !text(value.name) || !integer(value.maxHp))
     return false;
   return (
     integer(value.hp, 0, value.maxHp) &&
@@ -41,6 +41,7 @@ function card(value: unknown): value is CombatState['hand'][number] {
 
 function enemy(value: unknown): boolean {
   if (!actor(value) || !record(value)) return false;
+  if (!integer(value.maxHp, 1) || (value.stun !== undefined && !integer(value.stun))) return false;
   const definition = getEnemyDefinition(value.id as string);
   if (value.intentPhase !== undefined &&
       (!integer(value.intentPhase, 0) || !definition?.phases?.[value.intentPhase]?.intents.length)) return false;
@@ -136,7 +137,7 @@ function pendingChoice(value: Record<string, unknown>, enemyKeys: string[]): boo
     !record(pending) ||
     value.phase !== 'player' ||
     !oneOf(pending.mode, ['discard', 'exhaust', 'topdeck', 'retrieve']) ||
-    !oneOf(sourceZone, ['hand', 'discardPile']) ||
+    !oneOf(sourceZone, ['hand', 'discardPile', 'drawPile']) ||
     !Array.isArray(candidates) ||
     !integer(pending.amount, 1, candidates.length) ||
     !record(pending.resume) ||
@@ -195,6 +196,10 @@ export function isValidCombatState(value: unknown): value is CombatState {
     return false;
 
   if (!enemy(value.enemy) || !classState(value)) return false;
+  if (value.player.maxHp === 0 && value.phase !== 'defeat') return false;
+  if (value.intangible !== undefined && !integer(value.intangible)) return false;
+  if (value.cardDamageBonuses !== undefined && (!record(value.cardDamageBonuses) ||
+    !Object.entries(value.cardDamageBonuses).every(([id, amount]) => Object.hasOwn(CARD_DEFINITIONS, id) && integer(amount)))) return false;
   const enemies = value.enemies === undefined ? [value.enemy] : value.enemies;
   if (!Array.isArray(enemies) || enemies.length < 1 || enemies.length > 3 || !enemies.every(enemy))
     return false;
@@ -257,17 +262,23 @@ export function isValidCombatState(value: unknown): value is CombatState {
   const inventory = [...value.deck, ...generated];
   const knownCards = new Map(inventory.map((instance) => [instance.uid, instance]));
   if (knownCards.size !== inventory.length) return false;
+  const temporaryUpgrades = value.temporaryUpgrades ?? [];
+  if (!Array.isArray(temporaryUpgrades) || temporaryUpgrades.length > 1000 ||
+    new Set(temporaryUpgrades).size !== temporaryUpgrades.length ||
+    !temporaryUpgrades.every((uid) => typeof uid === 'string' && knownCards.get(uid)?.upgraded)) return false;
+  const sameUpgrade = (saved: CombatState['hand'][number], original: CombatState['hand'][number]) =>
+    saved.upgraded === original.upgraded || (original.upgraded && !saved.upgraded && temporaryUpgrades.includes(saved.uid));
   if (Array.isArray(value.scheduledEffects) && value.scheduledEffects.some((entry) => {
     if (!record(entry) || !card(entry.sourceCard)) return true;
     const original = knownCards.get(entry.sourceCard.uid);
-    return !original || original.cardId !== entry.sourceCard.cardId || original.upgraded !== entry.sourceCard.upgraded;
+    return !original || original.cardId !== entry.sourceCard.cardId || !sameUpgrade(entry.sourceCard, original);
   })) return false;
   const seen = new Set<string>();
   if (record(value.pendingChoice) && record(value.pendingChoice.resume)) {
     const source = value.pendingChoice.resume.sourceCard;
     if (!card(source)) return false;
     const original = knownCards.get(source.uid);
-    if (!original || original.cardId !== source.cardId || original.upgraded !== source.upgraded)
+    if (!original || original.cardId !== source.cardId || !sameUpgrade(source, original))
       return false;
     seen.add(source.uid);
   }

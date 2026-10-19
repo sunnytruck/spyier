@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { RunAction, RunState } from '../types/run';
-import type { CardInstance } from '../types/game';
+import type { CardInstance, GameSettings } from '../types/game';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { POTION_DEFINITIONS } from '../data/potions';
 import { EVENT_DEFINITIONS } from '../data/events';
 import { CLASS_DEFINITIONS } from '../data/classes';
-import { canChooseEvent, getShopCardPrice, SHOP_PRICES } from '../engine/run';
+import { canAscendAct, canChooseEvent, getShopCardPrice, SHOP_PRICES } from '../engine/run';
+import { getActDefinition } from '../data/acts';
 import { CardView } from '../components/CardView';
 import { CardUpgradePreview } from '../components/CardUpgradePreview';
 import { canUpgradeCard } from '../presentation/cardUpgrade';
@@ -15,6 +16,7 @@ import { Modal } from '../components/Modal';
 import { RockDeity } from '../components/CharacterArt';
 import '../styles/run.css';
 import { MapScreen } from './MapScreen';
+import { BlessingScreen } from './BlessingScreen';
 
 interface RunScreensProps {
   state: RunState;
@@ -22,6 +24,7 @@ interface RunScreensProps {
   onNewRun: () => void;
   onReplay: () => void;
   onTitle: () => void;
+  settings?: GameSettings;
 }
 
 
@@ -96,7 +99,7 @@ function RunStatus({ state, onDeck }: { state: RunState; onDeck: () => void }) {
           <small> / {state.maxHp}</small>
         </b>
         <span className="run-mini-hp">
-          <i style={{ width: `${(state.hp / state.maxHp) * 100}%` }} />
+          <i style={{ width: `${state.maxHp > 0 ? (state.hp / state.maxHp) * 100 : 0}%` }} />
         </span>
       </div>
       <Gold amount={state.gold} />
@@ -643,11 +646,14 @@ function UpgradeScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onA
 
 function ResultScreen({
   state,
+  onAction,
   onNewRun,
   onReplay,
   onTitle,
-}: Pick<RunScreensProps, 'state' | 'onNewRun' | 'onReplay' | 'onTitle'>) {
+}: Pick<RunScreensProps, 'state' | 'onAction' | 'onNewRun' | 'onReplay' | 'onTitle'>) {
   const won = state.screen === 'victory';
+  const act = state.act ?? 1;
+  const ascending = canAscendAct(state);
   return (
     <div className={`run-result-screen${won ? ' is-victory' : ''}`}>
       <div className="run-result-art">
@@ -657,13 +663,13 @@ function ResultScreen({
       <div className="run-result-content">
         <p className="eyebrow">
           <span className="gold-line" />
-          {won ? 'ACT I · CONQUERED' : 'THE JOURNEY ENDS'}
+          {won ? `ACT ${act} · CONQUERED` : 'THE JOURNEY ENDS'}
         </p>
-        <h1>{won ? '岩の頂に、辿り着いた。' : '今日は、ここまで。'}</h1>
-        <p className="run-result-subtitle">{won ? '第一層 クリア' : 'GAME OVER'}</p>
+        <h1>{won ? ascending ? 'ひとつ上の、祝福へ。' : '岩の頂に、辿り着いた。' : '今日は、ここまで。'}</h1>
+        <p className="run-result-subtitle">{won ? `第${act}階層 クリア${state.act && !ascending ? ' · 全Act踏破' : ''}` : 'GAME OVER'}</p>
         <p className="run-result-description">
           {won
-            ? '不動の回廊の主は倒れた。塔に響くのは、いつものひと言。'
+            ? `${state.act ? getActDefinition(act).name : '不動の回廊'}の主は倒れた。${ascending ? 'デッキと所持品を携え、次の出会いへ進もう。' : '塔に響くのは、いつものひと言。'}`
             : '岩尊けいとは静かに腰を下ろした。教えは次の旅に引き継がれる。'}
         </p>
         <p className="run-result-quote">
@@ -698,7 +704,8 @@ function ResultScreen({
             <small>レリックなし</small>
           )}
         </div>
-        <button className="primary-button" onClick={onNewRun}>
+        {ascending && <button className="primary-button" onClick={() => onAction({ type: 'ascendAct' })}>Act {act + 1}へ進む · 次の祝福 <Icon name="arrow" size={18} /></button>}
+        <button className={ascending ? 'secondary-button' : 'primary-button'} onClick={onNewRun}>
           新たな冒険を始める <Icon name="arrow" size={18} />
         </button>
         <div className="run-result-secondary">
@@ -709,7 +716,7 @@ function ResultScreen({
             タイトルへ戻る <Icon name="chevron" size={13} />
           </button>
         </div>
-        {won && (
+        {won && state.act === undefined && (
           <button disabled className="run-future-act">
             第二層 · 今後のアップデートで開放
           </button>
@@ -722,7 +729,7 @@ function ResultScreen({
   );
 }
 
-export function RunScreens({ state, onAction, onNewRun, onReplay, onTitle }: RunScreensProps) {
+export function RunScreens({ state, onAction, onNewRun, onReplay, onTitle, settings }: RunScreensProps) {
   const [deckOpen, setDeckOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
   useEffect(() => {
@@ -735,6 +742,9 @@ export function RunScreens({ state, onAction, onNewRun, onReplay, onTitle }: Run
   }
   let screen: ReactNode;
   switch (state.screen) {
+    case 'blessing':
+      screen = <BlessingScreen state={state} onAction={onAction} settings={settings} />;
+      break;
     case 'map':
       screen = <MapScreen state={state} onAction={onAction} />;
       break;
@@ -762,7 +772,7 @@ export function RunScreens({ state, onAction, onNewRun, onReplay, onTitle }: Run
     case 'victory':
     case 'defeat':
       screen = (
-        <ResultScreen state={state} onNewRun={onNewRun} onReplay={onReplay} onTitle={onTitle} />
+        <ResultScreen state={state} onAction={onAction} onNewRun={onNewRun} onReplay={onReplay} onTitle={onTitle} />
       );
       break;
     case 'combat':

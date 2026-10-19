@@ -25,7 +25,7 @@ export function meetsEffectCondition(state: CombatState, condition: EffectCondit
   const enemy = target ?? findEnemy(state);
   switch (condition.type) {
     case 'targetStatus': return (enemy?.[condition.status] ?? 0) >= (condition.min ?? 1);
-    case 'targetAttacking': return enemy?.intent.damage !== undefined;
+    case 'targetAttacking': return enemy?.intent.damage !== undefined && (enemy?.stun ?? 0) === 0;
     case 'cardsPlayedAtMost': return state.cardsPlayedThisTurn <= condition.amount;
   }
 }

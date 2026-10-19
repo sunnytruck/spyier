@@ -8,6 +8,8 @@ import { BattleHand } from '../components/BattleHand';
 import { Modal } from '../components/Modal';
 import { RockDeity, StoneSentinel } from '../components/CharacterArt';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
+import { getActDefinition } from '../data/acts';
+import { getDisplayedEnemyIntent } from '../engine/combat/enemyAI';
 import { BattleEffects } from '../components/BattleEffects';
 import { CardFlights } from '../components/CardFlights';
 import { getPendingChoiceCards, getPendingChoiceLabel } from '../engine/actions/choices';
@@ -21,6 +23,7 @@ interface BattleProps {
   onPlay: (uid: string, targetId?: string) => boolean | void;
   onSelectEnemy?: (targetId: string) => void;
   campaign?: boolean;
+  act?: number;
   floor?: number;
   onEndTurn: () => void;
   onChooseCards?: (cardIds: string[]) => void;
@@ -52,7 +55,7 @@ function intentExtras(intent: EnemyIntent): string {
   ].filter(Boolean).join(' / ');
 }
 
-function StatusChips({ actor, stillness = 0 }: { actor: Actor; stillness?: number }) {
+function StatusChips({ actor, stillness = 0, intangible = 0 }: { actor: Actor; stillness?: number; intangible?: number }) {
   const statuses = [
     {
       value: actor.strength,
@@ -96,6 +99,20 @@ function StatusChips({ actor, stillness = 0 }: { actor: Actor; stillness?: numbe
       detail: '敵のターン開始時、破滅が現在HP以上なら撃破します。ブロックの影響を受けません。',
       color: 'poison',
     },
+    {
+      value: (actor as EnemyState).stun ?? 0,
+      symbol: 'Ⅱ',
+      label: 'スタン',
+      detail: '次の敵行動を1回休み、スタンを1減らして次の予告へ進みます。毒と破滅は通常どおり解決します。',
+      color: 'weak',
+    },
+    {
+      value: intangible,
+      symbol: '幽',
+      label: '霊体',
+      detail: '敵の攻撃の各ヒットを最大1にします。次の敵ターン終了時に1減少。毒・HP消費・最大HP減少は軽減しません。',
+      color: 'stillness',
+    },
   ].filter((status) => status.value !== 0);
   return (
     <div className="status-chips">
@@ -120,6 +137,7 @@ function StatusChips({ actor, stillness = 0 }: { actor: Actor; stillness?: numbe
 }
 
 function HealthBar({ actor, player = false }: { actor: Actor; player?: boolean }) {
+  const healthPercent = actor.maxHp > 0 ? Math.max(0, Math.min(100, actor.hp / actor.maxHp * 100)) : 0;
   return (
     <div className={`health-info ${player ? 'health-info--player' : ''}`}>
       <div className="actor-name">
@@ -136,8 +154,8 @@ function HealthBar({ actor, player = false }: { actor: Actor; player?: boolean }
           aria-valuemin={0}
           aria-valuemax={actor.maxHp}
         >
-          <span className="health-trail" style={{ width: `${Math.max(0, actor.hp / actor.maxHp) * 100}%` }} />
-          <span className="health-fill" style={{ width: `${Math.max(0, actor.hp / actor.maxHp) * 100}%` }} />
+          <span className="health-trail" style={{ width: `${healthPercent}%` }} />
+          <span className="health-fill" style={{ width: `${healthPercent}%` }} />
         </div>
         <span className="health-value">
           <b>{actor.hp}</b>
@@ -166,6 +184,7 @@ export function BattleScreen({
   onTitle,
   onSelectEnemy,
   campaign = false,
+  act = 1,
   floor,
   presentation,
 }: BattleProps) {
@@ -181,17 +200,18 @@ export function BattleScreen({
     state.selectedEnemyId ?? getEnemyKey(enemies.find((actor) => actor.hp > 0) ?? enemy);
   const selectedEnemy = enemies.find((actor) => getEnemyKey(actor) === selectedId) ?? enemy;
   const selectedDefinition = ENEMY_DEFINITIONS[selectedEnemy.id];
+  const displayedIntent = getDisplayedEnemyIntent(enemy);
   const damage = predictEnemyDamage(state, getEnemyKey(enemy));
   const intentDescription =
-    enemy.intent.damage !== undefined
-      ? `${damage}ダメージ${(enemy.intent.hits ?? 1) > 1 ? `を${enemy.intent.hits}回` : ''}。現在の筋力・弱体・脆弱を反映した予測値。ブロックで軽減できます。${intentExtras(enemy.intent)}`
-      : enemy.intent.description;
+    displayedIntent.damage !== undefined
+      ? `${damage}ダメージ${(displayedIntent.hits ?? 1) > 1 ? `を${displayedIntent.hits}回` : ''}。現在の筋力・弱体・脆弱・霊体を反映した予測値。ブロックで軽減できます。${intentExtras(displayedIntent)}`
+      : displayedIntent.description;
   const intentIcon =
-    enemy.intent.damage !== undefined
+    displayedIntent.damage !== undefined
       ? 'sword'
-      : enemy.intent.kind === 'defend'
+      : displayedIntent.kind === 'defend'
         ? 'shield'
-        : enemy.intent.kind === 'buff'
+        : displayedIntent.kind === 'buff'
           ? 'sun'
           : 'flame';
 
@@ -218,9 +238,9 @@ export function BattleScreen({
       <section className="battle-heading">
         <div>
           <p className="eyebrow">
-            <span className="gold-line" /> {campaign ? `第1階層 · ${floor}F` : '単体戦闘の練習'}{' '}
+            <span className="gold-line" /> {campaign ? `第${act}階層 · ${floor}F` : '単体戦闘の練習'}{' '}
             <span className="eyebrow-separator">/</span>{' '}
-            {floor === 12 ? '静寂の頂' : 'じっと教の塔'}
+            {campaign ? getActDefinition(act).name : floor === 12 ? '静寂の頂' : 'じっと教の塔'}
           </p>
           <h1>岩の意志を、示せ。</h1>
         </div>
@@ -266,7 +286,7 @@ export function BattleScreen({
         </div>
         <div className="combatant combatant--player">
           <div className="actor-status">
-            <StatusChips actor={state.player} stillness={state.stillness} />
+            <StatusChips actor={state.player} stillness={state.stillness} intangible={state.intangible ?? 0} />
             {divine && (
               <span className="divine-tag">
                 <Icon name="sun" size={13} />
@@ -317,6 +337,7 @@ export function BattleScreen({
             {enemies.map((actor, index) => {
               const enemyId = getEnemyKey(actor);
               const incoming = predictEnemyDamage(state, enemyId);
+              const visibleIntent = getDisplayedEnemyIntent(actor);
               const selected = selectedId === enemyId;
               const dead = actor.hp <= 0;
               return (
@@ -325,20 +346,20 @@ export function BattleScreen({
                   key={enemyId}
                 >
                   <div
-                    className={`enemy-intent intent-${actor.intent.kind}`}
+                    className={`enemy-intent intent-${visibleIntent.kind}`}
                     title={
-                      actor.intent.damage !== undefined
-                        ? `${incoming}ダメージ × ${actor.intent.hits ?? 1}。筋力・状態異常を反映、ブロックで軽減。${intentExtras(actor.intent)}`
-                        : actor.intent.description
+                      visibleIntent.damage !== undefined
+                        ? `${incoming}ダメージ × ${visibleIntent.hits ?? 1}。筋力・状態異常・霊体を反映、ブロックで軽減。${intentExtras(visibleIntent)}`
+                        : visibleIntent.description
                     }
                     tabIndex={0}
                   >
                     <span className="intent-icon">
                       <Icon
                         name={
-                          actor.intent.damage !== undefined
+                          visibleIntent.damage !== undefined
                             ? 'sword'
-                            : actor.intent.kind === 'defend'
+                            : visibleIntent.kind === 'defend'
                               ? 'shield'
                               : 'sun'
                         }
@@ -349,15 +370,15 @@ export function BattleScreen({
                       <span className="intent-eyebrow">
                         {dead ? 'DEFEATED' : 'NEXT · 行動予告'}
                       </span>
-                      <b>{dead ? '撃破' : actor.intent.label}</b>
+                      <b>{dead ? '撃破' : visibleIntent.label}</b>
                       <small>
                         {dead
                           ? '行動しません'
-                          : actor.intent.damage !== undefined
-                            ? `${incoming}${(actor.intent.hits ?? 1) > 1 ? ` × ${actor.intent.hits}` : ''} ダメージ`
-                            : actor.intent.description}
+                          : visibleIntent.damage !== undefined
+                            ? `${incoming}${(visibleIntent.hits ?? 1) > 1 ? ` × ${visibleIntent.hits}` : ''} ダメージ`
+                            : visibleIntent.description}
                       </small>
-                      {!dead && actor.intent.damage !== undefined && intentExtras(actor.intent) && <small className="intent-extra-effects">{intentExtras(actor.intent)}</small>}
+                      {!dead && visibleIntent.damage !== undefined && intentExtras(visibleIntent) && <small className="intent-extra-effects">{intentExtras(visibleIntent)}</small>}
                     </div>
                   </div>
                   <div className="actor-status enemy-status">
@@ -386,7 +407,7 @@ export function BattleScreen({
         ) : (
           <div className="combatant combatant--enemy">
             <div
-              className={`enemy-intent intent-${enemy.intent.kind}`}
+              className={`enemy-intent intent-${displayedIntent.kind}`}
               title={intentDescription}
               tabIndex={0}
             >
@@ -395,21 +416,21 @@ export function BattleScreen({
               </span>
               <div>
                 <span className="intent-eyebrow">NEXT · 敵の行動予告</span>
-                <b>{enemy.intent.label}</b>
+                <b>{displayedIntent.label}</b>
                 <small>
-                  {enemy.intent.damage !== undefined ? (
+                  {displayedIntent.damage !== undefined ? (
                     <>
                       <strong>
                         {damage}
-                        {(enemy.intent.hits ?? 1) > 1 ? ` × ${enemy.intent.hits}` : ''}
+                        {(displayedIntent.hits ?? 1) > 1 ? ` × ${displayedIntent.hits}` : ''}
                       </strong>{' '}
                       ダメージ
                     </>
                   ) : (
-                    enemy.intent.description
+                    displayedIntent.description
                   )}
                 </small>
-                {enemy.intent.damage !== undefined && intentExtras(enemy.intent) && <small className="intent-extra-effects">{intentExtras(enemy.intent)}</small>}
+                {displayedIntent.damage !== undefined && intentExtras(displayedIntent) && <small className="intent-extra-effects">{intentExtras(displayedIntent)}</small>}
               </div>
             </div>
             <div className="actor-status enemy-status">
@@ -599,7 +620,7 @@ export function BattleScreen({
       </div>
 
       {state.pendingChoice && !presentation?.busy && <Modal title={getPendingChoiceLabel(state)} subtitle="CHOOSE YOUR CARDS" onClose={keepChoiceOpen} dismissible={false} wide>
-        <p className="modal-intro">カードを選び、確定すると効果の続きを解決します。{state.pendingChoice.mode === 'exhaust' ? '廃棄したカードは、この戦闘では山札に戻りません。' : state.pendingChoice.mode === 'topdeck' ? '選んだカードを山札の一番上へ戻します。次のドローで先に引きます。' : state.pendingChoice.mode === 'retrieve' ? '選んだ捨て札を手札に戻します。' : '捨てたカードは捨て札に移ります。'}</p>
+        <p className="modal-intro">カードを選び、確定すると効果の続きを解決します。{state.pendingChoice.mode === 'exhaust' ? '廃棄したカードは、この戦闘では山札に戻りません。' : state.pendingChoice.mode === 'topdeck' ? '選んだカードを山札の一番上へ戻します。次のドローで先に引きます。' : state.pendingChoice.mode === 'retrieve' ? state.pendingChoice.sourceZone === 'drawPile' ? '選んだ山札のカードを手札に加えます。山札の残りの順序は変えません。' : '選んだ捨て札を手札に戻します。' : '捨てたカードは捨て札に移ります。'}</p>
         <div className="pending-choice-grid">
           {getPendingChoiceCards(state).map((card) => {
             const selected = chosenCards.includes(card.uid);

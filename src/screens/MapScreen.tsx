@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { FloorMap, MapNode, NodeType, RunAction, RunState } from '../types/run';
 import { getAvailableNodes } from '../engine/run';
+import { getActDefinition } from '../data/acts';
 import { Icon } from '../components/Icon';
 import '../styles/map-expansion.css';
 
@@ -11,7 +12,7 @@ const nodeLabels: Record<NodeType, { name: string; description: string }> = {
   shop: { name: '商人', description: 'カード・レリックの購入とデッキの整理。' },
   rest: { name: '休憩所', description: 'HPを回復するか、カードを1枚強化。' },
   treasure: { name: '宝箱', description: '古代の祝福、レリックを1つ獲得。' },
-  boss: { name: '階層ボス', description: '第一層の最後の試練。準備を整えて挑みましょう。' },
+  boss: { name: '階層ボス', description: 'このActの最後の試練。準備を整えて挑みましょう。' },
 };
 
 function NodeIcon({ type, size = 24 }: { type: NodeType; size?: number }) {
@@ -99,6 +100,7 @@ function laneName(node: MapNode, map: FloorMap) {
 }
 
 export function MapScreen({ state, onAction }: { state: RunState; onAction: (action: RunAction) => void }) {
+  const act = getActDefinition(state.act ?? 1);
   const scroller = useRef<HTMLDivElement>(null);
   const patternId = `map-dots-${useId().replace(/:/g, '')}`;
   const [zoom, setZoom] = useState(1);
@@ -124,12 +126,12 @@ export function MapScreen({ state, onAction }: { state: RunState; onAction: (act
 
   return <div className="run-map-screen">
     <header className="run-screen-heading">
-      <div><p className="eyebrow"><span className="gold-line" />ACT I · 岩の目覚め</p><h1>じっと教の塔</h1><p className="run-heading-description">分かれ道と合流を見渡して、次の一歩を選びましょう。光る地点だけに進めます。</p></div>
+      <div><p className="eyebrow"><span className="gold-line" />{state.act ? `ACT ${act.id} · ${act.subtitle}` : 'ACT I · 岩の目覚め'}</p><h1>じっと教の塔</h1><p className="run-heading-description">分かれ道と合流を見渡して、次の一歩を選びましょう。光る地点だけに進めます。</p></div>
       <span className="run-seed"><Icon name="mountain" size={14} /> SEED <b>{state.seed}</b></span>
     </header>
     <div className="run-map-layout">
       <aside className="run-map-sidebar">
-        <div className="run-map-chapter"><span>第一層</span><h2>不動の回廊</h2><p>上へ、上へ。<br />道を選ぶたび、教えは変わる。</p><div className="run-floor-progress"><span style={{ width: `${Math.min(100, state.visited.length / state.map.floors * 100)}%` }} /></div><small>{state.visited.length} / {state.map.floors} フロア踏破</small></div>
+        <div className="run-map-chapter"><span>{state.act ? `第${act.id}層 / 全${state.maxActs}層` : '第一層'}</span><h2>{state.act ? act.name : '不動の回廊'}</h2><p>{state.act ? act.description : <>上へ、上へ。<br />道を選ぶたび、教えは変わる。</>}</p><div className="run-floor-progress"><span style={{ width: `${Math.min(100, state.visited.length / state.map.floors * 100)}%` }} /></div><small>{state.visited.length} / {state.map.floors} フロア踏破</small></div>
         <div className="run-map-next"><p className="section-kicker">NEXT DESTINATION</p><h3>次の目的地</h3><p>第 {nextFloor} フロア · {available.length}つの道</p><div>
           {available.map((node) => <button key={node.id} data-next-node-id={node.id} className="run-next-choice" onMouseEnter={() => setHoveredId(node.id)} onMouseLeave={() => setHoveredId(null)} onFocus={() => setHoveredId(node.id)} onBlur={() => setHoveredId(null)} onClick={() => chooseNode(node.id)}>
             <NodeIcon type={node.type} size={20} /><span>{nodeLabels[node.type].name}<small>{laneName(node, state.map)} · {node.connections.length > 1 ? `${node.connections.length}方向へ分岐` : node.connections.length ? '次の道へ続く' : '最後の試練'}</small></span><Icon name="chevron" size={14} />

@@ -1,4 +1,5 @@
 import type { Actor, EnemyDefinition, EnemyIntent } from '../types/game';
+import { ACT_IDS, getActDefinition, type ActDefinition } from './acts';
 
 export const DEFAULT_ENEMY_ID = 'restless_guardian';
 
@@ -288,6 +289,77 @@ export const ENEMY_DEFINITIONS: Record<string, EnemyDefinition> = {
   },
 };
 
+/** Original tactical families; derived act variants do not count as new designs. */
+export const BASE_ENEMY_IDS = Object.keys(ENEMY_DEFINITIONS);
+
+function scaled(value: number, multiplier: number): number {
+  return Math.max(0, Math.round(value * multiplier));
+}
+
+/** Readable intent prose is rebuilt from the same scaled fields the AI uses. */
+function scaledIntent(intent: EnemyIntent, act: ActDefinition): EnemyIntent {
+  const next = { ...intent };
+  if (intent.damage !== undefined) next.damage = scaled(intent.damage, act.attackScale);
+  if (intent.block !== undefined) next.block = scaled(intent.block, act.blockScale);
+  if (intent.alliesBlock !== undefined) next.alliesBlock = scaled(intent.alliesBlock, act.blockScale);
+  const descriptions: string[] = [];
+  if (next.damage !== undefined) {
+    descriptions.push(`${next.allTargets ? '全体攻撃：プレイヤーと岩霊それぞれに' : ''}基礎${next.damage}ダメージ${(next.hits ?? 1) > 1 ? `を${next.hits}回` : ''}。`);
+    if (next.allTargets) descriptions.push('プレイヤーのブロックは有効。');
+  }
+  if (next.block) descriptions.push(`自分に${next.block}ブロック。`);
+  if (next.strength) descriptions.push(`自分に筋力＋${next.strength}。`);
+  if (next.alliesBlock) descriptions.push(`自分以外の生存している敵全体に${next.alliesBlock}ブロック。`);
+  if (next.alliesStrength) descriptions.push(`自分以外の生存している敵全体に筋力＋${next.alliesStrength}。`);
+  if (next.weak) descriptions.push(`プレイヤーに弱体${next.weak}。`);
+  if (next.vulnerable) descriptions.push(`プレイヤーに脆弱${next.vulnerable}。`);
+  if (next.poison) descriptions.push(`プレイヤーに毒${next.poison}。次のプレイヤーターン開始時に発動。`);
+  next.description = descriptions.join('');
+  return next;
+}
+
+/** Stable IDs make ordinary, event, phased and restored battles use one registry. */
+export function getActEnemyId(id: string, act = 1): string {
+  getActDefinition(act);
+  const baseId = BASE_ENEMY_IDS.includes(id) ? id : id.replace(/^act[23]_/, '');
+  if (!BASE_ENEMY_IDS.includes(baseId)) throw new RangeError(`敵「${id}」の元定義がありません。`);
+  return act === 1 ? baseId : `act${act}_${baseId}`;
+}
+
+const actVariants = ACT_IDS.filter((act) => act !== 1).flatMap((actId) => {
+  const act = getActDefinition(actId);
+  return BASE_ENEMY_IDS.map((baseId): EnemyDefinition => {
+    const base = ENEMY_DEFINITIONS[baseId];
+    const prefix = actId === 2 ? '星灯' : '天上';
+    const next: EnemyDefinition = {
+      ...base,
+      id: getActEnemyId(baseId, actId),
+      name: `${prefix}・${base.name}`,
+      hp: scaled(base.hp, act.hpScale),
+      maxHp: scaled(base.maxHp, act.hpScale),
+      block: scaled(base.block, act.blockScale),
+      intents: base.intents.map((intent) => scaledIntent(intent, act)),
+      description: `${act.name}に立つ${base.name}。${base.description ?? '静かな参拝を求めながら、こちらの教義を試してくる。'}`,
+    };
+    if (base.reaction) {
+      next.reaction = { ...base.reaction };
+      if (base.reaction.block !== undefined) next.reaction.block = scaled(base.reaction.block, act.blockScale);
+      const type = { attack: '攻撃', skill: 'スキル', power: 'パワー' }[base.reaction.cardType];
+      next.gimmick = `プレイヤーが${type}カードを1枚使うたび、${[
+        next.reaction.block ? `${next.reaction.block}ブロックを得る` : '',
+        next.reaction.strength ? `筋力が${next.reaction.strength}増える` : '',
+      ].filter(Boolean).join('、')}。`;
+    }
+    if (base.phases) next.phases = base.phases.map((phase) => ({
+      trigger: { ...phase.trigger }, intents: phase.intents.map((intent) => scaledIntent(intent, act)),
+    }));
+    return next;
+  });
+});
+
+export const ACT_ENEMY_IDS = actVariants.map((enemy) => enemy.id);
+Object.assign(ENEMY_DEFINITIONS, Object.fromEntries(actVariants.map((enemy) => [enemy.id, enemy])));
+
 /** The original 86 HP guardian remains available for the combat practice room. */
 export const NORMAL_ENEMY_IDS = [
   DEFAULT_ENEMY_ID,
@@ -326,7 +398,7 @@ export const ENCOUNTER_GROUPS: string[][] = [
 ];
 
 /** Pools are floor-banded, not rolled here: callers retain their saved seeded RNG. */
-export function getEncounterGroupsForFloor(floor: number, kind: 'combat' | 'elite' | 'boss'): string[][] {
+function getBaseEncounterGroupsForFloor(floor: number, kind: 'combat' | 'elite' | 'boss'): string[][] {
   if (kind === 'boss') return BOSS_ENEMY_IDS.map((id) => [id]);
   if (kind === 'elite') return floor < 7
     ? [['debt_collector'], ['twin_pillars'], ['resonance_sentinel']]
@@ -343,6 +415,13 @@ export function getEncounterGroupsForFloor(floor: number, kind: 'combat' | 'elit
     ['ember_idol', 'lost_bell'], ['bell_herald', 'grit_scout', 'candle_moth'],
     ['grit_scout', 'candle_moth', 'lost_bell'], ['shield_acolyte', 'moss_toad'],
   ];
+}
+
+/** Act 1 keeps its exact original pools; later acts use explicit saved variants. */
+export function getEncounterGroupsForFloor(floor: number, kind: 'combat' | 'elite' | 'boss', act = 1): string[][] {
+  getActDefinition(act);
+  const groups = getBaseEncounterGroupsForFloor(floor, kind);
+  return act === 1 ? groups : groups.map((group) => group.map((id) => getActEnemyId(id, act)));
 }
 
 /** Unknown IDs never silently select a different enemy. */

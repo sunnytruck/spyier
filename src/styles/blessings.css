@@ -1,0 +1,232 @@
+/* A dedicated act-entry scene, kept independent of combat layout and state. */
+.app .blessing-screen { --blessing-gold: #dcc18a; --blessing-aura: #c49b3c; --blessing-haze: #6d542521; --blessing-duration: 950ms; --blessing-stagger: 90ms; color: #e6dfc9; font-family: var(--sans); min-width: 0; }
+.app .blessing-theme-yomi_guide { --blessing-gold: #bfd0f1; --blessing-aura: #8d9ddc; --blessing-haze: #6478b01e; }
+.app .blessing-theme-stone_merchant { --blessing-gold: #e9c895; --blessing-aura: #d7a45a; --blessing-haze: #9e6b351f; }
+.app .blessing-theme-star_miko { --blessing-gold: #e6d4f5; --blessing-aura: #c5a7e3; --blessing-haze: #9877c323; }
+.app .blessing-theme-oblivion_priest { --blessing-gold: #bfc7df; --blessing-aura: #949fcb; --blessing-haze: #7886a41f; }
+.app .blessing-theme-chaos_traveler { --blessing-gold: #c8ddbb; --blessing-aura: #94c78b; --blessing-haze: #69a78821; }
+.app .blessing-heading { text-align: center; margin: 0 auto 8px; padding: 12px 0 0; }
+.app .blessing-heading .eyebrow { justify-content: center; color: var(--blessing-gold); font-size: 11px; letter-spacing: .15em; }
+.app .blessing-heading h1 { color: #eee2bc; font: 400 clamp(25px, 3vw, 37px)/1.5 var(--serif); letter-spacing: .12em; margin: 15px 0 10px; }
+.app .blessing-heading > p:not(.eyebrow) { font: 14px/1.9 var(--sans); color: #c6cbb7; margin: 0; }
+.app .blessing-intro-skip { display: inline-flex; align-items: center; gap: 10px; min-height: 39px; padding: 7px 13px; margin-top: 13px; border: 1px solid #b9a56555; border-radius: 3px; color: #d4c494; background: #202a1e; font: 12px/1.6 var(--sans); }
+.app .blessing-intro-skip > span { font-size: 20px; line-height: 1; }
+.app .blessing-sanctuary { position: relative; isolation: isolate; width: 100%; min-height: 365px; border-bottom: 1px solid #ab92504d; margin: 0 auto 25px; overflow: hidden; background: radial-gradient(ellipse at 50% 62%, var(--blessing-haze), transparent 66%), linear-gradient(180deg, #0e171016, #111b148c); }
+.app .blessing-sanctuary::before { content: ''; position: absolute; inset: 25px 15% -15px; z-index: -1; border: 1px solid #a5925138; border-radius: 49% 49% 0 0; background: repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), #bdb07808 25%); }
+.app .blessing-character-frame { width: min(100%, 570px); height: 375px; position: relative; z-index: 1; margin: 0 auto; }
+.app .blessing-character-frame > .blessing-character-art { width: 100%; height: 100%; display: block; }
+.app .blessing-character-frame > .blessing-character-art { animation: blessing-entrance-light var(--blessing-duration) ease-out both; }
+.app .blessing-character-copy { position: absolute; z-index: 2; left: 4%; top: 31%; width: 255px; text-align: left; text-shadow: 0 2px 9px #080d08; }
+.app .blessing-character-copy > p { color: var(--blessing-gold); font-size: 12px; line-height: 1.7; letter-spacing: .06em; margin: 0 0 7px; }
+.app .blessing-character-copy h2 { font: 400 30px/1.5 var(--serif); color: #eee4c9; letter-spacing: .1em; margin: 0 0 14px; }
+.app .blessing-character-copy blockquote { font-size: 14px; line-height: 1.95; color: #e3dcbd; margin: 0 0 11px; }
+.app .blessing-character-copy > small { display: block; font-size: 12px; line-height: 1.8; color: #bfc8b2; }
+.app .blessing-altar { position: absolute; z-index: 0; height: 44px; bottom: 0; left: 12%; right: 12%; border: 1px solid #b5a06b42; background: linear-gradient(#514c324a, #161e1590); clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%); display: flex; justify-content: center; align-items: flex-end; color: #c4ab6a70; font: 12px/1.6 var(--sans); letter-spacing: .7em; }
+.app .blessing-scene-runes { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.app .blessing-scene-runes span { position: absolute; color: var(--blessing-aura); opacity: .2; font-size: 30px; top: 20%; left: 27%; text-shadow: 0 0 18px var(--blessing-aura); animation: blessing-rune-glow 5s ease-in-out infinite alternate; }
+.app .blessing-scene-runes span:nth-child(2) { top: 50%; left: auto; right: 18%; font-size: 53px; animation-delay: -2s; }
+.app .blessing-scene-runes span:nth-child(3) { left: auto; right: 27%; top: 15%; animation-delay: -4s; }
+.app .blessing-offers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; gap: 16px; margin: 0 0 24px; }
+.app .blessing-offer { display: flex; flex-direction: column; position: relative; min-width: 0; border: 1px solid #a48e5b68; border-radius: 6px; background: linear-gradient(150deg, #333a27ed, #1b281fed); padding: 18px 16px 15px; box-shadow: 0 5px 16px #070e0626; transition: border-color .18s, background .18s, opacity .3s, transform .18s, box-shadow .18s; animation: blessing-offer-arrive 520ms ease-out both; animation-delay: calc(var(--blessing-index, 0) * var(--blessing-stagger)); }
+.app .blessing-offer:is(:hover, :focus-within) { transform: translateY(-5px); border-color: var(--blessing-gold); box-shadow: 0 10px 25px #050c054a, 0 0 16px var(--blessing-haze); }
+.app .blessing-offer.is-selected { border-color: var(--blessing-gold); background: linear-gradient(150deg, #514d2eeb, #263323f5); box-shadow: 0 0 0 1px #d2b26a33, 0 0 25px var(--blessing-haze); }
+.app .blessing-offer-kicker { display: flex; justify-content: space-between; align-items: center; gap: 7px; flex-wrap: wrap; font: 10px/1.5 var(--sans); color: #b9b58c; letter-spacing: .06em; }
+.app .blessing-offer-kicker > b { font-size: 11px; font-weight: 400; color: #cde0b3; border: 1px solid #a6ba7a58; padding: 2px 6px; border-radius: 3px; letter-spacing: 0; }
+.app .has-price .blessing-offer-kicker > b { color: #edc6a3; border-color: #ca99675c; }
+.app .blessing-offer.is-selected .blessing-offer-kicker > b { color: #f0deb1; border-color: #d6bb7f80; }
+.app .blessing-offer > h2 { font: 600 18px/1.65 var(--sans); color: #f0e3ba; margin: 14px 0 9px; overflow-wrap: anywhere; }
+.app .blessing-offer-description { color: #d0d5be; font-size: 13px; line-height: 1.9; margin: 0 0 17px; }
+.app .blessing-offer-benefit { flex: 1; margin-bottom: 15px; }
+.app .blessing-offer-benefit > span, .app .blessing-offer-price > span { font-size: 11px; color: #bfc79e; letter-spacing: .08em; }
+.app .blessing-offer ul { padding-left: 17px; margin: 7px 0 0; font-size: 14px; line-height: 1.8; color: #e7ddb8; overflow-wrap: anywhere; }
+.app .blessing-offer li + li { margin-top: 5px; }
+.app .blessing-offer-price { border-top: 1px solid #b7a56338; padding: 12px 0 15px; min-height: 74px; }
+.app .blessing-offer-price ul { color: #f1c4a7; }
+.app .blessing-offer-price > p { font-size: 14px; color: #c6d8b2; margin: 7px 0 0; line-height: 1.8; }
+.app .blessing-offer > button { width: 100%; min-height: 47px; padding: 10px 11px; font-size: 13px; line-height: 1.6; white-space: normal; justify-content: space-between; }
+.app .blessing-offer > button .icon { flex-shrink: 0; }
+.app .blessing-offer > button:disabled { opacity: 1; background: #273027; border-color: #68735a66; color: #b5bfa8; }
+.app .blessing-disabled-reason { font-size: 12px; line-height: 1.7; color: #efc29d; margin: 0 0 11px; }
+.app .blessing-confirm-panel, .app .blessing-receipt { position: relative; border: 1px solid #b49b5b80; border-radius: 6px; background: linear-gradient(140deg, #2a3524ed, #142018f5); padding: 28px; margin: 28px 0; scroll-margin-top: 25px; }
+.app :is(.blessing-confirm-panel, .blessing-receipt) > header h2 { color: #edddb0; font: 600 24px/1.65 var(--sans); margin: 11px 0; scroll-margin-top: 25px; overflow-wrap: anywhere; }
+.app :is(.blessing-confirm-panel, .blessing-receipt) > header > p:last-child { font: 14px/1.9 var(--sans); color: #d0d8c2; margin: 0; }
+.app .blessing-confirm-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; border-bottom: 1px solid #b3a3653b; padding: 22px 0; margin-bottom: 22px; }
+.app .blessing-confirm-summary h3 { font-size: 13px; font-weight: 400; color: #bfc8a8; margin: 0 0 10px; }
+.app .blessing-confirm-summary p, .app .blessing-confirm-summary ul { font-size: 15px; line-height: 1.8; color: #e7dcb6; margin: 0; }
+.app .blessing-confirm-summary ul { padding-left: 20px; }
+.app .blessing-confirm-summary > div:last-child p, .app .blessing-confirm-summary > div:last-child ul { color: #e8c2a5; }
+.app .blessing-reward-previews { display: flex; justify-content: center; flex-wrap: wrap; align-items: stretch; gap: 24px; margin: 22px 0; }
+.app .blessing-reward-previews:empty { display: none; }
+.app .blessing-card-preview { position: relative; width: 100%; max-width: 300px; min-width: 0; display: flex; flex-direction: column; }
+.app .blessing-card-preview > .game-card.inspect-card { width: 100%; min-height: 285px; height: auto; }
+.app .blessing-reward-previews > .blessing-card-preview { flex: 1 1 220px; }
+.app .blessing-card-limited { border-radius: 5px; box-shadow: 0 0 0 2px #ead19a88, 0 0 25px #cfae5b35; }
+.app .blessing-limited-label { position: relative; z-index: 1; align-items: center; justify-content: center; display: flex; gap: 7px; padding: 7px 10px; background: #776233; color: #fff0c5; border: 1px solid #dbbf7e; font-size: 12px; }
+.app .blessing-relic-preview { display: flex; gap: 17px; align-items: center; width: min(100%, 560px); border: 1px solid #b5a15f60; border-radius: 6px; padding: 20px; background: #18231ce0; }
+.app .blessing-relic-preview > span { display: grid; place-items: center; width: 75px; height: 75px; flex-shrink: 0; border: 1px solid #c6a76275; border-radius: 50%; background: radial-gradient(circle, #c4a55924, transparent); color: #e3ca87; font-size: 35px; }
+.app .blessing-relic-preview small { font-size: 12px; color: #bfc8a4; }
+.app .blessing-relic-preview h3 { font-size: 19px; line-height: 1.6; color: #f0dcaa; margin: 4px 0 8px; }
+.app .blessing-relic-preview p { font-size: 14px; line-height: 1.9; color: #d0d7bc; margin: 0; overflow-wrap: anywhere; }
+.app .blessing-curse-detail { color: #e0c6af; border-top: 1px solid #a99d5c3d; margin: 18px 0; padding-top: 12px; font-size: 14px; }
+.app .blessing-curse-detail summary { cursor: pointer; min-height: 44px; line-height: 1.8; padding: 8px 0; }
+.app .blessing-curse-detail > .blessing-card-preview { margin: 10px auto 20px; }
+.app .blessing-targets { margin-top: 25px; }
+.app .blessing-target-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.app .blessing-target-heading h3, .app .blessing-selected-previews > h3, .app .blessing-receipt-cards > h3 { font: 600 17px/1.7 var(--sans); color: #e5d6a8; margin: 0 0 12px; }
+.app .blessing-target-heading > b { font: 400 14px/1.7 var(--sans); color: #d5d7b5; }
+.app .blessing-targets > p { font-size: 13px; line-height: 1.85; color: #c5ceb5; margin: 0 0 20px; }
+.app .blessing-target-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 205px), 1fr)); align-items: stretch; gap: 18px; }
+.app .blessing-target-card { display: flex; align-items: stretch; flex-direction: column; gap: 12px; min-width: 0; padding: 6px; border: 1px solid transparent; border-radius: 5px; }
+.app .blessing-target-card > .blessing-card-preview { max-width: none; flex: 1; }
+.app .blessing-target-card.is-selected { border-color: #ddc17e; background: #b89b4820; }
+.app .blessing-target-card > button { min-height: 46px; font-size: 13px; justify-content: center; white-space: normal; }
+.app .blessing-target-card > button:disabled { opacity: 1; color: #aeb99e; background: #243022; border-color: #68775366; }
+.app .blessing-selected-previews { padding-top: 25px; border-top: 1px solid #b4a46742; margin-top: 25px; }
+.app .blessing-selected-previews > div { display: flex; justify-content: center; align-items: flex-start; flex-wrap: wrap; gap: 25px; }
+.app .blessing-selected-previews .card-upgrade-comparison { width: min(100%, 360px); }
+.app .blessing-selected-previews > div > div { width: min(100%, 300px); }
+.app .blessing-selected-previews > div > .blessing-transform-preview { width: min(100%, 650px); }
+.app .blessing-transform-preview { display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0; }
+.app .blessing-transform-preview > div { width: min(100%, 280px); flex: 1; min-width: 0; }
+.app .blessing-transform-preview > div > span { display: block; color: #cdc7a4; font-size: 13px; text-align: center; margin-bottom: 10px; }
+.app .blessing-transform-arrow { color: #dbc382; font-size: 28px; }
+.app .blessing-removal-note { text-align: center; color: #e5c0a5; font-size: 14px; line-height: 1.8; }
+.app .blessing-confirm-actions, .app .blessing-receipt-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 18px; border-top: 1px solid #b6a36742; margin-top: 25px; padding-top: 21px; }
+.app .blessing-confirm-actions > p { margin: 0 auto 0 0; font-size: 14px; line-height: 1.8; color: #c6d1b5; }
+.app .blessing-confirm-actions button, .app .blessing-receipt-actions button { min-height: 49px; font-size: 14px; line-height: 1.65; white-space: normal; }
+.app .blessing-confirm-actions button:disabled { opacity: 1; background: #4b5238; color: #bbc2a4; box-shadow: none; border-color: #9b9e6755; }
+.app .blessing-resolved .blessing-offer:not(.is-selected) { opacity: .55; filter: saturate(.35); }
+.app .blessing-resolved .blessing-offer { animation: none; transform: none; }
+.app .blessing-resolved .blessing-offers { grid-template-columns: minmax(0, 1fr); width: min(100%, 400px); margin: 0 auto 26px; }
+.app .blessing-resolved .blessing-offer:not(.is-selected) { display: none; }
+.app .blessing-resolved .blessing-offer.is-selected { animation: blessing-selected-offer var(--blessing-duration) ease-out both; }
+.app .blessing-receipt { isolation: isolate; overflow: hidden; background: radial-gradient(ellipse at 50% 0, var(--blessing-haze), transparent 65%), linear-gradient(140deg, #303b27ed, #142018f5); }
+.app .blessing-receipt > header { text-align: center; }
+.app .blessing-receipt-kicker { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px 20px; }
+.app .blessing-receipt-kicker .blessing-intro-skip { margin: 0; }
+.app .blessing-receipt > :not(.blessing-type-effects, .blessing-acquisition-light) { position: relative; z-index: 1; }
+.app .blessing-selected-gift { width: min(100%, 520px); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; margin: 27px auto 23px; padding: 20px; border: 1px solid #d5bb7673; border-radius: 7px; background: radial-gradient(ellipse at 50% 30%, var(--blessing-haze), transparent 70%), #1c291bd9; }
+.app .blessing-gift-emblem { position: relative; display: grid; place-items: center; width: 87px; height: 87px; border: 1px solid #e5c779b0; outline: 1px solid #bc9c5150; outline-offset: 6px; border-radius: 50%; color: var(--blessing-gold); font: 36px/1 var(--serif); background: radial-gradient(circle at 42% 32%, #e7c77a24, #3c3b2333); box-shadow: 0 0 35px var(--blessing-haze); }
+.app .blessing-selected-gift > span:nth-child(2) { font-size: 13px; line-height: 1.7; color: #c6d0af; margin-top: 8px; }
+.app .blessing-selected-gift > p { font-size: 16px; line-height: 1.85; color: #f0ddb0; margin: 0; }
+.app .blessing-type-effects { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+.app .blessing-fx { position: absolute; left: 50%; top: 185px; width: 1px; height: 1px; }
+.app .blessing-fx-particle { position: absolute; display: block; opacity: 0; font: 25px/1 var(--sans); transform-origin: center; }
+.app .blessing-fx-gold .blessing-fx-particle { color: #ffe1a0; border: 1px solid #e8bd5f; border-radius: 50%; width: 23px; height: 23px; font-size: 19px; text-align: center; background: #a27c2d5e; }
+.app .blessing-fx-life .blessing-fx-particle { color: #bdedb5; font-size: 33px; font-weight: 700; text-shadow: 0 0 12px #a2dc7a88; }
+.app .blessing-fx-cards .blessing-fx-particle { width: 26px; height: 36px; font-size: 0; border: 1px solid #eed59b; background: linear-gradient(140deg, #4d5b3b, #a6934f55); border-radius: 3px; box-shadow: inset 0 0 0 4px #25351c66; }
+.app .blessing-fx-relic .blessing-fx-particle { color: #f4db9c; font-size: 36px; text-shadow: 0 0 13px #d7b355; }
+.app .blessing-fx-upgrade .blessing-fx-particle { color: #cbebaf; font-size: 29px; text-shadow: 0 0 10px #93c26e77; }
+.app .blessing-fx-transform .blessing-fx-particle { color: #ceb9ef; font-size: 31px; text-shadow: 0 0 10px #9e86c575; }
+.app .blessing-fx-remove .blessing-fx-particle { width: 10px; height: 13px; font-size: 0; background: #a9b299; clip-path: polygon(25% 0, 100% 20%, 70% 100%, 0 65%); }
+.app .blessing-fx-cost .blessing-fx-particle { color: #bda1ad; width: 25px; height: 33px; font-size: 17px; text-shadow: 0 0 20px #1b0818; }
+.app .is-revealing .blessing-fx-particle { will-change: transform, opacity; }
+.app .is-revealing .blessing-fx-gold .blessing-fx-particle { animation: blessing-gold-shower var(--blessing-duration) ease-out both; }
+.app .is-revealing .blessing-fx-life .blessing-fx-particle { animation: blessing-life-rise var(--blessing-duration) ease-out both; }
+.app .is-revealing .blessing-fx-cards .blessing-fx-particle { animation: blessing-card-flight var(--blessing-duration) cubic-bezier(.17,.7,.3,1) both; }
+.app .is-revealing .blessing-fx-relic .blessing-fx-particle { animation: blessing-relic-rays var(--blessing-duration) ease-out both; }
+.app .is-revealing .blessing-fx-upgrade .blessing-fx-particle { animation: blessing-upgrade-stream var(--blessing-duration) ease-out both; }
+.app .is-revealing .blessing-fx-transform .blessing-fx-particle { animation: blessing-transform-orbit var(--blessing-duration) ease-out both; }
+.app .is-revealing .blessing-fx-remove .blessing-fx-particle { animation: blessing-stone-release var(--blessing-duration) ease-out both; }
+.app .is-revealing .blessing-fx-cost .blessing-fx-particle { animation: blessing-price-shadow var(--blessing-duration) ease-out both; }
+.app .is-revealing .blessing-gift-emblem { animation: blessing-relic-pulse var(--blessing-duration) ease-out both; }
+.app .blessing-receipt-deltas { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0; }
+.app .blessing-receipt-deltas span { border: 1px solid #acb46a4d; border-radius: 4px; background: #131f16d9; padding: 9px 14px; font-size: 16px; line-height: 1.6; }
+.app .blessing-receipt-deltas .is-gain { color: #d5e6ac; }
+.app .blessing-receipt-deltas .is-loss { color: #f1bea3; border-color: #c59b6d54; }
+.app .blessing-receipt-cards { margin: 25px 0; }
+.app .blessing-receipt-cards > div { display: flex; align-items: stretch; justify-content: center; flex-wrap: wrap; gap: 25px; }
+.app .blessing-receipt-cards > div > .blessing-card-preview { flex: 1 1 230px; }
+.app .blessing-receipt-cards .blessing-transform-preview { width: min(100%, 650px); }
+.app .blessing-saved-note { text-align: right; font-size: 12px; line-height: 1.8; color: #bbc7ac; margin: 14px 0 0; }
+.app .blessing-acquisition-light { pointer-events: none; position: absolute; inset: -30% 5%; z-index: -1; opacity: 0; background: radial-gradient(ellipse at 50% 35%, var(--blessing-aura), transparent 65%); }
+.app .is-revealing .blessing-acquisition-light { animation: blessing-receive-glow var(--blessing-duration) ease-out both; }
+.app .is-revealing .blessing-receipt :is(.blessing-card-preview, .blessing-relic-preview, .blessing-receipt-deltas > span) { animation: blessing-receive-rise var(--blessing-duration) cubic-bezier(.18,.65,.22,1) both; }
+.app .blessing-fast { --blessing-duration: 470ms; --blessing-stagger: 45ms; }
+.app .blessing-fast .blessing-offer { animation-duration: 260ms; }
+.app .blessing-screen button:focus-visible, .app .blessing-screen summary:focus-visible { outline: 2px solid #f4d58b; outline-offset: 4px; }
+.app .blessing-screen h2:focus { outline: none; }
+.app .blessing-screen.motion-reduced *, .app.reduced-motion .blessing-screen *, .app.speed-instant .blessing-screen * { animation: none !important; transition: none !important; scroll-behavior: auto; }
+.app .blessing-screen.motion-reduced .blessing-offer:is(:hover, :focus-within), .app.reduced-motion .blessing-screen .blessing-offer:is(:hover, :focus-within) { transform: none; }
+@keyframes blessing-entrance-light { from { opacity: .35; filter: brightness(.6); } to { opacity: 1; filter: brightness(1); } }
+@keyframes blessing-offer-arrive { from { opacity: .18; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@keyframes blessing-selected-offer { from { opacity: .6; transform: translateY(12px) scale(.96); box-shadow: 0 0 45px var(--blessing-haze); } to { opacity: 1; transform: none; } }
+@keyframes blessing-rune-glow { from { opacity: .12; transform: translateY(2px); } to { opacity: .3; transform: translateY(-4px); } }
+@keyframes blessing-receive-glow { 0% { opacity: 0; transform: scale(.8); } 25% { opacity: .2; } 100% { opacity: 0; transform: scale(1.15); } }
+@keyframes blessing-receive-rise { from { opacity: .2; transform: translateY(16px) scale(.97); filter: brightness(1.4); } to { opacity: 1; transform: none; filter: brightness(1); } }
+@keyframes blessing-gold-shower { 0% { opacity: 0; transform: translate(0,-45px) scale(.5); } 25% { opacity: .8; } 100% { opacity: 0; transform: translate(var(--particle-x),130px) rotate(var(--particle-turn)) scale(.7); } }
+@keyframes blessing-life-rise { 0% { opacity: 0; transform: translate(var(--particle-x),75px) scale(.6); } 30% { opacity: .7; } 100% { opacity: 0; transform: translate(calc(var(--particle-x) * .7),-60px) scale(1.1); } }
+@keyframes blessing-card-flight { 0% { opacity: 0; transform: translate(0,-15px) rotate(-12deg) scale(.55); } 20% { opacity: .8; } 100% { opacity: 0; transform: translate(var(--particle-x),230px) rotate(calc(var(--particle-turn) * .08)) scale(.8); } }
+@keyframes blessing-relic-rays { 0% { opacity: 0; transform: rotate(var(--particle-turn)) translateY(5px) scale(.3); } 35% { opacity: .8; } 100% { opacity: 0; transform: rotate(var(--particle-turn)) translateY(-115px) scale(1.1); } }
+@keyframes blessing-upgrade-stream { 0% { opacity: 0; transform: translate(var(--particle-x),120px) scale(.6); } 35% { opacity: .8; } 100% { opacity: 0; transform: translate(calc(var(--particle-x) * .4),-65px) scale(1.1); } }
+@keyframes blessing-transform-orbit { 0% { opacity: 0; transform: rotate(var(--particle-turn)) translateX(15px) scale(.4); } 35% { opacity: .7; } 100% { opacity: 0; transform: rotate(calc(var(--particle-turn) + 150deg)) translateX(100px) scale(.8); } }
+@keyframes blessing-stone-release { 0% { opacity: 0; transform: translate(0,0) rotate(0); } 25% { opacity: .65; } 100% { opacity: 0; transform: translate(var(--particle-x),95px) rotate(var(--particle-turn)) scale(.2); } }
+@keyframes blessing-price-shadow { 0% { opacity: 0; transform: translate(var(--particle-x),65px) scale(.5); } 25% { opacity: .5; } 100% { opacity: 0; transform: translate(calc(var(--particle-x) * 1.3),-25px) scale(1.5); filter: blur(4px); } }
+@keyframes blessing-relic-pulse { 0% { scale: .85; filter: brightness(1.8); } 55% { scale: 1.04; } 100% { scale: 1; filter: brightness(1); } }
+@media (max-width: 1100px) {
+  .app .blessing-character-copy { width: 215px; left: 2%; }
+  .app .blessing-character-copy h2 { font-size: 26px; }
+  .app .blessing-character-copy blockquote { font-size: 13px; }
+  .app .blessing-character-frame { transform: translateX(45px); }
+  .app .blessing-offers { gap: 12px; }
+  .app .blessing-offer { padding: 16px 13px 13px; }
+  .app .blessing-offer > h2 { font-size: 17px; }
+}
+@media (max-width: 850px) {
+  .app .blessing-offers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+  .app .blessing-character-copy { width: 200px; top: 35%; }
+  .app .blessing-character-frame { width: min(100%, 490px); height: 350px; transform: translateX(60px); }
+  .app .blessing-character-copy > small { display: none; }
+}
+@media (max-width: 600px) {
+  .app .blessing-heading { padding-top: 4px; }
+  .app .blessing-heading .eyebrow { font-size: 10px; }
+  .app .blessing-heading h1 { font-size: 25px; letter-spacing: .04em; }
+  .app .blessing-heading > p:not(.eyebrow) { font-size: 13px; text-align: left; line-height: 1.85; }
+  .app .blessing-intro-skip { min-height: 44px; font-size: 12px; margin-top: 10px; }
+  .app .blessing-sanctuary { min-height: 0; margin-bottom: 20px; padding-bottom: 20px; }
+  .app .blessing-character-frame { width: 100%; max-width: 400px; height: 285px; margin: 0 auto; transform: none; }
+  .app .blessing-character-copy { position: relative; left: auto; top: auto; width: 100%; text-align: center; margin: 6px auto 0; padding: 0 13px; }
+  .app .blessing-character-copy > p { margin-bottom: 4px; font-size: 11px; }
+  .app .blessing-character-copy h2 { font-size: 25px; margin: 0 0 9px; }
+  .app .blessing-character-copy blockquote { font-size: 14px; line-height: 1.85; margin-bottom: 0; }
+  .app .blessing-character-copy > small { display: none; }
+  .app .blessing-altar { top: 254px; bottom: auto; height: 31px; left: 1%; right: 1%; }
+  .app .blessing-altar > span { font-size: 10px; }
+  .app .blessing-offers { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .app .blessing-offer { padding: 18px; }
+  .app .blessing-offer-kicker { font-size: 11px; }
+  .app .blessing-offer > h2 { font-size: 19px; }
+  .app .blessing-offer-description { font-size: 14px; margin-bottom: 14px; }
+  .app .blessing-offer-benefit { margin-bottom: 12px; }
+  .app .blessing-offer ul { font-size: 15px; }
+  .app .blessing-offer > button { font-size: 14px; min-height: 48px; }
+  .app .blessing-confirm-panel, .app .blessing-receipt { padding: 20px 14px; margin: 23px 0; }
+  .app :is(.blessing-confirm-panel, .blessing-receipt) > header h2 { font-size: 22px; }
+  .app :is(.blessing-confirm-panel, .blessing-receipt) > header > p:last-child { font-size: 14px; }
+  .app .blessing-confirm-summary { grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 18px 0; }
+  .app .blessing-confirm-summary > div:last-child { padding-top: 14px; border-top: 1px solid #c4b06f30; }
+  .app .blessing-relic-preview { padding: 17px 13px; gap: 12px; align-items: flex-start; }
+  .app .blessing-relic-preview > span { width: 55px; height: 55px; font-size: 28px; }
+  .app .blessing-relic-preview h3 { font-size: 17px; }
+  .app .blessing-relic-preview p { font-size: 14px; }
+  .app .blessing-target-grid { grid-template-columns: minmax(0, 1fr); }
+  .app .blessing-target-card { max-width: 330px; width: 100%; margin: 0 auto; }
+  .app .blessing-selected-previews > div { gap: 20px; }
+  .app .blessing-transform-preview { flex-direction: column; gap: 12px; }
+  .app .blessing-transform-preview > div { flex: none; width: 100%; max-width: 300px; }
+  .app .blessing-transform-arrow { transform: rotate(90deg); line-height: 1; }
+  .app .blessing-confirm-actions, .app .blessing-receipt-actions { flex-direction: column; align-items: stretch; gap: 14px; }
+  .app .blessing-confirm-actions > p { font-size: 13px; }
+  .app .blessing-confirm-actions button, .app .blessing-receipt-actions button { width: 100%; justify-content: center; }
+  .app .blessing-receipt-deltas { gap: 8px; }
+  .app .blessing-receipt-deltas span { font-size: 14px; padding: 8px 10px; }
+  .app .blessing-selected-gift { padding: 18px 12px; }
+  .app .blessing-selected-gift > p { font-size: 15px; }
+  .app .blessing-gift-emblem { width: 77px; height: 77px; font-size: 32px; }
+  .app .blessing-saved-note { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app .blessing-screen * { animation: none !important; transition: none !important; scroll-behavior: auto; }
+  .app .blessing-screen .blessing-offer:is(:hover, :focus-within) { transform: none; }
+}

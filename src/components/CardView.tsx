@@ -7,6 +7,7 @@ import { CLASS_DEFINITIONS } from '../data/classes';
 import { diffCardText, getCardPresentation, getCardUpgradePreview } from '../presentation/cardUpgrade';
 import { CardUpgradeToggle } from './CardUpgradeToggle';
 import { getCardRuntimeInfo } from '../presentation/cardRuntime';
+import { getCardAcquisitionCategory } from '../engine/cardAcquisition';
 import '../styles/card-upgrade.css';
 import '../styles/card-runtime.css';
 
@@ -103,6 +104,8 @@ export function CardView({
   const owner = definition.classId && definition.classId !== 'colorless'
     ? CLASS_DEFINITIONS[definition.classId].displayName
     : definition.classId === 'colorless' ? '無色・共通' : 'じっと教';
+  const blessingOnly = getCardAcquisitionCategory(definition) === 'blessingOnly';
+  const temporaryUpgrade = shownCard.upgraded && !!state?.temporaryUpgrades?.includes(card.uid);
   const inner = (
     <>
       <div className="card-heading">
@@ -124,7 +127,9 @@ export function CardView({
         </span>
       </div>
       <CardArt definition={definition} />
+      {blessingOnly && <span className="card-acquisition-badge" title="祝福からのみ取得できます。通常の戦闘報酬・ショップ・イベント・ランダム生成には出現しません。">✦ 祝福限定</span>}
       <div className="card-description">{renderDifference(text, comparison.description)}</div>
+      {temporaryUpgrade && <span className="card-temporary-upgrade" title="この戦闘中だけの強化です。戦闘終了時に元の強化状態へ戻ります。">◇ この戦闘中のみ強化</span>}
       {runtime && (
         <div className={`card-runtime${runtime.facts.some((fact) => fact.warning) ? ' has-risk' : ''}`} title={[runtime.explanation, ...runtime.facts.map((fact) => `${fact.summary}。${fact.detail}`)].join('\n')}>
           <span className="card-runtime-label">{canToggle && showAfter ? '強化した場合の現在の効果' : '現在の効果'}</span>
@@ -152,7 +157,7 @@ export function CardView({
             <span key={keyword} className={highlight && !comparison.keywords.includes(keyword) ? 'card-upgrade-keyword-changed' : undefined}>・{keyword}</span>
           ))}
         </span>
-        <span className="card-glyph">{shownCard.upgraded ? '強化済' : '◆'}</span>
+        <span className="card-glyph">{temporaryUpgrade ? '一時強化' : shownCard.upgraded ? '強化済' : '◆'}</span>
       </div>
       {canToggle && (
         <div className="card-upgrade-inline">
@@ -165,15 +170,16 @@ export function CardView({
   );
   if (inspect)
     return (
-      <article className={`game-card game-card--${definition.type} inspect-card${canToggle && showAfter ? ' is-upgrade-preview' : ''}`} data-card-id={definition.id} data-upgraded={String(shownCard.upgraded)}>{inner}</article>
+      <article className={`game-card game-card--${definition.type} inspect-card${canToggle && showAfter ? ' is-upgrade-preview' : ''}`} data-card-id={definition.id} data-upgraded={String(shownCard.upgraded)} data-acquisition={getCardAcquisitionCategory(definition)}>{inner}</article>
     );
   return (
     <button
       data-card-uid={card.uid}
+      data-acquisition={getCardAcquisitionCategory(definition)}
       className={`game-card game-card--${definition.type} ${playable ? 'is-playable' : 'is-unplayable'}`}
       onClick={() => onPlay?.(card.uid)}
       disabled={!playable}
-      aria-label={`${label}、コスト${cost}。${text}${runtime ? ` 現在の効果：${runtime.facts.map((fact) => `${fact.summary}。${fact.detail}`).join(' ')}` : ''}${!playable ? '、使用できません' : ''}`}
+      aria-label={`${label}、コスト${cost}。${blessingOnly ? '祝福限定。' : ''}${temporaryUpgrade ? 'この戦闘中だけ強化。' : ''}${text}${runtime ? ` 現在の効果：${runtime.facts.map((fact) => `${fact.summary}。${fact.detail}`).join(' ')}` : ''}${!playable ? '、使用できません' : ''}`}
     >
       {inner}
     </button>

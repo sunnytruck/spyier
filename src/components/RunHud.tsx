@@ -22,7 +22,8 @@ export function RunHud({
       : { hp: state.hp, maxHp: state.maxHp };
   return (
     <div className="run-hud" aria-label="探索状況">
-      <span className="hud-floor">
+      <span className="hud-floor" aria-label={`Act ${state.act ?? 1}・${state.floor}階 / 12階`}>
+        {state.act !== undefined && <small>Act {state.act}</small>}
         <b>{String(state.floor).padStart(2, '0')}</b>
         <small>/ 12F</small>
       </span>

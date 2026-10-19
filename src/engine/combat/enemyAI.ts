@@ -44,6 +44,13 @@ export function enemySurvivesTurnStart(enemy: EnemyState): boolean {
   return hpAfterPoison > 0 && (enemy.doom ?? 0) < hpAfterPoison;
 }
 
+/** The saved intent stays authoritative; a stun suppresses execution, not its pattern position. */
+export function getDisplayedEnemyIntent(enemy: EnemyState): EnemyIntent {
+  return (enemy.stun ?? 0) > 0
+    ? { kind: 'defend', label: 'スタン・行動休止', description: '次の行動を1回休む。毒・破滅は処理し、その後は次の行動予告へ進む。' }
+    : enemy.intent;
+}
+
 /** Earlier allies can grant strength or apply vulnerability before a later enemy attacks. */
 export function predictedEnemyAttackContext(state: CombatState, target: EnemyState): {
   attacker: EnemyState;
@@ -54,7 +61,7 @@ export function predictedEnemyAttackContext(state: CombatState, target: EnemySta
   let vulnerability = Math.max(0, state.player.vulnerable - 1);
   for (const enemy of getEnemies(state)) {
     if (enemy === target) break;
-    if (!enemySurvivesTurnStart(enemy)) continue;
+    if (!enemySurvivesTurnStart(enemy) || (enemy.stun ?? 0) > 0) continue;
     alliedStrength += enemy.intent.alliesStrength ?? 0;
     vulnerability += enemy.intent.vulnerable ?? 0;
   }

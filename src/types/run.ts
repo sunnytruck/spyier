@@ -1,4 +1,5 @@
 import type { CardInstance, ClassId, CombatAction, CombatState } from './game';
+import type { BlessingAction, BlessingEncounter, BlessingRecord } from './blessing';
 
 export type NodeType = 'battle' | 'elite' | 'event' | 'shop' | 'rest' | 'treasure' | 'boss';
 export interface MapNode {
@@ -13,6 +14,7 @@ export interface FloorMap {
   nodes: MapNode[];
 }
 export type RunScreen =
+  | 'blessing'
   | 'map'
   | 'combat'
   | 'reward'
@@ -69,6 +71,12 @@ export interface RunState {
   classId?: ClassId;
   /** Only new class runs opt in. Already saved rooms and legacy reward rolls remain intact. */
   rewardRules?: 'rarity-v1';
+  /** Absent on classic single-act saves. Only new blessed campaigns progress through acts. */
+  act?: number;
+  maxActs?: number;
+  actHistory?: { act: number; map: FloorMap; visited: string[]; hp: number; maxHp: number; gold: number }[];
+  blessing?: BlessingEncounter | null;
+  blessingHistory?: BlessingRecord[];
   rngState: number;
   screen: RunScreen;
   floor: number;
@@ -93,7 +101,8 @@ export interface RunState {
   stats: { battlesWon: number; elitesDefeated: number; cardsAdded: number };
   log: string[];
 }
-export type RunAction =
+export type RunAction = BlessingAction
+  | { type: 'ascendAct' }
   | { type: 'chooseNode'; nodeId: string }
   | { type: 'combat'; action: CombatAction }
   | { type: 'takeCard'; cardId: string | null }

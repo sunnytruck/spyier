@@ -11,6 +11,7 @@ import {
 } from '../../engine';
 import {
   canChooseEvent,
+  canAscendAct,
   createRun,
   getAvailableNodes,
   reduceRun,
@@ -18,6 +19,7 @@ import {
 } from '../../engine/run';
 import type { CombatAction, CombatState } from '../../types/game';
 import type { MapNode, RunAction, RunState } from '../../types/run';
+import { chooseBlessingAction } from './blessingDriver';
 
 function incoming(state: CombatState): number {
   return getEnemies(state)
@@ -143,6 +145,8 @@ export function createRunDriver(strategic = true): (state: RunState) => RunActio
     return values[(policyRng >>> 0) % values.length];
   };
   return (state: RunState): RunAction => {
+    if (state.screen === 'blessing') return chooseBlessingAction(state, reduceRun, (card) => cardValue(card.cardId));
+    if (canAscendAct(state)) return { type: 'ascendAct' };
     let action: RunAction;
     if (state.screen === 'map') {
       const nodes = getAvailableNodes(state);

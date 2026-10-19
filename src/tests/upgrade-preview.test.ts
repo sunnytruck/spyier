@@ -49,7 +49,8 @@ describe('upgrade previews read actual normal and upgraded card definitions', ()
       expect(presentation.keywords.includes('保留'))
         .toBe(!!(upgraded ? definition.upgradedRetain ?? definition.retain : definition.retain));
       expect(presentation.keywords.includes('防御')).toBe(definition.defense);
-      expect(presentation.keywords.includes('エセリアル')).toBe(!!definition.ethereal);
+      expect(presentation.keywords.includes('エセリアル'))
+        .toBe(!!(upgraded ? definition.upgradedEthereal ?? definition.ethereal : definition.ethereal));
       expect(presentation.keywords.includes('天賦'))
         .toBe(!!(upgraded ? definition.upgradedInnate ?? definition.innate : definition.innate));
     }

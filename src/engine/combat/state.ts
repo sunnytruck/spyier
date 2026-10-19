@@ -73,6 +73,12 @@ export function gainBlock(
   });
 }
 
+/** Intangible is intentionally limited to enemy attack hits, before block/guard. */
+export function capEnemyAttackDamage(state: CombatState, amount: number): number {
+  const raw = Math.max(0, Math.floor(amount));
+  return (state.intangible ?? 0) > 0 ? Math.min(1, raw) : raw;
+}
+
 /** Returns actual HP damage; poison uses bypassBlock. */
 export function dealDamage(
   state: CombatState,
@@ -80,11 +86,11 @@ export function dealDamage(
   amount: number,
   bypassBlock = false,
   enemy?: EnemyState,
-  options: { bypassSummon?: boolean } = {},
+  options: { bypassSummon?: boolean; enemyAttack?: boolean } = {},
 ): number {
   const actor = target === 'player' ? state.player : (enemy ?? findEnemy(state));
   if (!actor || actor.hp <= 0) return 0;
-  const raw = Math.max(0, Math.floor(amount));
+  const raw = target === 'player' && options.enemyAttack ? capEnemyAttackDamage(state, amount) : Math.max(0, Math.floor(amount));
   const targetId = target === 'player' ? 'player' : getEnemyKey(actor as EnemyState);
   emitCombatCue(state, { kind: 'attack', targetId, amount: raw });
   const blocked = bypassBlock ? 0 : Math.min(actor.block, raw);

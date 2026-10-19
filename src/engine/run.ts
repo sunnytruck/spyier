@@ -1,6 +1,7 @@
 import { CARD_DEFINITIONS, STARTER_DECK } from '../data/cards';
 import { CLASS_DEFINITIONS } from '../data/classes';
-import { ENEMY_DEFINITIONS, getEncounterGroupsForFloor } from '../data/enemies';
+import { ENEMY_DEFINITIONS, getActEnemyId, getEncounterGroupsForFloor } from '../data/enemies';
+import { ACT_IDS, getActDefinition } from '../data/acts';
 import { EVENT_DEFINITIONS, EVENT_IDS } from '../data/events';
 import { POTION_IDS } from '../data/potions';
 import { eligibleRelicIds, RELIC_DEFINITIONS } from '../data/relics';
@@ -12,6 +13,8 @@ import type { CardAcquisitionSource } from './cardPools';
 import { generateMap } from './map';
 import { nextRandom, seedToState, shuffle } from './random';
 import { newShopCardPrice, sampleCardRewards } from './rewards';
+import { createBlessingEncounter, reduceBlessing } from './blessings';
+import { getCardAcquisitionCategory } from './cardAcquisition';
 
 export const SHOP_PRICES = { card: 55, relic: 120, potion: 35, remove: 60 } as const;
 
@@ -95,7 +98,11 @@ function finishReward(state: RunState): void {
   if (state.reward?.completesRun) {
     state.screen = 'victory';
     state.reward = null;
-    log(state, '第一階層を突破！ 塔主を鎮め、じっと教の教えは次の階層へ。「ほいっと〜！」');
+    log(state, state.act === undefined
+      ? '第一階層を突破！ 塔主を鎮め、じっと教の教えは次の階層へ。「ほいっと〜！」'
+      : state.act < (state.maxActs ?? 1)
+        ? `Act ${state.act}を突破！ 塔主を鎮めた。次の階層では、新しい祝福が待っている。「ほいっと〜！」`
+        : 'すべてのActを突破！ じっと教の塔を登りきった。「ほいっと〜！」');
   } else returnToMap(state);
 }
 
@@ -139,6 +146,45 @@ export function createRun(seed = 'IWASON-SPIRE', classId?: ClassId): RunState {
   };
 }
 
+/** New player-facing campaigns begin at the temple. createRun remains the classic API. */
+export function createBlessedRun(seed = 'IWASON-SPIRE', classId: ClassId = 'berserker'): RunState {
+  const state = createRun(seed, classId);
+  state.act = 1;
+  state.maxActs = ACT_IDS.length;
+  state.actHistory = [];
+  state.blessingHistory = [];
+  state.screen = 'blessing';
+  state.blessing = createBlessingEncounter(state);
+  return state;
+}
+
+export function canAscendAct(state: RunState): boolean {
+  return state.screen === 'victory' && state.act !== undefined &&
+    state.act >= 1 && state.act < (state.maxActs ?? 1) &&
+    state.combat?.phase === 'victory' && state.floor === state.map.floors &&
+    state.map.nodes.find((node) => node.id === state.currentNodeId)?.type === 'boss';
+}
+
+function ascendAct(state: RunState): RunState {
+  if (!canAscendAct(state)) return state;
+  const next = structuredClone(state);
+  next.actHistory = [...(next.actHistory ?? []), {
+    act: next.act!, map: structuredClone(next.map), visited: [...next.visited],
+    hp: next.hp, maxHp: next.maxHp, gold: next.gold,
+  }];
+  next.act! += 1;
+  next.map = generateMap(`${next.seed}:act:${next.act}`);
+  next.floor = 0;
+  next.currentNodeId = null;
+  next.visited = [];
+  returnToMap(next);
+  next.screen = 'blessing';
+  next.blessing = null;
+  next.blessing = createBlessingEncounter(next);
+  log(next, `Act ${next.act}「${getActDefinition(next.act).name}」へ。新しい出会いが待っている。`);
+  return next;
+}
+
 /** Only connected rooms on the next floor can be entered, and only from the map. */
 export function getAvailableNodes(state: RunState): MapNode[] {
   if (state.screen !== 'map') return [];
@@ -176,7 +222,8 @@ export function canChooseEvent(state: RunState, index: number): boolean {
     )
   )
     return false;
-  if (choice.effects.some((effect) => effect.type === 'card' && effect.fixed && !CARD_DEFINITIONS[effect.cardId])) return false;
+  if (choice.effects.some((effect) => effect.type === 'card' && effect.fixed &&
+    (!CARD_DEFINITIONS[effect.cardId] || getCardAcquisitionCategory(CARD_DEFINITIONS[effect.cardId]) !== 'normal'))) return false;
   const removals = choice.effects.reduce((count, effect) => count + (effect.type === 'remove' ? effect.amount : 0), 0);
   if (removals > 0 && state.deck.length - removals < 5) return false;
   if (choice.effects.some((effect) => effect.type === 'potion') && !state.potions.includes(null)) return false;
@@ -234,7 +281,7 @@ function enterNode(state: RunState, node: MapNode): void {
   state.eventResult = null;
   state.eventCombat = null;
   if (node.type === 'battle' || node.type === 'elite' || node.type === 'boss') {
-    const enemyIds = [...pick(state, getEncounterGroupsForFloor(node.floor, node.type === 'battle' ? 'combat' : node.type))!];
+    const enemyIds = [...pick(state, getEncounterGroupsForFloor(node.floor, node.type === 'battle' ? 'combat' : node.type, state.act ?? 1))!];
     // Keep the encounter suffix inside the combat seed limit even for a 256-character run seed.
     const battleSeed = `${seedToState(state.seed).toString(36)}:${node.id}:${Math.floor(random(state) * 0x100000000)}`;
     state.combat = createCombat(battleSeed, enemyIds, {
@@ -288,6 +335,7 @@ function enterNode(state: RunState, node: MapNode): void {
 function finishCombat(state: RunState): void {
   const combat = state.combat!;
   state.hp = combat.player.hp;
+  state.maxHp = combat.player.maxHp;
   state.potions = [...(combat.potions ?? state.potions)];
   state.rngState = combat.rngState;
   if (combat.phase === 'player') return;
@@ -342,6 +390,9 @@ function combatAction(state: RunState, action: CombatAction): RunState {
 
 /** One immutable action boundary for exploration, combat, rewards, and purchases. */
 export function reduceRun(state: RunState, action: RunAction): RunState {
+  if (action.type === 'ascendAct') return ascendAct(state);
+  if (['chooseBlessing', 'selectBlessingTargets', 'confirmBlessing', 'continueBlessing'].includes(action.type))
+    return reduceBlessing(state, action as import('../types/blessing').BlessingAction);
   if (state.screen === 'victory' || state.screen === 'defeat') return state;
   if (action.type === 'combat') return combatAction(state, action.action);
   if (action.type === 'usePotion')
@@ -552,7 +603,7 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
         bonusGold: result.combatReward?.gold ?? 0,
         relicOnVictory: result.combatReward?.relic ?? false,
       };
-      next.combat = createCombat(battleSeed, result.combatEnemyIds, {
+      next.combat = createCombat(battleSeed, result.combatEnemyIds.map((id) => getActEnemyId(id, next.act ?? 1)), {
         deck: next.deck, hp: next.hp, maxHp: next.maxHp, relicIds: next.relicIds, potions: next.potions,
         ...(next.classId ? { classId: next.classId } : {}),
       });

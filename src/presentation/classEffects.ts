@@ -23,7 +23,7 @@ export function getClassEffectRoute(cue: CombatCue): ClassEffectRoute {
   const definition = cue.card ? CARD_DEFINITIONS[cue.card.cardId] : undefined;
   const effects = definition ? cue.card!.upgraded ? definition.upgradedEffects : definition.effects : [];
   const fromPlayer = sourceId === 'player';
-  const hpCost = cue.effect === 'loseHp';
+  const hpCost = cue.effect === 'loseHp' || cue.effect === 'loseMaxHp';
   let motif: BattleEffectMotif;
   if (hpCost) motif = 'sacrifice';
   else if (cue.kind === 'death') motif = 'death';
@@ -34,11 +34,11 @@ export function getClassEffectRoute(cue: CombatCue): ClassEffectRoute {
   else if (cue.status === 'strength') motif = 'strength';
   else if (cue.resource === 'forge') motif = 'forge';
   else if (cue.resource === 'ostyHp') motif = ['guard', 'sweep'].includes(cue.resourceAction ?? '') ? 'guard' : 'ghost';
-  else if (cue.effect === 'summonDamage' || sourceId === 'osty' || cue.card?.cardId === 'token_soul') motif = 'ghost';
+  else if (cue.effect === 'summonDamage' || sourceId === 'osty' || cue.card?.cardId === 'token_soul' || cue.status === 'intangible') motif = 'ghost';
   else if (cue.resource === 'stars' || (cue.kind !== 'impact' && effects.some((effect) => effect.type === 'starBurst'))) motif = 'stars';
   else if (cue.card?.cardId === 'token_sword') motif = 'sword';
   else if (cue.card?.cardId === 'token_knife' || cue.status === 'knifeDamage' || cue.status === 'knivesOnTurn') motif = 'knife';
-  else if (cue.status === 'weak' || cue.status === 'vulnerable') motif = 'debuff';
+  else if (cue.status === 'weak' || cue.status === 'vulnerable' || cue.status === 'stun') motif = 'debuff';
   else if (cue.kind === 'heal') motif = 'heal';
   else if (cue.kind === 'block') motif = 'shield';
   else if (cue.kind === 'status' || cue.kind === 'power' || cue.kind === 'resource') motif = 'power';

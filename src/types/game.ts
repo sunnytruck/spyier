@@ -60,7 +60,13 @@ export type Effect =
   | { type: 'discard'; amount: number }
   | { type: 'exhaustChoice'; amount: number }
   | { type: 'exhaustRandom'; amount: number }
-  | { type: 'moveChoice'; from: 'hand' | 'discardPile'; to: 'drawPile' | 'hand'; amount: number }
+  | { type: 'moveChoice'; from: 'hand' | 'discardPile' | 'drawPile'; to: 'drawPile' | 'hand'; amount: number }
+  | { type: 'moveRandom'; from: 'discardPile' | 'drawPile'; to: 'hand'; amount: number }
+  | { type: 'cardDamageBonus'; amount: number }
+  | { type: 'loseMaxHp'; amount: number }
+  | { type: 'upgradeAll' }
+  | { type: 'stun'; amount: number }
+  | { type: 'intangible'; amount: number }
   | { type: 'drawTo'; amount: number }
   | { type: 'redraw' }
   | { type: 'multiply'; resource: 'energy' | 'block'; amount: number }
@@ -103,6 +109,8 @@ export interface CardDefinition {
   classId?: ClassId | 'colorless';
   sourceCardId?: string;
   metadataProvisional?: boolean;
+  /** Acquisition policy is independent of class ownership and combat playability. */
+  acquisition?: 'normal' | 'blessingOnly' | 'generatedOnly';
   tokenOnly?: boolean;
   rewardEligible?: boolean;
   xCost?: boolean;
@@ -110,6 +118,7 @@ export interface CardDefinition {
   retain?: boolean;
   upgradedRetain?: boolean;
   ethereal?: boolean;
+  upgradedEthereal?: boolean;
   innate?: boolean;
   upgradedInnate?: boolean;
   /** Curses/status cards may be deliberate draw burdens rather than playable effects. */
@@ -172,6 +181,7 @@ export interface EnemyState extends Actor {
   doom?: number;
   /** Absent for legacy patterns; phase changes are announced for the next turn. */
   intentPhase?: number;
+  stun?: number;
 }
 
 /** Original IWASON keyword rules; absent on legacy battles and saves. */
@@ -189,7 +199,7 @@ export interface ClassResources {
 export interface PendingCardChoice {
   mode: 'discard' | 'exhaust' | 'topdeck' | 'retrieve';
   /** Missing means the hand, preserving existing suspended-card save data. */
-  sourceZone?: 'hand' | 'discardPile';
+  sourceZone?: 'hand' | 'discardPile' | 'drawPile';
   amount: number;
   resume: {
     effects: Effect[];
@@ -255,6 +265,9 @@ export interface CombatState {
   /** Added lazily by new effects; legacy combat states retain their exact serialized shape. */
   scheduledEffects?: { effects: Effect[]; sourceCard?: CardInstance }[];
   turnModifiers?: TurnModifier[];
+  cardDamageBonuses?: Record<string, number>;
+  temporaryUpgrades?: string[];
+  intangible?: number;
 }
 
 export interface CombatOptions {

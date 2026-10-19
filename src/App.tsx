@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CardInstance, ClassId, CombatAction, CombatState, GameSettings } from './types/game';
 import type { RunAction, RunState } from './types/run';
-import { createRun, reduceRun } from './engine/run';
+import { createBlessedRun, createRun, reduceRun } from './engine/run';
 import { loadRun, saveRun, clearRun, getRunSaveWarning } from './engine/runPersistence';
 import { RELIC_DEFINITIONS } from './data/relics';
 import { RunHud } from './components/RunHud';
@@ -116,7 +116,8 @@ export default function App() {
   function startRun(sameSeed?: string, classId?: ClassId) {
     cancelPresentation();
     actionLocked.current = false;
-    const next = createRun(sameSeed ?? (seed.trim() || freshSeed()), classId);
+    const runSeed = sameSeed ?? (seed.trim() || freshSeed());
+    const next = classId ? createBlessedRun(runSeed, classId) : createRun(runSeed);
     latest.current.run = next;
     setRun(next);
     setSessionId((current) => current + 1);
@@ -254,7 +255,7 @@ export default function App() {
           />
         ) : (
           <span className="prototype-label">
-            <span /> ACT 1 <b>じっと教の塔</b>
+            <span /> ACTS I–III <b>じっと教の塔</b>
           </span>
         )}
         <nav aria-label="メインメニュー">
@@ -287,7 +288,7 @@ export default function App() {
             <p className="title-description">
               岩の意志。手のひらの戦略。
               <br />
-              教祖・岩尊けいとと、12階の試練へ。
+              教祖・岩尊けいとと、三層の塔へ。
             </p>
             <div className="title-actions">
               <button className="primary-button title-start" onClick={() => setScreen('classes')}>
@@ -297,7 +298,7 @@ export default function App() {
               {run && (
                 <button className="secondary-button" onClick={() => setScreen('run')}>
                   <Icon name="repeat" size={17} />
-                  探索を再開 · {run.floor}F / 12F
+                  探索を再開 · {run.act ? `Act ${run.act} · ` : ''}{run.floor}F / 12F
                 </button>
               )}
               <button className="practice-start text-button" onClick={() => startGame()}>
@@ -347,7 +348,7 @@ export default function App() {
           </div>
           <div className="title-footer">
             <span>
-              <i /> ACT 1 — じっと教の塔
+              <i /> ACTS I–III — じっと教の塔
             </span>
             <span>デッキを育て、分岐を選び、塔のボスを打ち砕こう。</span>
             <button onClick={() => setModal('help')}>
@@ -362,6 +363,7 @@ export default function App() {
       ) : screen === 'run' && run && run.screen !== 'combat' && !resolving ? (
         <RunScreens
           state={run}
+          settings={motionSettings}
           onAction={dispatchRun}
           onNewRun={() => { if (run.classId) setSelectedClassId(run.classId); setSeed(''); setScreen('classes'); }}
           onReplay={() => startRun(run.seed, run.classId)}
@@ -373,6 +375,7 @@ export default function App() {
           state={shownCombat}
           campaign={screen === 'run'}
           floor={screen === 'run' ? run?.floor : undefined}
+          act={screen === 'run' ? run?.act : undefined}
           resolving={resolving}
           presentation={{ cue: presentation.activeCue, sequence: presentation.activeSequence,
             duration: presentation.activeDuration, settings: motionSettings, skip: presentation.skip, busy: resolving }}
@@ -514,7 +517,7 @@ export default function App() {
           <div className="status-guide">
             <h3>塔の歩きかた</h3>
             <p>
-              マップでは、線でつながった次の階のノードだけ選択できます。戦闘の報酬でカードを増やし、商人で購入・除去、休憩所でHP回復か1枚強化。12Fのボスを倒せば第1階層クリアです。画面上部からデッキ・レリックを確認でき、ポーションは戦闘中に使用できます。対象を選ぶポーションは、敵を先にクリックしてください。
+              新しい探索はAct 1の祝福から始まります。マップでは、線でつながった次の階のノードだけ選択できます。戦闘報酬でカードを増やし、商人で購入・除去、休憩所でHP回復か1枚強化。各Actの12Fのボスを倒し、報酬を受け取ると次のActへ進めます。Act 2・3でも新たな人物の祝福を選び、Act 3のボス撃破で塔の制覇です。以前のセーブは従来の第1階層で完結します。画面上部からデッキ・レリックを確認でき、ポーションは戦闘中に使用できます。対象を選ぶポーションは、敵を先にクリックしてください。
             </p>
             <h3 style={{ marginTop: 15 }}>状態異常の読みかた</h3>
             <p>
@@ -533,7 +536,7 @@ export default function App() {
       {modal === 'library' && (
         <Modal
           title="岩に刻まれた、教えの記録。"
-          subtitle="CARD LIBRARY · ACT 1"
+          subtitle="CARD LIBRARY · IWASON SPIRE"
           onClose={closeModal}
           wide
         >

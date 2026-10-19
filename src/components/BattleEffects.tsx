@@ -278,8 +278,8 @@ export function BattleEffects({ cue, sequence, settings, busy, duration }: Props
 
     if (['impact', 'heal', 'block', 'status', 'power', 'resource'].includes(cue.kind)) {
       const amount = cue.amount ?? 0;
-      const resourceLabels: Record<string, string> = { stars: '✦ 星', forge: '聖剣・鍛造', ostyHp: '岩霊', focus: '集中力', lightning: '⚡ ライトニング', frost: '❄ フロスト', jitto: 'じっと', energy: 'エナジー', nextTurnEnergy: '次ターン' };
-      const statusLabels: Record<string, string> = { poison: '毒', strength: '筋力', weak: '弱体', vulnerable: '脆弱', doom: '破滅' };
+      const resourceLabels: Record<string, string> = { stars: '✦ 星', forge: '聖剣・鍛造', ostyHp: '岩霊', focus: '集中力', lightning: '⚡ ライトニング', frost: '❄ フロスト', jitto: 'じっと', energy: 'エナジー', nextTurnEnergy: '次ターン', maxHp: '最大HP' };
+      const statusLabels: Record<string, string> = { poison: '毒', strength: '筋力', weak: '弱体', vulnerable: '脆弱', doom: '破滅', intangible: '霊体', stun: 'スタン' };
       let text = `${amount > 0 ? '+' : ''}${amount || ''}`;
       let detail = cue.label ?? 'パワー';
       let labelKind: string = motif;

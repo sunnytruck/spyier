@@ -142,6 +142,9 @@ describe('implemented card provenance and effect execution', () => {
         generated: combat.generatedCards ?? [],
         scheduled: combat.scheduledEffects ?? [],
         temporary: combat.turnModifiers ?? [],
+        intangible: combat.intangible ?? 0,
+        cardDamageBonuses: combat.cardDamageBonuses ?? {},
+        temporaryUpgrades: combat.temporaryUpgrades ?? [],
       });
       const onlyPayment = { ...before, energy: expectedEnergyAfterPayment };
       expect(actualEffect(after)).not.toEqual(actualEffect(onlyPayment));
