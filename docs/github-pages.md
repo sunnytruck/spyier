@@ -2,7 +2,9 @@
 
 ゲームのエンジン・カード・敵・セーブのキーとバージョンは変更しません。リポジトリの公開範囲をワークフローが自動変更することもありません。
 
-**確認結果：GitHub FreeのPrivateリポジトリではPagesを利用できませんが、Publicなら利用できます。** 所有者からPublicへの変更を明示的に許可済みです。ただし、この環境からのGitHub API操作がForbiddenで拒否され、公開範囲の実変更とPages有効化は実行できていません。以下の初回設定が必要です。Privateのままの間はテスト・ビルドだけを実行し、Pages公開をスキップします。
+**確認結果：GitHub FreeのPrivateリポジトリではPagesを利用できませんが、Publicなら利用できます。現在はGitHubの公開ページからPublicであることを確認済みです。** 所有者からPublicへの変更を明示的に許可済みです。この環境からのGitHub API操作はForbiddenで拒否されたため、こちらから公開範囲やPages設定を変更したわけではありません。
+
+初回の [Actions実行](https://github.com/sunnytruck/spyier/actions/runs/39184493722) では **Test and buildが成功**し、**Check Pages configurationがGet Pages siteのNot Foundで停止**しました。残る必須操作は、以下の手順2の **Source → GitHub Actions** と手順5の再実行です。ワークフローの保存・pushだけでは、Pagesサイトの初回有効化は行いません。
 
 ## Privateリポジトリで利用できるか
 
@@ -20,7 +22,7 @@ Privateリポジトリから作るPagesサイトも、通常はインターネ�
 
 あなたのブラウザでGitHubにログインして操作します。PCでコマンドを打つ必要はありません。
 
-1. https://github.com/sunnytruck/spyier/settings を開きます。**General → 最下部のDanger Zone → Change repository visibility → Change to public** を選び、GitHubの確認画面に従って確定します。名前の入力を求められた場合は `sunnytruck/spyier` を使います。すでにPublicならこの手順は不要です。
+1. Publicであることを確認します。**現在は確認済みなので、この操作は不要です。** 今後Privateへ戻した場合は https://github.com/sunnytruck/spyier/settings の **General → 最下部のDanger Zone → Change repository visibility → Change to public** から変更できます。
 2. https://github.com/sunnytruck/spyier/settings/pages を開き、**Build and deployment → Source → GitHub Actions** を選びます。「Deploy from a branch」は選びません。
 3. **Settings → Actions → General** でActionsが有効であり、GitHub公式の `actions/*` が許可されていることを確認します。組織のポリシーでPagesやOIDCが禁止されている場合は管理者の設定が必要です。
 4. **Settings → Environments → github-pages** に承認ルールがある場合、初回のActions画面で必要な承認を行います。継続的な自動公開を希望する場合は、所有者の判断で承認ルールを調整してください。

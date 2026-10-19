@@ -6,7 +6,7 @@
 
 GitHub Pagesの初回設定・デプロイが成功すると、`https://sunnytruck.github.io/spyier/` を開くだけで遊べます。プレイヤー側にNode.jsやコマンド入力は不要です。
 
-**GitHub Freeでも、リポジトリをPublicにすればGitHub Pagesを利用できます。** 所有者からPublicへの変更を許可済みですが、この開発環境からはGitHub APIの操作が拒否されるため、GitHub画面での初回設定が必要です。テスト・ビルドは `main` へのpush時に自動実行し、PublicかつPages設定が済んだ後は公開版も自動更新します。具体的な操作、Privateを維持する場合の代替案、セーブへの影響は [公開手順](docs/github-pages.md) を参照してください。
+**現在はPublicになっていることを確認済みで、GitHub FreeでもPagesを利用できます。** GitHub上のテスト・ビルドも成功しました。初回はGitHub画面の **Settings → Pages → Source → GitHub Actions** を設定し、ワークフローを再実行してください。この開発環境からのGitHub API操作は拒否されるため、この初回設定は所有者の操作が必要です。以後は `main` へのpushで公開版も自動更新します。詳しい操作、Privateを維持する場合の代替案、セーブへの影響は [公開手順](docs/github-pages.md) を参照してください。
 
 ## 起動
 
