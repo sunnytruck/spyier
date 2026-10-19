@@ -1,4 +1,4 @@
-import type { CardInstance, CombatAction, CombatState } from './game';
+import type { CardInstance, ClassId, CombatAction, CombatState } from './game';
 
 export type NodeType = 'battle' | 'elite' | 'event' | 'shop' | 'rest' | 'treasure' | 'boss';
 export interface MapNode {
@@ -28,6 +28,8 @@ export interface RunReward {
   gold: number;
   relicId: string | null;
   potionId: string | null;
+  /** New class runs select their final card before entering the first-act victory screen. */
+  completesRun?: true;
 }
 export interface ShopState {
   cardIds: string[];
@@ -39,6 +41,8 @@ export interface ShopState {
 export interface RunState {
   version: 2;
   seed: string;
+  /** Missing on pre-class saves, which retain the original deck and reward pool. */
+  classId?: ClassId;
   rngState: number;
   screen: RunScreen;
   floor: number;

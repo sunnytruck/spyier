@@ -7,6 +7,7 @@ import type { FloorMap, RunState } from '../types/run';
 import { normalizeCombatState } from './index';
 import { validateMap } from './map';
 import { isValidCombatState } from './persistence';
+import { getCardPool } from './cardPools';
 
 export const RUN_SAVE_KEY = 'iwason-spire:run:v2';
 let warning: string | null = null;
@@ -77,6 +78,12 @@ export function isValidRunState(value: unknown): value is RunState {
     return false;
 
   if (
+    value.classId !== undefined &&
+    !member(value.classId, ['berserker', 'assassin', 'oracle', 'necromancer', 'machinist'])
+  )
+    return false;
+
+  if (
     !Array.isArray(value.deck) ||
     value.deck.length < 1 ||
     value.deck.length > 1000 ||
@@ -129,9 +136,15 @@ export function isValidRunState(value: unknown): value is RunState {
       !unique(value.reward.cardIds, (id) => known(id, CARD_DEFINITIONS), 3) ||
       !int(value.reward.gold) ||
       (value.reward.relicId !== null && !known(value.reward.relicId, RELIC_DEFINITIONS)) ||
-      (value.reward.potionId !== null && !known(value.reward.potionId, POTION_DEFINITIONS))
+      (value.reward.potionId !== null && !known(value.reward.potionId, POTION_DEFINITIONS)) ||
+      (value.reward.completesRun !== undefined &&
+        (value.reward.completesRun !== true || current?.type !== 'boss' || !value.classId))
     )
       return false;
+    if (value.classId) {
+      const pool = getCardPool(value.classId as RunState['classId'], 'combat');
+      if (!value.reward.cardIds.every((id) => pool.includes(id))) return false;
+    }
   }
   if (value.shop !== null) {
     if (
@@ -143,6 +156,10 @@ export function isValidRunState(value: unknown): value is RunState {
       !unique(value.shop.purchased, (id) => text(id, 150), 6)
     )
       return false;
+    if (value.classId) {
+      const pool = getCardPool(value.classId as RunState['classId'], 'shop');
+      if (!value.shop.cardIds.every((id) => pool.includes(id))) return false;
+    }
     const allowedPurchases = [
       ...value.shop.cardIds.map((id) => `card:${id}`),
       'relic',
@@ -156,7 +173,8 @@ export function isValidRunState(value: unknown): value is RunState {
     if (
       !isValidCombatState(value.combat) ||
       value.combat.player.hp !== value.hp ||
-      value.combat.player.maxHp !== value.maxHp
+      value.combat.player.maxHp !== value.maxHp ||
+      value.combat.classId !== value.classId
     )
       return false;
     // Rewards may already have added a card or potion after the terminal snapshot.
@@ -209,7 +227,8 @@ export function isValidRunState(value: unknown): value is RunState {
     value.screen === 'relic' &&
     (!record(value.reward) ||
       value.reward.relicId === null ||
-      (current?.type !== 'treasure' && current?.type !== 'elite'))
+      (current?.type !== 'treasure' && current?.type !== 'elite' &&
+        !(current?.type === 'boss' && value.reward.completesRun === true)))
   )
     return false;
   if (value.screen === 'event' && (current?.type !== 'event' || value.eventId === null))

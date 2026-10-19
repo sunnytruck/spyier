@@ -1,13 +1,22 @@
+import type { EventCardPoolPolicy } from '../engine/cardPools';
+
 export type EventEffect =
   | { type: 'heal'; amount: number }
   | { type: 'gold'; amount: number }
-  | { type: 'card'; cardId: string }
+  | {
+      type: 'card';
+      /** Pre-class saves keep this original reward. */
+      cardId: string;
+      /** Class runs use this explicit pool instead of the legacy card. */
+      pool?: EventCardPoolPolicy;
+    }
   | { type: 'upgrade' }
   | { type: 'relic' };
 
 export interface EventChoice {
   label: string;
   description: string;
+  classDescription?: string;
   goldCost?: number;
   hpCost?: number;
   effects: EventEffect[];
@@ -68,7 +77,14 @@ export const EVENT_DEFINITIONS: Record<string, EventDefinition> = {
       {
         label: '毒苔を分けてもらう',
         description: '「毒苔の布教」をデッキに加える。',
-        effects: [{ type: 'card', cardId: 'poison_moss' }],
+        classDescription: '選択した職業か無色のカードをランダムに1枚、デッキに加える。',
+        effects: [
+          {
+            type: 'card',
+            cardId: 'poison_moss',
+            pool: { includeOwnClass: true, includeColorless: true },
+          },
+        ],
       },
       {
         label: '薬湯を注文する',
@@ -93,7 +109,14 @@ export const EVENT_DEFINITIONS: Record<string, EventDefinition> = {
       {
         label: '掛け声を覚える',
         description: '「朝活しよ」をデッキに加える。',
-        effects: [{ type: 'card', cardId: 'morning_chant' }],
+        classDescription: '選択した職業のカードをランダムに1枚、デッキに加える。',
+        effects: [
+          {
+            type: 'card',
+            cardId: 'morning_chant',
+            pool: { includeOwnClass: true, includeColorless: false },
+          },
+        ],
       },
       { label: '見守って帰る', description: '何も受け取らず先へ進む。', effects: [] },
     ],

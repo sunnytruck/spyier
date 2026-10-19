@@ -45,7 +45,8 @@ function enemy(value: unknown): boolean {
     !definition ||
     !integer(value.intentIndex, 0, definition.intents.length - 1) ||
     !record(value.intent) ||
-    (value.instanceId !== undefined && !text(value.instanceId, 100))
+    (value.instanceId !== undefined && !text(value.instanceId, 100)) ||
+    (value.doom !== undefined && !integer(value.doom))
   )
     return false;
   const intent = value.intent;
@@ -62,6 +63,66 @@ function enemy(value: unknown): boolean {
     (intent.hits === undefined || integer(intent.hits, 1, 20)) &&
     (intent.kind !== 'attack' || integer(intent.damage))
   );
+}
+
+const CLASS_IDS = ['berserker', 'assassin', 'oracle', 'necromancer', 'machinist'] as const;
+
+function classState(value: Record<string, unknown>): boolean {
+  if (value.classId !== undefined && !oneOf(value.classId, CLASS_IDS)) return false;
+  if (value.classId !== undefined && value.classResources === undefined) return false;
+  if (value.classResources !== undefined) {
+    const resources = value.classResources;
+    if (
+      !record(resources) ||
+      !['stars', 'starsGainedThisTurn', 'forge', 'ostyHp', 'nextTurnEnergy'].every((key) =>
+        integer(resources[key]),
+      ) ||
+      !integer(resources.focus, -1_000_000) ||
+      !integer(resources.temporaryFocus, -1_000_000) ||
+      !Array.isArray(resources.orbs) ||
+      resources.orbs.length > 3 ||
+      !resources.orbs.every((orb) => oneOf(orb, ['lightning', 'frost']))
+    )
+      return false;
+  }
+  return true;
+}
+
+/** A suspended effect queue must be a suffix of the card's real definition. */
+function pendingChoice(value: Record<string, unknown>, enemyKeys: string[]): boolean {
+  if (value.pendingChoice === undefined) return true;
+  const pending = value.pendingChoice;
+  if (
+    !record(pending) ||
+    value.phase !== 'player' ||
+    !oneOf(pending.mode, ['discard', 'exhaust']) ||
+    !Array.isArray(value.hand) ||
+    !integer(pending.amount, 1, value.hand.length) ||
+    !record(pending.resume) ||
+    !card(pending.resume.sourceCard) ||
+    typeof pending.resume.defense !== 'boolean' ||
+    !Array.isArray(pending.resume.effects) ||
+    (pending.resume.xEnergy !== undefined && !integer(pending.resume.xEnergy, 0, 999)) ||
+    (pending.resume.targetId !== undefined &&
+      (!text(pending.resume.targetId, 100) || !enemyKeys.includes(pending.resume.targetId)))
+  )
+    return false;
+  const source = pending.resume.sourceCard;
+  const definition = CARD_DEFINITIONS[source.cardId];
+  const effects = source.upgraded ? definition.upgradedEffects : definition.effects;
+  if (pending.resume.defense !== definition.defense) return false;
+  const amount = pending.amount;
+  const remaining = JSON.stringify(pending.resume.effects);
+  // The preceding opcode created this exact choice; arbitrary saved effect payloads are rejected.
+  return effects.some((effect, index) => {
+    const mode = effect.type === 'discard' ? 'discard' : effect.type === 'exhaustChoice' ? 'exhaust' : null;
+    return (
+      mode === pending.mode &&
+      'amount' in effect &&
+      amount === Math.min(effect.amount, (value.hand as unknown[]).length) &&
+      JSON.stringify(effects.slice(index + 1)) === remaining
+    );
+  });
 }
 
 /** Validate before exposing a local save to the reducer or UI. No partial state is restored. */
@@ -89,12 +150,13 @@ export function isValidCombatState(value: unknown): value is CombatState {
   )
     return false;
 
-  if (!enemy(value.enemy)) return false;
+  if (!enemy(value.enemy) || !classState(value)) return false;
   const enemies = value.enemies === undefined ? [value.enemy] : value.enemies;
   if (!Array.isArray(enemies) || enemies.length < 1 || enemies.length > 3 || !enemies.every(enemy))
     return false;
   const enemyKeys = enemies.map((entry) => String(entry.instanceId ?? entry.id));
   if (new Set(enemyKeys).size !== enemyKeys.length) return false;
+  if (!pendingChoice(value, enemyKeys)) return false;
   if (
     value.selectedEnemyId !== undefined &&
     (!text(value.selectedEnemyId, 100) || !enemyKeys.includes(value.selectedEnemyId))
@@ -128,6 +190,9 @@ export function isValidCombatState(value: unknown): value is CombatState {
             'poisonAura',
             'drawOnTurn',
             'blockOnAttack',
+            'knifeDamage',
+            'knivesOnTurn',
+            'focusOnTurn',
           ]) && integer(amount),
       ))
   )
@@ -149,9 +214,24 @@ export function isValidCombatState(value: unknown): value is CombatState {
     !value.deck.every(card)
   )
     return false;
-  const knownCards = new Map(value.deck.map((instance) => [instance.uid, instance]));
-  if (knownCards.size !== value.deck.length) return false;
+  const generated = value.generatedCards ?? [];
+  if (!Array.isArray(generated) || generated.length > 1000 || !generated.every(card)) return false;
+  if (generated.some((instance) => {
+    const match = /^generated-(\d+)$/.exec(instance.uid);
+    return !match || Number(match[1]) >= (value.nextId as number);
+  })) return false;
+  const inventory = [...value.deck, ...generated];
+  const knownCards = new Map(inventory.map((instance) => [instance.uid, instance]));
+  if (knownCards.size !== inventory.length) return false;
   const seen = new Set<string>();
+  if (record(value.pendingChoice) && record(value.pendingChoice.resume)) {
+    const source = value.pendingChoice.resume.sourceCard;
+    if (!card(source)) return false;
+    const original = knownCards.get(source.uid);
+    if (!original || original.cardId !== source.cardId || original.upgraded !== source.upgraded)
+      return false;
+    seen.add(source.uid);
+  }
   for (const key of zoneKeys) {
     const zone = value[key];
     if (!Array.isArray(zone) || zone.length > 1000 || !zone.every(card)) return false;

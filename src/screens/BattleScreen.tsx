@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Actor, CombatEvent, CombatState } from '../types/game';
+import type { Actor, CombatEvent, CombatState, EnemyState } from '../types/game';
 import { getEnemies, getEnemyKey, predictEnemyDamage } from '../engine';
 import { Icon } from '../components/Icon';
 import { CardView } from '../components/CardView';
 import { Modal } from '../components/Modal';
 import { RockDeity, StoneSentinel } from '../components/CharacterArt';
+import { CLASS_DEFINITIONS } from '../data/classes';
 
 type Pile = 'drawPile' | 'discardPile' | 'exhaustPile' | 'powers';
+const keepChoiceOpen = () => {};
 interface BattleProps {
   state: CombatState;
   resolving: boolean;
@@ -15,6 +17,7 @@ interface BattleProps {
   campaign?: boolean;
   floor?: number;
   onEndTurn: () => void;
+  onChooseCards?: (cardIds: string[]) => void;
   onOpenPile: (pile: Pile) => void;
   onRestart: () => void;
   onReplay: () => void;
@@ -57,6 +60,13 @@ function StatusChips({ actor, stillness = 0 }: { actor: Actor; stillness?: numbe
       label: '静寂',
       detail: `自分のターン開始時に${stillness}ブロックを得る。`,
       color: 'stillness',
+    },
+    {
+      value: (actor as EnemyState).doom ?? 0,
+      symbol: '終',
+      label: '破滅',
+      detail: '敵のターン開始時、破滅が現在HP以上なら撃破します。ブロックの影響を受けません。',
+      color: 'poison',
     },
   ].filter((status) => status.value > 0);
   return (
@@ -120,6 +130,7 @@ export function BattleScreen({
   resolving,
   onPlay,
   onEndTurn,
+  onChooseCards,
   onOpenPile,
   onRestart,
   onReplay,
@@ -130,6 +141,7 @@ export function BattleScreen({
 }: BattleProps) {
   const [floats, setFloats] = useState<CombatEvent[]>([]);
   const [logOpen, setLogOpen] = useState(false);
+  const [chosenCards, setChosenCards] = useState<string[]>([]);
   const lastEventId = useRef(Math.max(0, ...state.events.map((event) => event.id)));
   const divine = state.jitto === 100;
   const lastLog = state.log[state.log.length - 1];
@@ -151,6 +163,8 @@ export function BattleScreen({
         : enemy.intent.kind === 'buff'
           ? 'sun'
           : 'flame';
+
+  useEffect(() => setChosenCards([]), [state.pendingChoice]);
 
   useEffect(() => {
     const newEvents = state.events.filter((event) => event.id > lastEventId.current);
@@ -223,6 +237,16 @@ export function BattleScreen({
           </span>
         </div>
       </section>
+
+      {state.classId && state.classResources && <section className="class-combat-resources" aria-label="職業固有リソース">
+        <span className="class-resource-name">{CLASS_DEFINITIONS[state.classId].glyph} {CLASS_DEFINITIONS[state.classId].displayName}</span>
+        {state.classId === 'berserker' && <span title="筋力は攻撃1ヒットごとのダメージに加算されます。">筋力 <b>{state.player.strength}</b> <small>HPの消費も力に変える</small></span>}
+        {state.classId === 'assassin' && <span title="ナイフは生成カードです。使用すると廃棄され、戦闘終了後はデッキに残りません。">ナイフ強化 <b>+{state.powerStacks?.knifeDamage ?? 0}</b> <small>毒・ドロー・連撃</small></span>}
+        {state.classId === 'oracle' && <><span title="星はカード効果で獲得する、この職業のリソースです。">✦ 星 <b>{state.classResources.stars}</b></span><span>今ターンの✦ <b>{state.classResources.starsGainedThisTurn}</b></span><span title="鍛造は聖剣のダメージを強化します。">鍛造 <b>{state.classResources.forge}</b></span></>}
+        {state.classId === 'necromancer' && <span title="召喚カードでオスティのHPを増やします。HPが0の間は、オスティによる攻撃は発動しません。">岩霊オスティ HP <b>{state.classResources.ostyHp}</b> <small>召喚・破滅・ソウル</small></span>}
+        {state.classId === 'machinist' && <><span title="集中力はライトニングとフロストの効果量を増減します。一時集中力はターン終了時に失われます。">集中力 <b>{state.classResources.focus}</b></span><span className="orb-resource-list" title="オーブは最大3個。上限を超えると右端を解放します。">オーブ {state.classResources.orbs.length ? state.classResources.orbs.map((orb, index) => <b className={`orb-resource orb-${orb}`} key={index}>{orb === 'lightning' ? '⚡' : '❄'}</b>) : <small>なし</small>}</span></>}
+        {state.classResources.nextTurnEnergy > 0 && <span>次ターン ⚡+{state.classResources.nextTurnEnergy}</span>}
+      </section>}
 
       <section className="battle-arena" aria-label="戦闘フィールド">
         <div className="arena-scenery" aria-hidden="true">
@@ -511,7 +535,7 @@ export function BattleScreen({
           <button
             className="end-turn-button"
             onClick={onEndTurn}
-            disabled={resolving || state.phase !== 'player'}
+            disabled={resolving || state.phase !== 'player' || !!state.pendingChoice}
           >
             {resolving ? '敵が行動中…' : 'ターン終了'}
             <span>
@@ -614,6 +638,20 @@ export function BattleScreen({
         {lastLog?.text} エナジー{state.energy}。自分のHP{state.player.hp}。生存している敵
         {enemies.filter((actor) => actor.hp > 0).length}体 。じっとゲージ{state.jitto}。
       </div>
+
+      {state.pendingChoice && <Modal title={`手札から${state.pendingChoice.amount}枚${state.pendingChoice.mode === 'discard' ? '捨てる' : '廃棄する'}`} subtitle="CHOOSE YOUR CARDS" onClose={keepChoiceOpen} dismissible={false} wide>
+        <p className="modal-intro">カードを選び、確定すると効果の続きを解決します。{state.pendingChoice.mode === 'exhaust' ? '廃棄したカードは、この戦闘では山札に戻りません。' : '捨てたカードは捨て札に移ります。'}</p>
+        <div className="pending-choice-grid">
+          {state.hand.map((card) => {
+            const selected = chosenCards.includes(card.uid);
+            return <div className={`pending-card-choice ${selected ? 'is-selected' : ''}`} key={card.uid}>
+              <CardView card={card} inspect />
+              <button className="secondary-button" aria-pressed={selected} disabled={!selected && chosenCards.length >= state.pendingChoice!.amount} onClick={() => setChosenCards((current) => selected ? current.filter((id) => id !== card.uid) : [...current, card.uid])}>{selected ? '✓ 選択中・解除する' : 'このカードを選ぶ'}</button>
+            </div>;
+          })}
+        </div>
+        <div className="pending-choice-confirm"><span>選択 {chosenCards.length} / {state.pendingChoice.amount}枚</span><button className="primary-button" disabled={chosenCards.length !== state.pendingChoice.amount} onClick={() => onChooseCards?.(chosenCards)}>選択を確定して続ける <Icon name="arrow" size={16} /></button></div>
+      </Modal>}
 
       {!campaign && state.phase !== 'player' && (
         <Modal

@@ -5,6 +5,7 @@ import { CARD_DEFINITIONS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { POTION_DEFINITIONS } from '../data/potions';
 import { EVENT_DEFINITIONS } from '../data/events';
+import { CLASS_DEFINITIONS } from '../data/classes';
 import { canChooseEvent, getAvailableNodes, SHOP_PRICES } from '../engine/run';
 import { CardView } from '../components/CardView';
 import { Icon } from '../components/Icon';
@@ -135,7 +136,7 @@ function RunStatus({ state, onDeck }: { state: RunState; onDeck: () => void }) {
       <div className="run-status-hero">
         <span className="run-status-seal">岩</span>
         <div>
-          <small>じっと教 教祖</small>
+          <small>{state.classId ? CLASS_DEFINITIONS[state.classId].displayName : 'じっと教 教祖'}</small>
           <b>岩尊けいと</b>
         </div>
       </div>
@@ -578,7 +579,7 @@ function EventScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAct
                   <span className="run-choice-number">{String(index + 1).padStart(2, '0')}</span>
                   <span>
                     <b>{choice.label}</b>
-                    <small>{choice.description}</small>
+                    <small>{state.classId ? (choice.classDescription ?? choice.description) : choice.description}</small>
                     {!allowed && <em>必要なHPまたはゴールドが足りません</em>}
                   </span>
                   <Icon name="arrow" size={17} />

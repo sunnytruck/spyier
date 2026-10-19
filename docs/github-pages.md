@@ -4,7 +4,7 @@
 
 **確認結果：GitHub FreeのPrivateリポジトリではPagesを利用できませんが、Publicなら利用できます。現在はGitHubの公開ページからPublicであることを確認済みです。** 所有者からPublicへの変更を明示的に許可済みです。この環境からのGitHub API操作はForbiddenで拒否されたため、こちらから公開範囲やPages設定を変更したわけではありません。
 
-初回の [Actions実行](https://github.com/sunnytruck/spyier/actions/runs/39184493722) では **Test and buildが成功**し、**Check Pages configurationがGet Pages siteのNot Foundで停止**しました。残る必須操作は、以下の手順2の **Source → GitHub Actions** と手順5の再実行です。ワークフローの保存・pushだけでは、Pagesサイトの初回有効化は行いません。
+その後、所有者による設定後の [Actions実行](https://github.com/sunnytruck/spyier/actions/runs/39185160437) で **Test and build・Deploy to GitHub Pagesの両方が成功**し、公開先 `https://sunnytruck.github.io/spyier/` が表示されることを確認しました。初回有効化は完了しています。以下の初回手順は、設定をやり直す場合の記録です。この環境から公開ドメインへの直接アクセスは接続プロキシに403で拒否されるため、公開ページそのものの操作確認と、Actionsの公開成功確認は区別します。
 
 ## Privateリポジトリで利用できるか
 
@@ -18,7 +18,7 @@ GitHubの公式案内では、PrivateリポジトリのPagesはGitHub Pro、Team
 
 Privateリポジトリから作るPagesサイトも、通常はインターネット上に公開されます。サイトのアクセス制限には別のEnterprise向け要件があります。リポジトリのPrivate設定とは区別してください。
 
-## 初回だけ行うGitHub側の設定
+## 初回設定の記録（現在は設定済み）
 
 あなたのブラウザでGitHubにログインして操作します。PCでコマンドを打つ必要はありません。
 

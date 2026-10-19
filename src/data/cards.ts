@@ -1,7 +1,8 @@
 import type { CardDefinition } from '../types/game';
+import { CLASS_CARD_DEFINITIONS } from './classCards';
 
 /** Stable content IDs are part of the save format; new cards can be added here. */
-export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
+const LEGACY_CARD_DEFINITIONS: Record<string, CardDefinition> = {
   stone_strike: {
     id: 'stone_strike',
     name: 'ほいっと拳',
@@ -521,6 +522,10 @@ export const CARD_DEFINITIONS: Record<string, CardDefinition> = {
     upgradedEffects: [{ type: 'power', power: 'blockOnAttack', amount: 3 }],
   },
 };
+
+/** Freeze legacy acquisition pools so old saves preserve their original card universe. */
+export const LEGACY_CARD_IDS = Object.keys(LEGACY_CARD_DEFINITIONS);
+export const CARD_DEFINITIONS: Record<string, CardDefinition> = { ...LEGACY_CARD_DEFINITIONS, ...CLASS_CARD_DEFINITIONS };
 
 /** Preserve the ten-card Phase 1 starter when the content registry grows. */
 export const STARTER_DECK: string[] = [

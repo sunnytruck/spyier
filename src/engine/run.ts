@@ -1,11 +1,14 @@
 import { CARD_DEFINITIONS, STARTER_DECK } from '../data/cards';
+import { CLASS_DEFINITIONS } from '../data/classes';
 import { BOSS_ENEMY_ID, ELITE_ENEMY_IDS, ENCOUNTER_GROUPS } from '../data/enemies';
 import { EVENT_DEFINITIONS, EVENT_IDS } from '../data/events';
 import { POTION_IDS } from '../data/potions';
 import { RELIC_IDS } from '../data/relics';
-import type { CombatAction } from '../types/game';
+import type { ClassId, CombatAction } from '../types/game';
 import type { MapNode, RunAction, RunReward, RunState } from '../types/run';
 import { createCombat, reduceCombat } from './index';
+import { getCardPool } from './cardPools';
+import type { CardAcquisitionSource } from './cardPools';
 import { generateMap } from './map';
 import { nextRandom, seedToState, shuffle } from './random';
 
@@ -27,10 +30,20 @@ function pick<T>(state: RunState, values: readonly T[]): T | undefined {
   return values[Math.floor(random(state) * values.length)];
 }
 
-function cardChoices(state: RunState): string[] {
-  const result = shuffle(Object.keys(CARD_DEFINITIONS), state.rngState);
+function cardChoices(state: RunState, source: CardAcquisitionSource): string[] {
+  // Preserve the existing seeded, uniform draw without replacement; rarity was display metadata.
+  const result = shuffle(getCardPool(state.classId, source), state.rngState);
   state.rngState = result.rngState;
-  return result.values.slice(0, 3);
+  const choices = result.values.slice(0, 3);
+  // Offer both permitted groups in a new-class shop, rather than occasionally hiding one.
+  if (state.classId && source === 'shop' && choices.length >= 2) {
+    for (const owner of [state.classId, 'colorless']) {
+      if (choices.some((id) => CARD_DEFINITIONS[id].classId === owner)) continue;
+      const replacement = result.values.find((id) => CARD_DEFINITIONS[id].classId === owner);
+      if (replacement) choices[owner === 'colorless' ? choices.length - 1 : 0] = replacement;
+    }
+  }
+  return choices;
 }
 
 function availableRelic(state: RunState): string | null {
@@ -56,33 +69,46 @@ function returnToMap(state: RunState): void {
   state.eventId = null;
 }
 
+function finishReward(state: RunState): void {
+  if (state.reward?.completesRun) {
+    state.screen = 'victory';
+    state.reward = null;
+    log(state, '第一階層を突破！ 塔主を鎮め、じっと教の教えは次の階層へ。「ほいっと〜！」');
+  } else returnToMap(state);
+}
+
 /** The exploration state owns persistent resources; combat owns temporary statuses. */
-export function createRun(seed = 'IWASON-SPIRE'): RunState {
+export function createRun(seed = 'IWASON-SPIRE', classId?: ClassId): RunState {
   const normalizedSeed = seed.slice(0, 256).trim() || 'IWASON-SPIRE';
+  const profession =
+    classId && Object.hasOwn(CLASS_DEFINITIONS, classId) ? CLASS_DEFINITIONS[classId] : undefined;
+  const starterDeck = profession?.starterDeck ?? STARTER_DECK;
+  const maxHp = profession?.maxHp ?? 80;
   return {
     version: 2,
     seed: normalizedSeed,
+    ...(profession ? { classId: profession.id } : {}),
     rngState: seedToState(`${normalizedSeed}:run`),
     screen: 'map',
     floor: 0,
     currentNodeId: null,
     map: generateMap(normalizedSeed),
     visited: [],
-    hp: 80,
-    maxHp: 80,
+    hp: maxHp,
+    maxHp,
     gold: 90,
-    deck: STARTER_DECK.map((cardId, index) => ({
+    deck: starterDeck.map((cardId, index) => ({
       uid: `card-${index + 1}`,
       cardId,
       upgraded: false,
     })),
-    relicIds: ['warm_pebble'],
+    relicIds: [profession?.starterRelicId ?? 'warm_pebble'],
     potions: ['spring_water', null, null],
     combat: null,
     reward: null,
     shop: null,
     eventId: null,
-    nextCardId: STARTER_DECK.length + 1,
+    nextCardId: starterDeck.length + 1,
     stats: { battlesWon: 0, elitesDefeated: 0, cardsAdded: 0 },
     log: ['岩尊けいと、第一階層へ。「ほいっと〜」。予告と手札を見て、進む道を選ぼう。'],
   };
@@ -113,6 +139,14 @@ export function canChooseEvent(state: RunState, index: number): boolean {
   if (
     choice.effects.some((effect) => effect.type === 'relic') &&
     RELIC_IDS.every((id) => state.relicIds.includes(id))
+  )
+    return false;
+  if (
+    state.classId &&
+    choice.effects.some(
+      (effect) =>
+        effect.type === 'card' && getCardPool(state.classId, 'event', effect.pool).length === 0,
+    )
   )
     return false;
   return true;
@@ -146,6 +180,7 @@ function enterNode(state: RunState, node: MapNode): void {
       maxHp: state.maxHp,
       relicIds: state.relicIds,
       potions: state.potions,
+      ...(state.classId ? { classId: state.classId } : {}),
     });
     state.screen = 'combat';
     log(
@@ -167,7 +202,7 @@ function enterNode(state: RunState, node: MapNode): void {
   }
   if (node.type === 'shop') {
     state.shop = {
-      cardIds: cardChoices(state),
+      cardIds: cardChoices(state, 'shop'),
       relicId: availableRelic(state),
       potionId: pick(state, POTION_IDS) ?? null,
       purchased: [],
@@ -198,21 +233,24 @@ function finishCombat(state: RunState): void {
   const node = state.map.nodes.find((candidate) => candidate.id === state.currentNodeId)!;
   state.stats.battlesWon += 1;
   if (node.type === 'elite') state.stats.elitesDefeated += 1;
-  if (node.type === 'boss') {
+  if (node.type === 'boss' && !state.classId) {
     state.screen = 'victory';
     log(state, '第一階層を突破！ 塔主を鎮め、じっと教の教えは次の階層へ。「ほいっと〜！」');
     return;
   }
   const gold =
-    node.type === 'elite'
-      ? 40 + Math.floor(random(state) * 16)
-      : 18 + Math.floor(random(state) * 13);
+    node.type === 'boss'
+      ? 75
+      : node.type === 'elite'
+        ? 40 + Math.floor(random(state) * 16)
+        : 18 + Math.floor(random(state) * 13);
   state.gold += gold;
   const reward: RunReward = {
     gold,
-    cardIds: cardChoices(state),
+    cardIds: cardChoices(state, 'combat'),
     relicId: node.type === 'elite' ? availableRelic(state) : null,
     potionId: null,
+    ...(node.type === 'boss' ? { completesRun: true as const } : {}),
   };
   // A bottle is credited at the same atomic transition as gold, never when clicking a reward.
   const potionRoll = random(state);
@@ -259,7 +297,7 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
     const next = structuredClone(state);
     if (action.cardId !== null) addCard(next, action.cardId);
     if (next.reward!.relicId) next.screen = 'relic';
-    else returnToMap(next);
+    else finishReward(next);
     return next;
   }
   if (action.type === 'takeRelic') {
@@ -273,7 +311,7 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
     const relicId = next.reward!.relicId!;
     next.relicIds.push(relicId);
     log(next, `新たなレリックを獲得。石に刻まれた力が味方する。`);
-    returnToMap(next);
+    finishReward(next);
     return next;
   }
   if (action.type === 'buyCard') {
@@ -375,8 +413,12 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
     for (const effect of choice.effects) {
       if (effect.type === 'heal') next.hp = Math.min(next.maxHp, next.hp + effect.amount);
       else if (effect.type === 'gold') next.gold += effect.amount;
-      else if (effect.type === 'card') addCard(next, effect.cardId);
-      else if (effect.type === 'upgrade') {
+      else if (effect.type === 'card') {
+        const cardId = next.classId
+          ? pick(next, getCardPool(next.classId, 'event', effect.pool))
+          : effect.cardId;
+        if (cardId) addCard(next, cardId);
+      } else if (effect.type === 'upgrade') {
         const card = pick(
           next,
           next.deck.filter((candidate) => !candidate.upgraded),
@@ -387,7 +429,10 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
         if (relicId) next.relicIds.push(relicId);
       }
     }
-    log(next, `${event.title}：${choice.label}。${choice.description}`);
+    const description = next.classId
+      ? (choice.classDescription ?? choice.description)
+      : choice.description;
+    log(next, `${event.title}：${choice.label}。${description}`);
     returnToMap(next);
     return next;
   }

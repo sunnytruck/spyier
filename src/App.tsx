@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CardInstance, CombatAction, CombatState, GameSettings } from './types/game';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import type { CardInstance, ClassId, CombatAction, CombatState, GameSettings } from './types/game';
 import type { RunAction, RunState } from './types/run';
 import { createRun, reduceRun } from './engine/run';
 import { loadRun, saveRun, clearRun, getRunSaveWarning } from './engine/runPersistence';
@@ -15,7 +15,8 @@ import {
   saveGame,
   saveSettings,
 } from './engine/persistence';
-import { CARD_DEFINITIONS } from './data/cards';
+import { CLASS_IDS } from './data/classes';
+import { ClassSelectionScreen } from './screens/ClassSelectionScreen';
 import { Icon } from './components/Icon';
 import { CardView } from './components/CardView';
 import { Modal } from './components/Modal';
@@ -23,6 +24,9 @@ import { RockDeity } from './components/CharacterArt';
 import { BattleScreen } from './screens/BattleScreen';
 import './styles/game.css';
 import './styles/campaign.css';
+import './styles/class-system.css';
+
+const CardLibrary = lazy(() => import('./components/CardLibrary').then((module) => ({ default: module.CardLibrary })));
 
 type ModalName =
   | 'help'
@@ -45,13 +49,14 @@ function freshSeed() {
 export default function App() {
   const [practice, setPractice] = useState<CombatState | null>(() => loadGame());
   const [run, setRun] = useState<RunState | null>(() => loadRun());
-  const [screen, setScreen] = useState<'title' | 'battle' | 'run'>(() => (run ? 'run' : 'title'));
+  const [screen, setScreen] = useState<'title' | 'classes' | 'battle' | 'run'>(() => (run ? 'run' : 'title'));
   const combat = screen === 'run' ? (run?.combat ?? null) : practice;
   const [settings, setSettings] = useState<GameSettings>(() => loadSettings());
   const [modal, setModal] = useState<ModalName>(null);
   const [resolving, setResolving] = useState(false);
   const [sessionId, setSessionId] = useState(0);
   const [seed, setSeed] = useState('');
+  const [selectedClassId, setSelectedClassId] = useState<ClassId>(CLASS_IDS[0]);
   const [storageWarning, setStorageWarning] = useState<string | null>(
     () => getRunSaveWarning() ?? getSaveWarning(),
   );
@@ -91,11 +96,11 @@ export default function App() {
     setModal(null);
   }
 
-  function startRun(sameSeed?: string) {
+  function startRun(sameSeed?: string, classId?: ClassId) {
     if (actionTimer.current) clearTimeout(actionTimer.current);
     actionLocked.current = false;
     setResolving(false);
-    setRun(createRun(sameSeed ?? (seed.trim() || freshSeed())));
+    setRun(createRun(sameSeed ?? (seed.trim() || freshSeed()), classId));
     setSessionId((current) => current + 1);
     setScreen('run');
     setModal(null);
@@ -230,11 +235,11 @@ export default function App() {
           </span>
         )}
         <nav aria-label="メインメニュー">
-          <button className="nav-button" onClick={() => setModal('library')}>
+          <button className="nav-button" aria-label="カード図鑑" onClick={() => setModal('library')}>
             <Icon name="book" size={17} />
             <span>カード図鑑</span>
           </button>
-          <button className="nav-button" onClick={() => setModal('help')}>
+          <button className="nav-button" aria-label="遊び方" onClick={() => setModal('help')}>
             <Icon name="help" size={17} />
             <span>遊び方</span>
           </button>
@@ -262,7 +267,7 @@ export default function App() {
               教祖・岩尊けいとと、12階の試練へ。
             </p>
             <div className="title-actions">
-              <button className="primary-button title-start" onClick={() => startRun()}>
+              <button className="primary-button title-start" onClick={() => setScreen('classes')}>
                 第1階層へ進む
                 <Icon name="arrow" size={21} />
               </button>
@@ -293,7 +298,7 @@ export default function App() {
             </label>
             <div className="title-facts">
               <span>
-                <b>30</b>種類のカード
+                <b>5</b>つの職業
               </span>
               <span>
                 <b>12</b>フロアの試練
@@ -328,12 +333,15 @@ export default function App() {
             </button>
           </div>
         </main>
+      ) : screen === 'classes' ? (
+        <ClassSelectionScreen selected={selectedClassId} onSelect={setSelectedClassId}
+          onStart={() => startRun(undefined, selectedClassId)} onBack={() => setScreen('title')} />
       ) : screen === 'run' && run && run.screen !== 'combat' ? (
         <RunScreens
           state={run}
           onAction={dispatchRun}
-          onNewRun={() => startRun(freshSeed())}
-          onReplay={() => startRun(run.seed)}
+          onNewRun={() => { if (run.classId) setSelectedClassId(run.classId); setSeed(''); setScreen('classes'); }}
+          onReplay={() => startRun(run.seed, run.classId)}
           onTitle={() => setScreen('title')}
         />
       ) : combat ? (
@@ -346,6 +354,7 @@ export default function App() {
           onPlay={(cardId, targetId) => dispatch({ type: 'playCard', cardId, targetId })}
           onSelectEnemy={(targetId) => dispatch({ type: 'selectEnemy', targetId })}
           onEndTurn={() => dispatch({ type: 'endTurn' })}
+          onChooseCards={(cardIds) => dispatch({ type: 'chooseCards', cardIds })}
           onOpenPile={(pile) => setModal(pile)}
           onRestart={() => startGame(freshSeed())}
           onReplay={() => startGame(combat.seed)}
@@ -481,25 +490,12 @@ export default function App() {
 
       {modal === 'library' && (
         <Modal
-          title="岩に刻まれた、30の教え。"
+          title="岩に刻まれた、教えの記録。"
           subtitle="CARD LIBRARY · ACT 1"
           onClose={closeModal}
           wide
         >
-          <p className="modal-intro">
-            全30種類の強化前の効果を確認できます。報酬や商人で仲間に加え、休憩所で強化しましょう。
-          </p>
-          <div className="card-library">
-            {Object.values(CARD_DEFINITIONS).map((definition) => (
-              <div className="library-entry" key={definition.id}>
-                <CardView
-                  card={{ uid: `library-${definition.id}`, cardId: definition.id, upgraded: false }}
-                  inspect
-                />
-                <p>{definition.flavor}</p>
-              </div>
-            ))}
-          </div>
+          <Suspense fallback={<p className="modal-intro" role="status">教えの記録を読み込み中…</p>}><CardLibrary /></Suspense>
         </Modal>
       )}
 

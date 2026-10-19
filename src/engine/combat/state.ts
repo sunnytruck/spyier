@@ -73,7 +73,14 @@ export function dealDamage(
   const raw = Math.max(0, Math.floor(amount));
   const blocked = bypassBlock ? 0 : Math.min(actor.block, raw);
   actor.block -= blocked;
-  const damage = Math.min(actor.hp, raw - blocked);
+  let remaining = raw - blocked;
+  if (target === 'player' && !bypassBlock && state.classResources && state.classResources.ostyHp > 0) {
+    const absorbed = Math.min(state.classResources.ostyHp, remaining);
+    state.classResources.ostyHp -= absorbed;
+    remaining -= absorbed;
+    if (absorbed > 0) appendLog(state, `召喚体が${absorbed}ダメージを引き受けた。`);
+  }
+  const damage = Math.min(actor.hp, remaining);
   actor.hp -= damage;
   if (target === 'enemy') state.stats.damageDealt += damage;
   emitEvent(

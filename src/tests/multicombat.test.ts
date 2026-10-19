@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CARD_DEFINITIONS } from '../data/cards';
+import { CARD_DEFINITIONS, LEGACY_CARD_IDS } from '../data/cards';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { POTION_DEFINITIONS } from '../data/potions';
 import {
@@ -274,8 +274,8 @@ describe('finite consumables and relic trigger counts', () => {
     expect(reduceCombat(state, { type: 'endTurn' })).toBe(state);
   });
 
-  it('keeps the full content catalog independently addressable with the requested counts', () => {
-    const cards = Object.values(CARD_DEFINITIONS);
+  it('keeps the original content catalog independently addressable with its original counts', () => {
+    const cards = LEGACY_CARD_IDS.map((id) => CARD_DEFINITIONS[id]);
     expect(cards.filter((card) => card.type === 'attack')).toHaveLength(12);
     expect(cards.filter((card) => card.type === 'skill')).toHaveLength(12);
     expect(cards.filter((card) => card.type === 'power')).toHaveLength(6);

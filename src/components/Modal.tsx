@@ -8,6 +8,7 @@ export function Modal({
   onClose,
   wide = false,
   className = '',
+  dismissible = true,
 }: {
   title: string;
   subtitle?: string;
@@ -15,6 +16,7 @@ export function Modal({
   onClose: () => void;
   wide?: boolean;
   className?: string;
+  dismissible?: boolean;
 }) {
   const id = useId();
   const container = useRef<HTMLDivElement>(null);
@@ -25,7 +27,7 @@ export function Modal({
     );
     first?.focus();
     function keydown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape' && dismissible) onClose();
       if (event.key !== 'Tab' || !container.current) return;
       const nodes = [
         ...container.current.querySelectorAll<HTMLElement>(
@@ -47,12 +49,12 @@ export function Modal({
       document.removeEventListener('keydown', keydown);
       previous?.focus();
     };
-  }, [onClose]);
+  }, [onClose, dismissible]);
   return (
     <div
       className="modal-backdrop"
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget && dismissible) onClose();
       }}
     >
       <div
@@ -67,9 +69,9 @@ export function Modal({
             <p className="eyebrow">{subtitle ?? 'IWASON SPIRE'}</p>
             <h2 id={id}>{title}</h2>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="閉じる">
+          {dismissible && <button className="icon-button" onClick={onClose} aria-label="閉じる">
             <Icon name="close" />
-          </button>
+          </button>}
         </header>
         {children}
       </div>

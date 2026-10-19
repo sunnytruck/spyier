@@ -8,6 +8,7 @@ import { resolveEndTurn } from './combat/turn';
 import { findEnemy, getEnemies, getEnemyKey, normalizeInto } from './combat/targets';
 import { triggerRelics } from './combat/relics';
 import { resolveEffects } from './effects/resolve';
+import { createClassResources } from './combat/resources';
 import { seedToState, shuffle } from './random';
 
 export { calculateDamage } from './combat/damage';
@@ -51,6 +52,12 @@ export function createCombat(
     deck.map((card) => ({ ...card })),
     seedToState(normalizedSeed),
   );
+  // Innate is a catalog flag, not a card-specific rule; drawPile draws from its end.
+  shuffled.values.sort(
+    (left, right) =>
+      Number(Boolean(CARD_DEFINITIONS[left.cardId]?.innate)) -
+      Number(Boolean(CARD_DEFINITIONS[right.cardId]?.innate)),
+  );
   const state: CombatState = {
     version: 1,
     seed: normalizedSeed,
@@ -85,6 +92,7 @@ export function createCombat(
     log: [],
     events: [],
     nextId: 1,
+    ...(options.classId ? { classId: options.classId, classResources: createClassResources() } : {}),
     ...(options.relicIds ? { relicIds: [...new Set(options.relicIds)], relicCounters: {} } : {}),
     ...(options.potions
       ? { potions: [...options.potions.slice(0, 3), null, null, null].slice(0, 3) }
@@ -100,8 +108,9 @@ export function createCombat(
   return state;
 }
 
-export function getCardCost(card: CardInstance): number {
+export function getCardCost(card: CardInstance, state?: CombatState): number {
   const definition = CARD_DEFINITIONS[card.cardId];
+  if (definition?.xCost) return state?.energy ?? 0;
   return definition
     ? card.upgraded
       ? (definition.upgradedCost ?? definition.cost)
@@ -111,11 +120,23 @@ export function getCardCost(card: CardInstance): number {
 
 /** All state changes pass through reduceCombat; the supplied state is never mutated. */
 export function canPlayCard(state: CombatState, cardUid: string, targetId?: string): boolean {
-  if (state.phase !== 'player' || (targetId !== undefined && !findEnemy(state, targetId)))
+  if (
+    state.phase !== 'player' ||
+    state.pendingChoice ||
+    (targetId !== undefined && !findEnemy(state, targetId))
+  )
     return false;
   const card = state.hand.find((instance) => instance.uid === cardUid);
   if (!card || !Object.hasOwn(CARD_DEFINITIONS, card.cardId)) return false;
-  return state.energy >= getCardCost(card);
+  return state.energy >= getCardCost(card, state);
+}
+
+function settlePlayedCard(state: CombatState, card: CardInstance): void {
+  const definition = CARD_DEFINITIONS[card.cardId];
+  if (definition.type === 'power') state.powers.push(card);
+  else if (card.upgraded ? definition.upgradedExhaust ?? definition.exhaust : definition.exhaust)
+    state.exhaustPile.push(card);
+  else state.discardPile.push(card);
 }
 
 function potionRelevantState(state: CombatState): string {
@@ -136,7 +157,21 @@ function potionRelevantState(state: CombatState): string {
 
 export function reduceCombat(state: CombatState, action: CombatAction): CombatState {
   if (state.phase !== 'player') return state;
-  if (!['playCard', 'endTurn', 'selectEnemy', 'usePotion'].includes(action.type)) return state;
+  if (!['playCard', 'endTurn', 'selectEnemy', 'usePotion', 'chooseCards'].includes(action.type))
+    return state;
+  if (state.pendingChoice && action.type !== 'chooseCards' && action.type !== 'selectEnemy')
+    return state;
+  if (action.type === 'chooseCards') {
+    const choice = state.pendingChoice;
+    if (
+      !choice ||
+      !Array.isArray(action.cardIds) ||
+      action.cardIds.length !== choice.amount ||
+      new Set(action.cardIds).size !== choice.amount ||
+      action.cardIds.some((uid) => !state.hand.some((card) => card.uid === uid))
+    )
+      return state;
+  }
   if (action.type === 'playCard' && !canPlayCard(state, action.cardId, action.targetId))
     return state;
   if (action.type === 'selectEnemy' && !findEnemy(state, action.targetId)) return state;
@@ -159,6 +194,24 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
     next.selectedEnemyId = action.targetId;
     return next;
   }
+  if (action.type === 'chooseCards') {
+    const choice = next.pendingChoice!;
+    const chosen = new Set(action.cardIds);
+    const destination = choice.mode === 'discard' ? next.discardPile : next.exhaustPile;
+    destination.push(...next.hand.filter((card) => chosen.has(card.uid)));
+    next.hand = next.hand.filter((card) => !chosen.has(card.uid));
+    delete next.pendingChoice;
+    appendLog(
+      next,
+      `${action.cardIds.length}枚を${choice.mode === 'discard' ? '捨て札にした' : '廃棄した'}。`,
+    );
+    resolveEffects(next, choice.resume.effects, { defense: choice.resume.defense }, choice.resume);
+    if (!next.pendingChoice && choice.resume.sourceCard)
+      settlePlayedCard(next, choice.resume.sourceCard);
+    if (next.phase === 'victory') triggerRelics(next, 'victory');
+    normalizeInto(next);
+    return next;
+  }
   if (action.type === 'endTurn') {
     resolveEndTurn(next);
     if (next.phase === 'victory') triggerRelics(next, 'victory');
@@ -178,7 +231,7 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
       next,
       definition.effects,
       { defense: false },
-      { targetId, all: definition.target === 'allEnemies' },
+      { targetId, all: definition.target === 'allEnemies', source: 'potion' },
     );
     if (before === potionRelevantState(next)) return state;
     next.potions![action.slot] = null;
@@ -192,7 +245,8 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
   const index = next.hand.findIndex((card) => card.uid === action.cardId);
   const [card] = next.hand.splice(index, 1);
   const definition = CARD_DEFINITIONS[card.cardId];
-  next.energy -= getCardCost(card);
+  const paidEnergy = getCardCost(card, next);
+  next.energy -= paidEnergy;
   next.cardsPlayedThisTurn += 1;
   next.stats.cardsPlayed += 1;
   appendLog(next, `「${definition.name}${card.upgraded ? '+' : ''}」を使用。`);
@@ -204,11 +258,9 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
     next,
     card.upgraded ? definition.upgradedEffects : definition.effects,
     definition,
-    { targetId },
+    { targetId, sourceCard: card, xEnergy: paidEnergy },
   );
-  if (definition.type === 'power') next.powers.push(card);
-  else if (definition.exhaust) next.exhaustPile.push(card);
-  else next.discardPile.push(card);
+  if (!next.pendingChoice) settlePlayedCard(next, card);
   if (next.phase === 'victory') triggerRelics(next, 'victory');
   normalizeInto(next);
   return next;

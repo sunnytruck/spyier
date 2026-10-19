@@ -5,6 +5,10 @@ import { appendLog } from '../combat/state';
 /** Internal mutating helper: state must be a freshly created/reducer-owned copy. */
 export function drawInto(state: CombatState, amount: number): void {
   for (let index = 0; index < Math.max(0, Math.floor(amount)); index += 1) {
+    if (state.hand.length >= 50) {
+      appendLog(state, '手札の上限50枚に達したため、ドローを止めた。');
+      break;
+    }
     if (state.drawPile.length === 0 && state.discardPile.length > 0) {
       const shuffled = shuffle(state.discardPile, state.rngState);
       state.drawPile = shuffled.values;

@@ -5,6 +5,8 @@ import { calculateDamage } from './damage';
 import { appendLog, dealDamage, finishIfNeeded, gainBlock } from './state';
 import { findEnemy, getEnemies } from './targets';
 import { triggerRelics } from './relics';
+import { generateCards, resources, triggerPassiveOrbs } from './resources';
+import { CARD_DEFINITIONS } from '../../data/cards';
 
 function expireStatuses(actor: Actor): void {
   actor.weak = Math.max(0, actor.weak - 1);
@@ -31,6 +33,8 @@ function startPlayerPowers(state: CombatState): void {
       enemy.poison += stacks.poisonAura;
     appendLog(state, `毒苔の教壇：すべての敵に毒 +${stacks.poisonAura}。`);
   }
+  if (stacks.knivesOnTurn) generateCards(state, 'token_knife', stacks.knivesOnTurn, 'hand');
+  if (stacks.focusOnTurn) resources(state).focus += stacks.focusOnTurn;
 }
 
 /** Internal atomic turn resolution. Each living enemy owns its turn and statuses. */
@@ -40,8 +44,20 @@ export function resolveEndTurn(state: CombatState): void {
       throw new RangeError(`敵「${enemy.id}」の行動パターンがありません。`);
   }
   appendLog(state, `ターン${state.turn}を終了。`);
-  state.discardPile.push(...state.hand);
-  state.hand = [];
+  const retained = [];
+  for (const card of state.hand) {
+    const definition = CARD_DEFINITIONS[card.cardId];
+    if (definition?.ethereal) state.exhaustPile.push(card);
+    else if (card.upgraded ? definition?.upgradedRetain ?? definition?.retain : definition?.retain) retained.push(card);
+    else state.discardPile.push(card);
+  }
+  state.hand = retained;
+  triggerPassiveOrbs(state);
+  if (finishIfNeeded(state)) return;
+  if (state.classResources) {
+    state.classResources.focus -= state.classResources.temporaryFocus;
+    state.classResources.temporaryFocus = 0;
+  }
   expireStatuses(state.player);
 
   for (const enemy of getEnemies(state)) {
@@ -50,6 +66,12 @@ export function resolveEndTurn(state: CombatState): void {
     tickPoison(state, 'enemy', enemy);
     if (finishIfNeeded(state)) return;
     if (enemy.hp <= 0) continue;
+    if ((enemy.doom ?? 0) >= enemy.hp) {
+      appendLog(state, `${enemy.name}の破滅がHPに達した。`);
+      dealDamage(state, 'enemy', enemy.hp, true, enemy);
+      if (finishIfNeeded(state)) return;
+      continue;
+    }
 
     const intent = enemy.intent;
     appendLog(state, `${enemy.name}の「${intent.label}」！`);
@@ -86,7 +108,11 @@ export function resolveEndTurn(state: CombatState): void {
   state.player.block = 0;
   tickPoison(state, 'player');
   if (finishIfNeeded(state)) return;
-  state.energy = state.maxEnergy;
+  state.energy = state.maxEnergy + (state.classResources?.nextTurnEnergy ?? 0);
+  if (state.classResources) {
+    state.classResources.nextTurnEnergy = 0;
+    state.classResources.starsGainedThisTurn = 0;
+  }
   state.cardsPlayedThisTurn = 0;
   appendLog(state, `ターン${state.turn}。朝活しよ。エナジーを回復し、5枚引く。`);
   startPlayerPowers(state);
@@ -99,7 +125,7 @@ export function predictEnemyDamage(state: CombatState, enemyId?: string): number
   const enemy = findEnemy(state, enemyId);
   if (!enemy) return 0;
   const intent = enemy.intent;
-  if (intent.damage === undefined || enemy.hp <= enemy.poison) return 0;
+  if (intent.damage === undefined || enemy.hp <= enemy.poison || (enemy.doom ?? 0) >= Math.max(0, enemy.hp - enemy.poison)) return 0;
   const attacker = { ...enemy, strength: enemy.strength + (intent.strength ?? 0) };
   const defender = { ...state.player, vulnerable: Math.max(0, state.player.vulnerable - 1) };
   return calculateDamage(intent.damage, attacker, defender);

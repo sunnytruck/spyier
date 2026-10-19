@@ -1,0 +1,155 @@
+import type { CardDefinition, Effect } from '../types/game';
+import type { SourceClassId } from '../types/catalog';
+import catalog from './sourceCardIndex.generated.json';
+
+interface PlayableInput {
+  id: string;
+  sourceName: string;
+  classId: SourceClassId;
+  name: string;
+  type: CardDefinition['type'];
+  glyph: string;
+  description: string;
+  upgradedDescription: string;
+  effects: Effect[];
+  upgradedEffects: Effect[];
+  rarity?: CardDefinition['rarity'];
+  options?: Partial<CardDefinition>;
+}
+
+/** Every playable adaptation explicitly identifies its reference. No lexical parsing executes effects. */
+function card(input: PlayableInput): CardDefinition {
+  const source = catalog.cards.find((entry) => entry.sourceClass === input.classId && entry.sourceName === input.sourceName);
+  if (!source) throw new Error(`Unknown source card: ${input.classId}/${input.sourceName}`);
+  const xCost = source.normal.costRaw === 'X';
+  const cost = xCost ? 0 : Number(source.normal.costRaw);
+  const upgradedCost = source.upgraded.costRaw === 'X' ? 0 : Number(source.upgraded.costRaw);
+  if (!Number.isInteger(cost) || !Number.isInteger(upgradedCost)) throw new Error(`Unresolved source cost: ${source.sourceId}`);
+  return {
+    id: input.id, classId: input.classId, sourceCardId: source.sourceId,
+    name: input.name, type: input.type, cost, upgradedCost, xCost,
+    defense: input.type === 'skill' && input.effects.some((effect) => effect.type === 'block'),
+    description: input.description, upgradedDescription: input.upgradedDescription,
+    flavor: '教義は石に刻む。作戦は手札で変える。', glyph: input.glyph,
+    rarity: input.rarity ?? 'common', metadataProvisional: true,
+    effects: input.effects, upgradedEffects: input.upgradedEffects,
+    ...input.options,
+  };
+}
+
+const damage = (amount: number, extra: Partial<Extract<Effect, { type: 'damage' }>> = {}): Effect => ({ type: 'damage', amount, ...extra });
+const block = (amount: number): Effect => ({ type: 'block', amount });
+const draw = (amount: number): Effect => ({ type: 'draw', amount });
+const energy = (amount: number): Effect => ({ type: 'energy', amount });
+const strength = (amount: number): Effect => ({ type: 'status', target: 'player', status: 'strength', amount });
+const poison = (amount: number): Effect => ({ type: 'status', target: 'enemy', status: 'poison', amount });
+const knives = (amount: number): Effect => ({ type: 'generate', cardId: 'token_knife', amount, destination: 'hand' });
+const soul = (upgraded = false): Effect => ({ type: 'soul', amount: 1, upgraded, destination: 'drawPile' });
+const orb = (kind: 'lightning' | 'frost', amount = 1): Effect => ({ type: 'channel', orb: kind, amount });
+
+const basicCards: CardDefinition[] = (['berserker', 'assassin', 'oracle', 'necromancer', 'machinist'] as const).flatMap((classId) => [
+  card({ id: `${classId}_strike`, classId, sourceName: 'ストライク', name: '巡礼の一打', type: 'attack', glyph: '打', description: '6ダメージ。', upgradedDescription: '9ダメージ。', effects: [damage(6)], upgradedEffects: [damage(9)], options: { rewardEligible: false } }),
+  card({ id: `${classId}_guard`, classId, sourceName: '防御', name: '巡礼の守り', type: 'skill', glyph: '守', description: '5ブロック。', upgradedDescription: '8ブロック。', effects: [block(5)], upgradedEffects: [block(8)], options: { rewardEligible: false } }),
+]);
+
+const adaptedCards: CardDefinition[] = [
+  // 岩砕の拳僧: 筋力・HP消費・連撃・ブロックの使い分け。
+  card({ id: 'berserker_anger', classId: 'berserker', sourceName: '怒り', name: '怒れる小石', type: 'attack', glyph: '怒', description: '6ダメージ。同じカードを捨て札に1枚生成。', upgradedDescription: '8ダメージ。同じ強化カードを捨て札に1枚生成。', effects: [damage(6), { type: 'copySelf', destination: 'discardPile' }], upgradedEffects: [damage(8), { type: 'copySelf', destination: 'discardPile' }] }),
+  card({ id: 'berserker_iron_wave', classId: 'berserker', sourceName: 'アイアンウェーブ', name: '岩戸の押し返し', type: 'attack', glyph: '戸', description: '5ブロックを得て、5ダメージ。', upgradedDescription: '7ブロックを得て、7ダメージ。', effects: [block(5), damage(5)], upgradedEffects: [block(7), damage(7)] }),
+  card({ id: 'berserker_pommel', classId: 'berserker', sourceName: 'ポンメルストライク', name: '石柄のひと突き', type: 'attack', glyph: '柄', description: '9ダメージ。1枚引く。', upgradedDescription: '10ダメージ。2枚引く。', effects: [damage(9), draw(1)], upgradedEffects: [damage(10), draw(2)] }),
+  card({ id: 'berserker_shrug', classId: 'berserker', sourceName: '受け流し', name: '動じぬ肩', type: 'skill', glyph: '肩', description: '8ブロック。1枚引く。', upgradedDescription: '11ブロック。1枚引く。', effects: [block(8), draw(1)], upgradedEffects: [block(11), draw(1)] }),
+  card({ id: 'berserker_bloodletting', classId: 'berserker', sourceName: '瀉血', name: '修行の前払い', type: 'skill', glyph: '血', description: 'HP −3。エナジー +2。', upgradedDescription: 'HP −3。エナジー +3。', effects: [{ type: 'loseHp', amount: 3 }, energy(2)], upgradedEffects: [{ type: 'loseHp', amount: 3 }, energy(3)], rarity: 'uncommon' }),
+  card({ id: 'berserker_challenge', classId: 'berserker', sourceName: '俺と戦え！', name: '朝活の腕比べ', type: 'attack', glyph: '競', description: '5ダメージを2回。筋力 +3。対象の敵も筋力 +1。', upgradedDescription: '6ダメージを2回。筋力 +4。対象の敵も筋力 +1。', effects: [damage(5, { hits: 2 }), strength(3), { type: 'status', target: 'enemy', status: 'strength', amount: 1 }], upgradedEffects: [damage(6, { hits: 2 }), strength(4), { type: 'status', target: 'enemy', status: 'strength', amount: 1 }], rarity: 'uncommon' }),
+  card({ id: 'berserker_inflame', classId: 'berserker', sourceName: '発火', name: '上腕の開眼', type: 'power', glyph: '腕', description: '筋力 +2。戦闘中持続。', upgradedDescription: '筋力 +3。戦闘中持続。', effects: [strength(2)], upgradedEffects: [strength(3)], rarity: 'uncommon' }),
+  card({ id: 'berserker_offering', classId: 'berserker', sourceName: '供物', name: '教祖の自腹', type: 'skill', glyph: '供', description: 'HP −6。エナジー +2。3枚引く。廃棄。', upgradedDescription: 'HP −6。エナジー +2。5枚引く。廃棄。', effects: [{ type: 'loseHp', amount: 6 }, energy(2), draw(3)], upgradedEffects: [{ type: 'loseHp', amount: 6 }, energy(2), draw(5)], options: { exhaust: true }, rarity: 'rare' }),
+  card({ id: 'berserker_twin', classId: 'berserker', sourceName: 'ツインストライク', name: '両肩のご挨拶', type: 'attack', glyph: '双', description: '5ダメージを2回。', upgradedDescription: '7ダメージを2回。', effects: [damage(5, { hits: 2 })], upgradedEffects: [damage(7, { hits: 2 })] }),
+  card({ id: 'berserker_body_slam', classId: 'berserker', sourceName: 'ボディスラム', name: '石垣ごと前進', type: 'attack', glyph: '垣', description: '現在のブロックと同じ値のダメージ。筋力などの攻撃補正も適用。', upgradedDescription: 'コスト0。現在のブロックと同じ値のダメージ。筋力などの攻撃補正も適用。', effects: [damage(0, { fromBlock: true })], upgradedEffects: [damage(0, { fromBlock: true })], rarity: 'uncommon' }),
+  card({ id: 'berserker_hemokinesis', classId: 'berserker', sourceName: 'ヘモキネシス', name: '血潮の断層', type: 'attack', glyph: '層', description: 'HP −2。15ダメージ。', upgradedDescription: 'HP −2。20ダメージ。', effects: [{ type: 'loseHp', amount: 2 }, damage(15)], upgradedEffects: [{ type: 'loseHp', amount: 2 }, damage(20)], rarity: 'uncommon' }),
+  card({ id: 'berserker_immovable', classId: 'berserker', sourceName: '不動', name: '岩尊の座禅', type: 'skill', glyph: '坐', description: '30ブロック。廃棄。', upgradedDescription: '40ブロック。廃棄。', effects: [block(30)], upgradedEffects: [block(40)], options: { exhaust: true }, rarity: 'rare' }),
+  card({ id: 'berserker_demon_form', classId: 'berserker', sourceName: '悪魔化', name: '毎朝の大胸筋', type: 'power', glyph: '筋', description: '次の自分のターンから、開始時に筋力 +2。', upgradedDescription: '次の自分のターンから、開始時に筋力 +3。', effects: [{ type: 'power', power: 'strengthOnTurn', amount: 2 }], upgradedEffects: [{ type: 'power', power: 'strengthOnTurn', amount: 3 }], rarity: 'rare' }),
+  card({ id: 'berserker_burning_pact', classId: 'berserker', sourceName: '焦熱の契約', name: '石板の焼き直し', type: 'skill', glyph: '契', description: '手札から1枚選んで廃棄。その後2枚引く。', upgradedDescription: '手札から1枚選んで廃棄。その後3枚引く。', effects: [{ type: 'exhaustChoice', amount: 1 }, draw(2)], upgradedEffects: [{ type: 'exhaustChoice', amount: 1 }, draw(3)], rarity: 'uncommon' }),
+
+  // 静刃の影師: 手札選択を伴うカードも実際に処理する。
+  card({ id: 'assassin_survivor', classId: 'assassin', sourceName: 'サバイバー', name: '影の身支度', type: 'skill', glyph: '影', description: '8ブロック。手札から1枚選んで捨てる。', upgradedDescription: '11ブロック。手札から1枚選んで捨てる。', effects: [block(8), { type: 'discard', amount: 1 }], upgradedEffects: [block(11), { type: 'discard', amount: 1 }] }),
+  card({ id: 'assassin_slice', classId: 'assassin', sourceName: 'スライス', name: 'さっと一閃', type: 'attack', glyph: '閃', description: '6ダメージ。', upgradedDescription: '9ダメージ。', effects: [damage(6)], upgradedEffects: [damage(9)] }),
+  card({ id: 'assassin_dagger_throw', classId: 'assassin', sourceName: 'ダガースロー', name: '石刃の投げ文', type: 'attack', glyph: '投', description: '9ダメージ。1枚引き、手札から1枚選んで捨てる。', upgradedDescription: '12ダメージ。1枚引き、手札から1枚選んで捨てる。', effects: [damage(9), draw(1), { type: 'discard', amount: 1 }], upgradedEffects: [damage(12), draw(1), { type: 'discard', amount: 1 }] }),
+  card({ id: 'assassin_leading_strike', classId: 'assassin', sourceName: 'リーディングストライク', name: '刃渡しの一撃', type: 'attack', glyph: '刃', description: '7ダメージ。石刃を1枚手札に生成。', upgradedDescription: '10ダメージ。石刃を1枚手札に生成。', effects: [damage(7), knives(1)], upgradedEffects: [damage(10), knives(1)] }),
+  card({ id: 'assassin_poison_sting', classId: 'assassin', sourceName: '毒の一刺し', name: '苔毒の針', type: 'attack', glyph: '針', description: '6ダメージ。毒3。', upgradedDescription: '8ダメージ。毒4。', effects: [damage(6), poison(3)], upgradedEffects: [damage(8), poison(4)] }),
+  card({ id: 'assassin_preparation', classId: 'assassin', sourceName: '準備', name: '朝活の荷造り', type: 'skill', glyph: '備', description: '1枚引き、手札から1枚選んで捨てる。', upgradedDescription: '2枚引き、手札から2枚選んで捨てる。', effects: [draw(1), { type: 'discard', amount: 1 }], upgradedEffects: [draw(2), { type: 'discard', amount: 2 }] }),
+  card({ id: 'assassin_acrobatics', classId: 'assassin', sourceName: 'アクロバット', name: '岩陰の宙返り', type: 'skill', glyph: '跳', description: '3枚引き、手札から1枚選んで捨てる。', upgradedDescription: '4枚引き、手札から1枚選んで捨てる。', effects: [draw(3), { type: 'discard', amount: 1 }], upgradedEffects: [draw(4), { type: 'discard', amount: 1 }], rarity: 'uncommon' }),
+  card({ id: 'assassin_backflip', classId: 'assassin', sourceName: 'バックフリップ', name: '後ろ向きの礼', type: 'skill', glyph: '礼', description: '5ブロック。2枚引く。', upgradedDescription: '8ブロック。2枚引く。', effects: [block(5), draw(2)], upgradedEffects: [block(8), draw(2)] }),
+  card({ id: 'assassin_cloak', classId: 'assassin', sourceName: '外套と短剣', name: '黒衣と小石', type: 'skill', glyph: '衣', description: '6ブロック。石刃を1枚手札に生成。', upgradedDescription: '6ブロック。石刃を2枚手札に生成。', effects: [block(6), knives(1)], upgradedEffects: [block(6), knives(2)] }),
+  card({ id: 'assassin_blade_dance', classId: 'assassin', sourceName: '剣の舞', name: '小石の盆踊り', type: 'skill', glyph: '舞', description: '石刃を3枚手札に生成。廃棄。', upgradedDescription: '石刃を4枚手札に生成。廃棄。', effects: [knives(3)], upgradedEffects: [knives(4)], options: { exhaust: true }, rarity: 'uncommon' }),
+  card({ id: 'assassin_deadly_poison', classId: 'assassin', sourceName: '致死毒', name: 'じわじわ布教', type: 'skill', glyph: '毒', description: '毒5。', upgradedDescription: '毒7。', effects: [poison(5)], upgradedEffects: [poison(7)] }),
+  card({ id: 'assassin_accuracy', classId: 'assassin', sourceName: '精度上昇', name: '石刃の研修', type: 'power', glyph: '研', description: '石刃のダメージ +4。戦闘中持続。', upgradedDescription: '石刃のダメージ +6。戦闘中持続。', effects: [{ type: 'power', power: 'knifeDamage', amount: 4 }], upgradedEffects: [{ type: 'power', power: 'knifeDamage', amount: 6 }], rarity: 'uncommon' }),
+  card({ id: 'assassin_fumes', classId: 'assassin', sourceName: '毒ガス', name: '苔の香炉', type: 'power', glyph: '香', description: '次の自分のターンから、開始時に敵全体に毒2。', upgradedDescription: '次の自分のターンから、開始時に敵全体に毒3。', effects: [{ type: 'power', power: 'poisonAura', amount: 2 }], upgradedEffects: [{ type: 'power', power: 'poisonAura', amount: 3 }], rarity: 'uncommon' }),
+
+  // 星詠みの法王: 明記されていない星コストを補わず、記載された数値だけを処理。
+  card({ id: 'oracle_awe', classId: 'oracle', sourceName: '畏敬', name: '星空への一礼', type: 'skill', glyph: '敬', description: '✦を2得る。', upgradedDescription: '✦を3得る。', effects: [{ type: 'gainStars', amount: 2 }], upgradedEffects: [{ type: 'gainStars', amount: 3 }] }),
+  card({ id: 'oracle_solar_strike', classId: 'oracle', sourceName: 'ソーラーストライク', name: '琥珀の日輪拳', type: 'attack', glyph: '日', description: '8ダメージ。✦を1得る。', upgradedDescription: '9ダメージ。✦を2得る。', effects: [damage(8), { type: 'gainStars', amount: 1 }], upgradedEffects: [damage(9), { type: 'gainStars', amount: 2 }] }),
+  card({ id: 'oracle_battle_forge', classId: 'oracle', sourceName: '百戦錬磨', name: '祈るより鍛える', type: 'attack', glyph: '鍛', description: '7ダメージ。鍛造7。', upgradedDescription: '9ダメージ。鍛造9。', effects: [damage(7), { type: 'forge', amount: 7 }], upgradedEffects: [damage(9), { type: 'forge', amount: 9 }] }),
+  card({ id: 'oracle_sky_force', classId: 'oracle', sourceName: '天の力', name: '星辰の三連礼', type: 'attack', glyph: '天', description: '6ダメージを3回。', upgradedDescription: '6ダメージを4回。', effects: [damage(6, { hits: 3 })], upgradedEffects: [damage(6, { hits: 4 })] }),
+  card({ id: 'oracle_sword_grind', classId: 'oracle', sourceName: '剣の研磨', name: '聖剣の朝磨き', type: 'skill', glyph: '磨', description: '鍛造9。次のターン、エナジー +1。', upgradedDescription: '鍛造13。次のターン、エナジー +1。', effects: [{ type: 'forge', amount: 9 }, { type: 'nextTurnEnergy', amount: 1 }], upgradedEffects: [{ type: 'forge', amount: 13 }, { type: 'nextTurnEnergy', amount: 1 }] }),
+  card({ id: 'oracle_light_guard', classId: 'oracle', sourceName: '光の集約', name: '光輪の岩盾', type: 'skill', glyph: '輪', description: '8ブロック。✦を1得る。', upgradedDescription: '11ブロック。✦を1得る。', effects: [block(8), { type: 'gainStars', amount: 1 }], upgradedEffects: [block(11), { type: 'gainStars', amount: 1 }] }),
+  card({ id: 'oracle_spoils', classId: 'oracle', sourceName: '戦利品', name: '拾い石の鍛冶', type: 'skill', glyph: '拾', description: '鍛造5。2枚引く。', upgradedDescription: '鍛造8。2枚引く。', effects: [{ type: 'forge', amount: 5 }, draw(2)], upgradedEffects: [{ type: 'forge', amount: 8 }, draw(2)] }),
+  card({ id: 'oracle_wall', classId: 'oracle', sourceName: '城壁', name: '星見の城壁', type: 'skill', glyph: '壁', description: '13ブロック。鍛造10。', upgradedDescription: '16ブロック。鍛造13。', effects: [block(13), { type: 'forge', amount: 10 }], upgradedEffects: [block(16), { type: 'forge', amount: 13 }], rarity: 'uncommon' }),
+  card({ id: 'oracle_prophecy', classId: 'oracle', sourceName: '予言', name: '星図を画面共有', type: 'skill', glyph: '図', description: '6枚引く。', upgradedDescription: '9枚引く。', effects: [draw(6)], upgradedEffects: [draw(9)], rarity: 'uncommon' }),
+  card({ id: 'oracle_smith', classId: 'oracle', sourceName: '鍛治師', name: '法王の金床', type: 'skill', glyph: '床', description: '鍛造30。', upgradedDescription: '鍛造40。', effects: [{ type: 'forge', amount: 30 }], upgradedEffects: [{ type: 'forge', amount: 40 }], rarity: 'rare' }),
+  card({ id: 'oracle_manifest', classId: 'oracle', sourceName: '顕現', name: '岩尊の聖剣顕現', type: 'skill', glyph: '剣', description: '鍛造8。聖剣を各札置き場から手札へ移す。存在しなければ1枚生成。', upgradedDescription: '鍛造11。聖剣を各札置き場から手札へ移す。存在しなければ1枚生成。', effects: [{ type: 'forge', amount: 8 }, { type: 'fetchGenerated', cardId: 'token_sword' }], upgradedEffects: [{ type: 'forge', amount: 11 }, { type: 'fetchGenerated', cardId: 'token_sword' }], rarity: 'uncommon' }),
+  card({ id: 'oracle_star_burst', classId: 'oracle', sourceName: '輝きの奔流', name: '星礼の大合唱', type: 'attack', glyph: '星', description: 'このターンに得た✦の数 ×3ダメージを敵全体に与える。星獲得0なら不発。', upgradedDescription: 'このターンに得た✦の数 ×4ダメージを敵全体に与える。星獲得0なら不発。', effects: [{ type: 'starBurst', amount: 3, all: true }], upgradedEffects: [{ type: 'starBurst', amount: 4, all: true }], rarity: 'uncommon' }),
+  card({ id: 'oracle_star_surge', classId: 'oracle', sourceName: '星の巡り', name: '星回りは朝型', type: 'skill', glyph: '巡', description: 'エナジー +2。', upgradedDescription: 'エナジー +3。', effects: [energy(2)], upgradedEffects: [energy(3)], rarity: 'rare' }),
+
+  // 黄泉渡りの霊僧: 岩霊の盾役と、破滅による決着。
+  card({ id: 'necromancer_bodyguard', classId: 'necromancer', sourceName: 'ボディガード', name: '岩霊を呼ぶ', type: 'skill', glyph: '召', description: '召喚5。岩霊のHPを5増やす。', upgradedDescription: '召喚7。岩霊のHPを7増やす。', effects: [{ type: 'summon', amount: 5 }], upgradedEffects: [{ type: 'summon', amount: 7 }] }),
+  card({ id: 'necromancer_unleash', classId: 'necromancer', sourceName: '解き放つ', name: '岩霊の体当たり', type: 'attack', glyph: '霊', description: '岩霊が6＋自身の現在HPのダメージを与える。岩霊が不在なら不発。', upgradedDescription: '岩霊が9＋自身の現在HPのダメージを与える。岩霊が不在なら不発。', effects: [{ type: 'summonDamage', amount: 6, plusSummonHp: true }], upgradedEffects: [{ type: 'summonDamage', amount: 9, plusSummonHp: true }] }),
+  card({ id: 'necromancer_poke', classId: 'necromancer', sourceName: 'つっつき', name: '岩霊のこつん', type: 'attack', glyph: '突', description: '岩霊が6ダメージ。岩霊が不在なら不発。', upgradedDescription: '岩霊が9ダメージ。岩霊が不在なら不発。', effects: [{ type: 'summonDamage', amount: 6 }], upgradedEffects: [{ type: 'summonDamage', amount: 9 }] }),
+  card({ id: 'necromancer_desecrate', classId: 'necromancer', sourceName: '冒涜', name: '彼岸の悪ふざけ', type: 'attack', glyph: '戯', description: 'エセリアル。13ダメージ。', upgradedDescription: 'エセリアル。17ダメージ。', effects: [damage(13)], upgradedEffects: [damage(17)], options: { ethereal: true } }),
+  card({ id: 'necromancer_doom_strike', classId: 'necromancer', sourceName: '枯毒のストライク', name: '終末の石碑打ち', type: 'attack', glyph: '碑', description: '8ダメージ。実際に減らしたHPと同じ数の破滅を付与。', upgradedDescription: '10ダメージ。実際に減らしたHPと同じ数の破滅を付与。', effects: [damage(8, { doomFromDamage: true })], upgradedEffects: [damage(10, { doomFromDamage: true })] }),
+  card({ id: 'necromancer_soul_strike', classId: 'necromancer', sourceName: '魂剥ぎ', name: '魂の石写し', type: 'attack', glyph: '魂', description: '9ダメージ。魂札を1枚山札に生成。', upgradedDescription: '11ダメージ。強化済み魂札を1枚山札に生成。', effects: [damage(9), soul()], upgradedEffects: [damage(11), soul(true)] }),
+  card({ id: 'necromancer_sow', classId: 'necromancer', sourceName: '種まき', name: '彼岸への種まき', type: 'attack', glyph: '種', description: '保留。敵全体に8ダメージ。', upgradedDescription: '保留。敵全体に11ダメージ。', effects: [damage(8, { all: true })], upgradedEffects: [damage(11, { all: true })], options: { retain: true } }),
+  card({ id: 'necromancer_reap', classId: 'necromancer', sourceName: '刈り取り', name: '黄泉の大掃除', type: 'attack', glyph: '刈', description: '保留。27ダメージ。', upgradedDescription: '保留。33ダメージ。', effects: [damage(27)], upgradedEffects: [damage(33)], options: { retain: true }, rarity: 'uncommon' }),
+  card({ id: 'necromancer_wisp', classId: 'necromancer', sourceName: 'ウィスプ', name: '魂の朝灯', type: 'skill', glyph: '灯', description: 'エナジー +1。廃棄。', upgradedDescription: '保留。エナジー +1。廃棄。', effects: [energy(1)], upgradedEffects: [energy(1)], options: { exhaust: true, upgradedRetain: true } }),
+  card({ id: 'necromancer_doom_draw', classId: 'necromancer', sourceName: '天罰', name: 'ねんねの宣告', type: 'skill', glyph: '宣', description: '破滅13。1枚引く。', upgradedDescription: '破滅16。2枚引く。', effects: [{ type: 'doom', amount: 13 }, draw(1)], upgradedEffects: [{ type: 'doom', amount: 16 }, draw(2)] }),
+  card({ id: 'necromancer_negative_wave', classId: 'necromancer', sourceName: '負の波動', name: '彼岸の波紋', type: 'skill', glyph: '波', description: '5ブロック。敵全体に破滅7。', upgradedDescription: '6ブロック。敵全体に破滅11。', effects: [block(5), { type: 'doom', amount: 7, all: true }], upgradedEffects: [block(6), { type: 'doom', amount: 11, all: true }], rarity: 'uncommon' }),
+  card({ id: 'necromancer_grave_guard', classId: 'necromancer', sourceName: '墓守', name: '石墓の番人', type: 'skill', glyph: '墓', description: '8ブロック。魂札を1枚山札に生成。', upgradedDescription: '11ブロック。魂札を1枚山札に生成。', effects: [block(8), soul()], upgradedEffects: [block(11), soul()] }),
+  card({ id: 'necromancer_afterlife', classId: 'necromancer', sourceName: '来世', name: '岩霊の再出勤', type: 'skill', glyph: '再', description: '召喚6。廃棄。', upgradedDescription: '召喚9。廃棄。', effects: [{ type: 'summon', amount: 6 }], upgradedEffects: [{ type: 'summon', amount: 9 }], options: { exhaust: true }, rarity: 'uncommon' }),
+
+  // 岩核の機巧師: オーブは共通の処理エンジンで動作。
+  card({ id: 'machinist_zap', classId: 'machinist', sourceName: 'ザップ', name: '岩核の点火', type: 'skill', glyph: '雷', description: '雷オーブを1個生成。', upgradedDescription: 'コスト0。雷オーブを1個生成。', effects: [orb('lightning')], upgradedEffects: [orb('lightning')] }),
+  card({ id: 'machinist_dual_cast', classId: 'machinist', sourceName: 'デュアルキャスト', name: '二段階の起動確認', type: 'skill', glyph: '解', description: '右端のオーブを2回解放して取り除く。', upgradedDescription: 'コスト0。右端のオーブを2回解放して取り除く。', effects: [{ type: 'evoke', times: 2 }], upgradedEffects: [{ type: 'evoke', times: 2 }] }),
+  card({ id: 'machinist_ball_lightning', classId: 'machinist', sourceName: 'ボールライトニング', name: '琥珀の帯電拳', type: 'attack', glyph: '電', description: '7ダメージ。雷オーブを1個生成。', upgradedDescription: '10ダメージ。雷オーブを1個生成。', effects: [damage(7), orb('lightning')], upgradedEffects: [damage(10), orb('lightning')] }),
+  card({ id: 'machinist_cold_wave', classId: 'machinist', sourceName: '寒波', name: '霜柱の一撃', type: 'attack', glyph: '霜', description: '6ダメージ。霜オーブを1個生成。', upgradedDescription: '9ダメージ。霜オーブを1個生成。', effects: [damage(6), orb('frost')], upgradedEffects: [damage(9), orb('frost')] }),
+  card({ id: 'machinist_coolheaded', classId: 'machinist', sourceName: '冷静沈着', name: '冷えた岩核', type: 'skill', glyph: '冷', description: '霜オーブを1個生成。1枚引く。', upgradedDescription: '霜オーブを1個生成。2枚引く。', effects: [orb('frost'), draw(1)], upgradedEffects: [orb('frost'), draw(2)] }),
+  card({ id: 'machinist_beam_sweep', classId: 'machinist', sourceName: 'ビーム一掃', name: '光条の石掃除', type: 'attack', glyph: '光', description: '敵全体に6ダメージ。1枚引く。', upgradedDescription: '敵全体に9ダメージ。1枚引く。', effects: [damage(6, { all: true }), draw(1)], upgradedEffects: [damage(9, { all: true }), draw(1)] }),
+  card({ id: 'machinist_focus_strike', classId: 'machinist', sourceName: 'フォーカスストライク', name: '一点集中の拳', type: 'attack', glyph: '集', description: '9ダメージ。このターンだけ集中力 +1。', upgradedDescription: '11ダメージ。このターンだけ集中力 +2。', effects: [damage(9), { type: 'focus', amount: 1, temporary: true }], upgradedEffects: [damage(11), { type: 'focus', amount: 2, temporary: true }] }),
+  card({ id: 'machinist_battery', classId: 'machinist', sourceName: 'バッテリー充電', name: '岩電池の夜仕込み', type: 'skill', glyph: '充', description: '7ブロック。次のターン、エナジー +1。', upgradedDescription: '10ブロック。次のターン、エナジー +1。', effects: [block(7), { type: 'nextTurnEnergy', amount: 1 }], upgradedEffects: [block(10), { type: 'nextTurnEnergy', amount: 1 }] }),
+  card({ id: 'machinist_leap', classId: 'machinist', sourceName: '跳躍', name: '跳ねる岩盤', type: 'skill', glyph: '跳', description: '9ブロック。', upgradedDescription: '12ブロック。', effects: [block(9)], upgradedEffects: [block(12)] }),
+  card({ id: 'machinist_skim', classId: 'machinist', sourceName: 'スキム', name: '石板の速読', type: 'skill', glyph: '読', description: '3枚引く。', upgradedDescription: '4枚引く。', effects: [draw(3)], upgradedEffects: [draw(4)], rarity: 'uncommon' }),
+  card({ id: 'machinist_tempest', classId: 'machinist', sourceName: 'テンペスト', name: '雷核の総動員', type: 'skill', glyph: '嵐', description: '残りエナジーをすべて使い、その数の雷オーブを生成。', upgradedDescription: '残りエナジーをすべて使い、その数＋1の雷オーブを生成。', effects: [{ type: 'xChannel', orb: 'lightning', bonus: 0 }], upgradedEffects: [{ type: 'xChannel', orb: 'lightning', bonus: 1 }], rarity: 'uncommon' }),
+  card({ id: 'machinist_defrag', classId: 'machinist', sourceName: 'デフラグ', name: '教義の再配線', type: 'power', glyph: '配', description: '集中力 +1。戦闘中持続。', upgradedDescription: '集中力 +2。戦闘中持続。', effects: [{ type: 'focus', amount: 1 }], upgradedEffects: [{ type: 'focus', amount: 2 }], rarity: 'uncommon' }),
+  card({ id: 'machinist_glacier', classId: 'machinist', sourceName: '氷河', name: '凍結した御神体', type: 'skill', glyph: '氷', description: '6ブロック。霜オーブを2個生成。', upgradedDescription: '9ブロック。霜オーブを2個生成。', effects: [block(6), orb('frost', 2)], upgradedEffects: [block(9), orb('frost', 2)], rarity: 'uncommon' }),
+  card({ id: 'machinist_hotfix', classId: 'machinist', sourceName: 'ホットフィックス', name: '朝いちの緊急配線', type: 'skill', glyph: '修', description: 'このターンだけ集中力 +2。廃棄。', upgradedDescription: 'このターンだけ集中力 +2。', effects: [{ type: 'focus', amount: 2, temporary: true }], upgradedEffects: [{ type: 'focus', amount: 2, temporary: true }], options: { exhaust: true, upgradedExhaust: false }, rarity: 'uncommon' }),
+
+  // 無色: 戦闘報酬には出さず、商人と指定イベントでのみ取得。
+  card({ id: 'colorless_flash', classId: 'colorless', sourceName: '一閃', name: '通りすがりのほいっと', type: 'attack', glyph: '閃', description: '5ダメージ。1枚引く。', upgradedDescription: '8ダメージ。1枚引く。', effects: [damage(5), draw(1)], upgradedEffects: [damage(8), draw(1)], rarity: 'uncommon' }),
+  card({ id: 'colorless_finesse', classId: 'colorless', sourceName: '技巧', name: '石さばきの手ほどき', type: 'skill', glyph: '巧', description: '4ブロック。1枚引く。', upgradedDescription: '7ブロック。1枚引く。', effects: [block(4), draw(1)], upgradedEffects: [block(7), draw(1)], rarity: 'uncommon' }),
+  card({ id: 'colorless_strategy', classId: 'colorless', sourceName: '戦略家', name: '作戦は石の上で', type: 'skill', glyph: '策', description: '3枚引く。廃棄。', upgradedDescription: '4枚引く。廃棄。', effects: [draw(3)], upgradedEffects: [draw(4)], options: { exhaust: true }, rarity: 'rare' }),
+  card({ id: 'colorless_entrance', classId: 'colorless', sourceName: '劇的な入場', name: '教祖の寝起き登場', type: 'attack', glyph: '登', description: '天賦。敵全体に11ダメージ。廃棄。', upgradedDescription: '天賦。敵全体に15ダメージ。廃棄。', effects: [damage(11, { all: true })], upgradedEffects: [damage(15, { all: true })], options: { innate: true, exhaust: true }, rarity: 'rare' }),
+  card({ id: 'colorless_strike', classId: 'colorless', sourceName: '究極のストライク', name: '一枚岩の正拳', type: 'attack', glyph: '正', description: '14ダメージ。', upgradedDescription: '20ダメージ。', effects: [damage(14)], upgradedEffects: [damage(20)], rarity: 'uncommon' }),
+  card({ id: 'colorless_guard', classId: 'colorless', sourceName: '究極の防御', name: '一枚岩の不動心', type: 'skill', glyph: '心', description: '11ブロック。', upgradedDescription: '15ブロック。', effects: [block(11)], upgradedEffects: [block(15)], rarity: 'uncommon' }),
+];
+
+/** Generated tokens are playable, but can never appear in shop/reward/event acquisition pools. */
+const tokenCards: CardDefinition[] = [
+  card({ id: 'token_knife', classId: 'assassin', sourceName: 'ナイフ', name: '石刃', type: 'attack', glyph: '刃', description: '4ダメージ。廃棄。', upgradedDescription: '6ダメージ。廃棄。', effects: [damage(4)], upgradedEffects: [damage(6)], options: { exhaust: true, tokenOnly: true, rewardEligible: false, tags: ['knife'] } }),
+  card({ id: 'token_soul', classId: 'necromancer', sourceName: 'ソウル', name: '魂札', type: 'skill', glyph: '魂', description: '2枚引く。廃棄。', upgradedDescription: '3枚引く。廃棄。', effects: [draw(2)], upgradedEffects: [draw(3)], options: { exhaust: true, tokenOnly: true, rewardEligible: false } }),
+  card({ id: 'token_sword', classId: 'oracle', sourceName: 'ソヴリン・ブレード', name: '岩尊の聖剣', type: 'attack', glyph: '聖', description: '保留。10＋この戦闘の鍛造値のダメージ。', upgradedDescription: 'コスト1。保留。10＋この戦闘の鍛造値のダメージ。', effects: [damage(10, { fromForge: true })], upgradedEffects: [damage(10, { fromForge: true })], options: { retain: true, tokenOnly: true, rewardEligible: false } }),
+];
+
+export const CLASS_CARD_DEFINITIONS: Record<string, CardDefinition> = Object.fromEntries(
+  [...basicCards, ...adaptedCards, ...tokenCards].map((entry) => [entry.id, entry]),
+);
+export const GENERATED_CARD_IDS = tokenCards.map((entry) => entry.id);
+export const PLAYABLE_SOURCE_CARD_IDS = [...new Set(
+  Object.values(CLASS_CARD_DEFINITIONS).flatMap((entry) => entry.sourceCardId ? [entry.sourceCardId] : []),
+)];
