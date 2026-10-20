@@ -11,6 +11,12 @@ from playwright.sync_api import sync_playwright
 DATA=json.loads(Path(os.environ.get('SPYIER_RELIC_FIXTURES','/tmp/spyier-relic-ui-final-fixtures.json')).read_text());KEY='iwason-spire:run:v2';URL=os.environ.get('SPYIER_QA_URL','http://127.0.0.1:5282/spyier/')
 OUT=Path(os.environ.get('SPYIER_RELIC_OUTPUT','/tmp/spyier-relic-ui-final-browser'));OUT.mkdir(exist_ok=True);errors=[];results=[];checks=0
 NAMES={'berserker':'岩砕の拳僧','assassin':'静刃の影師','oracle':'星詠みの法王','necromancer':'黄泉渡りの霊僧','machinist':'岩核の機巧師'}
+if os.environ.get('SPYIER_RELIC_CASES'):
+ selected=set(os.environ['SPYIER_RELIC_CASES'].split(','))
+ known={case['name']for case in DATA['fixtures']}
+ assert selected <= known,('Unknown requested cases',sorted(selected-known))
+ DATA['fixtures']=[case for case in DATA['fixtures']if case['name']in selected]
+ assert DATA['fixtures'],'No browser cases selected'
 def saved(p):return p.evaluate('(k)=>localStorage.getItem(k)',KEY)
 def run(p):return json.loads(saved(p))['run']
 def click(p,loc,width):

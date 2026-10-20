@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { canPlayCard, getEnemies, getEnemyKey } from '../engine';
 import { cardTargetMode, resolveCardDrop } from '../presentation/targeting';
+import { getHandPreviewBounds } from '../presentation/handLayout';
 import type { CardDropResult } from '../presentation/targeting';
 import type { CardInstance, CombatState, GameSettings } from '../types/game';
 import { CardView } from './CardView';
@@ -44,6 +45,7 @@ const DRAG_THRESHOLD = 7;
 
 export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProps) {
   const root = useRef<HTMLElement>(null);
+  const cardsRoot = useRef<HTMLDivElement>(null);
   const overlay = useRef<HTMLDivElement>(null);
   const curve = useRef<SVGPathElement>(null);
   const tip = useRef<HTMLDivElement>(null);
@@ -54,8 +56,46 @@ export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProp
   const suppressClickUntil = useRef(0);
   const suppressedUid = useRef<string | null>(null);
   const [draggingUid, setDraggingUid] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ uid: string; pinned: boolean; anchor: DOMRect } | null>(null);
+  const [scrollable, setScrollable] = useState(false);
+  const [viewport, setViewport] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }));
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previewPanel = useRef<HTMLDivElement>(null);
+  const previewReturnFocus = useRef<HTMLElement | null>(null);
+  const pointerType = useRef('mouse');
+  const pointerOrigin = useRef({ x: 0, y: 0 });
+  const previewCard = state.hand.find((card) => card.uid === preview?.uid);
   const markerId = `target-${useId().replace(/:/g, '')}`;
   const noMotion = settings?.reducedMotion || settings?.speed === 'instant';
+
+  function cancelPreviewClose() {
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    previewTimer.current = null;
+  }
+
+  function closePreview(restoreFocus = false) {
+    cancelPreviewClose();
+    setPreview(null);
+    if (restoreFocus) previewReturnFocus.current?.focus({ preventScroll: true });
+  }
+
+  function showPreview(uid: string, source: HTMLElement, pinned = false) {
+    if (session.current?.started || draggingUid || (preview?.pinned && !pinned)) return;
+    cancelPreviewClose();
+    if (pinned) previewReturnFocus.current = source;
+    setPreview({ uid, pinned, anchor: source.getBoundingClientRect() });
+  }
+
+  function schedulePreviewClose() {
+    cancelPreviewClose();
+    previewTimer.current = setTimeout(() => setPreview((current) => current?.pinned ? current : null), 140);
+  }
+
+  function scrollHand(direction: number) {
+    closePreview();
+    const hand = cardsRoot.current;
+    hand?.scrollBy({ left: direction * Math.max(160, hand.clientWidth * .65), behavior: noMotion ? 'instant' : 'smooth' });
+  }
 
   function removeGhost(ghost: HTMLElement) {
     ghost.remove();
@@ -66,6 +106,7 @@ export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProp
     const rect = source.getBoundingClientRect();
     const ghost = document.createElement('div');
     ghost.className = 'battle-card-ghost';
+    if (source.closest('.compact-battle')) ghost.classList.add('is-compact-hand-card');
     if (latest.current.settings?.effectsQuality === 'low') ghost.classList.add('is-lightweight');
     ghost.setAttribute('aria-hidden', 'true');
     ghost.inert = true;
@@ -180,6 +221,9 @@ export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProp
   }
 
   function beginPointer(event: ReactPointerEvent<HTMLDivElement>) {
+    pointerType.current = event.pointerType;
+    pointerOrigin.current = { x: event.clientX, y: event.clientY };
+    if ((event.target as Element).closest('.battle-card-detail-button')) return;
     if (event.button !== 0 || !event.isPrimary || disabled || session.current) return;
     const source = (event.target as Element).closest<HTMLButtonElement>('button[data-card-uid]');
     const card = state.hand.find((candidate) => candidate.uid === source?.dataset.cardUid);
@@ -207,6 +251,7 @@ export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProp
           return;
         }
         drag.started = true;
+        closePreview();
         drag.ghost = makeGhost(source);
         source.setPointerCapture(drag.pointerId);
         setDraggingUid(card.uid);
@@ -254,6 +299,7 @@ export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProp
     const screen = root.current?.closest('.battle-screen');
     const target = targetId ? screen?.querySelector(`[data-enemy-id="${CSS.escape(targetId)}"]`) : screen?.querySelector('.combatant--player');
     const accepted = snapshot.onPlay(uid, targetId) !== false;
+    if (accepted) closePreview();
     if (accepted && source && !noMotion) settleGhost(makeGhost(source), source, true, target);
     // The reducer/UI action gate prevents repeated clicks and keyboard activation.
   }
@@ -263,7 +309,34 @@ export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProp
   }, [disabled]);
 
   useEffect(() => {
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') finishSession(true); };
+    const hand = cardsRoot.current;
+    if (!hand) return;
+    const measure = () => setScrollable(hand.scrollWidth > hand.clientWidth + 2);
+    const observer = new ResizeObserver(measure);
+    observer.observe(hand);
+    measure();
+    return () => observer.disconnect();
+  }, [state.hand.length]);
+
+  useEffect(() => {
+    const resize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, []);
+
+  useEffect(() => {
+    if (!preview?.pinned || !previewCard) return;
+    previewPanel.current?.querySelector<HTMLButtonElement>('.battle-card-inspector-close')?.focus({ preventScroll: true });
+  }, [preview?.pinned, preview?.uid]);
+
+  useEffect(() => {
+    const escape = (event: KeyboardEvent) => {
+      // Touch focuses its source immediately before dispatching the compatible
+      // click. Opening a hover portal during that focus can steal the click.
+      // A later Tab restores the normal keyboard focus preview on hybrid devices.
+      if (event.key === 'Tab') pointerType.current = 'keyboard';
+      if (event.key === 'Escape') { finishSession(true); closePreview(true); }
+    };
     const blur = () => finishSession(true);
     window.addEventListener('keydown', escape);
     window.addEventListener('blur', blur);
@@ -273,30 +346,81 @@ export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProp
       finishSession(true, false);
       for (const ghost of ghosts.current) ghost.remove();
       ghosts.current.clear();
+      cancelPreviewClose();
     };
   }, []);
 
   return <section className="hand-section battle-hand" aria-label="手札" aria-busy={disabled} ref={root} data-motion={noMotion ? 'instant' : settings?.speed ?? 'normal'}>
     <div className="hand-heading">
-      <div><span className="section-kicker">YOUR HAND</span><h2>手札 <span>{state.hand.length}枚</span></h2></div>
-      <p>{state.energy === 0 ? 'エナジーを使い切りました。次の手札へ。' : 'カードを敵へドラッグ / クリックで使用'}
+      <div><h2>手札 <span>{state.hand.length}枚</span></h2></div>
+      <p><span className="hand-pointer-instruction">{state.energy === 0 ? 'エナジー 0' : 'ドラッグ / クリックで使用'}</span><span className="hand-touch-instruction">タップで詳細・確認して使用</span>
         <span className="shortcut-hint"><kbd>1</kbd>〜<kbd>5</kbd> でも使用</span>
       </p>
+      {scrollable && <div className="hand-scroll-controls" aria-label="手札をスクロール">
+        <button type="button" aria-label="前の手札を表示" onClick={() => scrollHand(-1)}>‹</button>
+        <button type="button" aria-label="次の手札を表示" onClick={() => scrollHand(1)}>›</button>
+      </div>}
     </div>
-    <div className="hand-cards battle-hand-cards" onPointerDown={beginPointer}
+    <div className="hand-cards battle-hand-cards" ref={cardsRoot} onPointerDown={beginPointer} onScroll={() => { if (!preview?.pinned) closePreview(); }}
+      onPointerUpCapture={(event) => {
+        // Disabled card buttons do not emit click, but their details still need
+        // to be reachable by touch without enabling an unaffordable card.
+        if (event.pointerType !== 'touch' || Math.hypot(event.clientX - pointerOrigin.current.x, event.clientY - pointerOrigin.current.y) >= DRAG_THRESHOLD) return;
+        const button = (event.target as Element).closest<HTMLButtonElement>('button[data-card-uid]');
+        if (button?.disabled && button.dataset.cardUid) showPreview(button.dataset.cardUid, button, true);
+      }}
       onClickCapture={(event) => {
         const uid = (event.target as Element).closest<HTMLElement>('[data-card-uid]')?.dataset.cardUid;
         if (event.detail > 0 && uid === suppressedUid.current && Date.now() < suppressClickUntil.current) {
           event.preventDefault(); event.stopPropagation();
+          return;
+        }
+        if (pointerType.current === 'touch' && uid && !(event.target as Element).closest('.battle-card-detail-button')) {
+          event.preventDefault(); event.stopPropagation();
+          const source = (event.target as Element).closest<HTMLElement>('.battle-hand-slot');
+          if (source) showPreview(uid, source, true);
         }
       }}>
       {state.hand.map((card, index) => <div key={card.uid}
         className={`battle-hand-slot ${draggingUid === card.uid ? 'is-card-dragging' : ''}`}
-        style={{ '--fan-angle': `${(index - (state.hand.length - 1) / 2) * 1.1}deg`, '--fan-rise': `${Math.abs(index - (state.hand.length - 1) / 2) * 1.4}px`, '--draw-delay': `${Math.min(index * 24, 120)}ms` } as CSSProperties}>
+        onPointerEnter={(event) => { if (event.pointerType !== 'touch') showPreview(card.uid, event.currentTarget); }}
+        onPointerLeave={schedulePreviewClose}
+        onFocusCapture={(event) => { if (pointerType.current !== 'touch' && !(event.target as Element).closest('.battle-card-detail-button')) showPreview(card.uid, event.currentTarget); }}
+        onBlurCapture={schedulePreviewClose}
+        style={{ '--fan-angle': `${Math.max(-2, Math.min(2, (index - (state.hand.length - 1) / 2) * .35))}deg`, '--fan-rise': '0px', '--draw-delay': `${Math.min(index * 24, 120)}ms` } as CSSProperties}>
         <CardView card={card} state={state} onPlay={clickPlay} position={index} disabled={disabled || (!!draggingUid && draggingUid !== card.uid)} />
+        <button className="battle-card-detail-button" type="button" aria-label={`${CARD_DEFINITIONS[card.cardId]?.name ?? 'カード'}の詳細を表示`}
+          aria-haspopup="dialog" onClick={(event) => { event.stopPropagation(); showPreview(card.uid, event.currentTarget, true); }}><Icon name="book" size={12} /><span>詳細</span></button>
       </div>)}
       {!state.hand.length && <div className="empty-hand"><Icon name="cards" size={32} /><p>手札を使い切りました。<br /><span>ターンを終了すると、新しく5枚ドローします。</span></p></div>}
     </div>
+    {preview && previewCard && !draggingUid && createPortal(<>
+      {preview.pinned && <div className="battle-card-inspector-backdrop" onPointerDown={() => closePreview(true)} />}
+      <div className={`battle-card-inspector${preview.pinned ? ' is-pinned' : ''}`} ref={previewPanel}
+        role={preview.pinned ? 'dialog' : 'tooltip'} aria-modal={preview.pinned || undefined} aria-label="手札カードの詳細"
+        style={getHandPreviewBounds(preview.anchor, viewport)} data-motion={noMotion ? 'instant' : settings?.speed ?? 'normal'}
+        onPointerEnter={cancelPreviewClose} onPointerLeave={schedulePreviewClose}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') { event.stopPropagation(); closePreview(true); }
+          if (preview.pinned && event.key === 'Tab') {
+            const buttons = previewPanel.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)');
+            if (!buttons?.length) return;
+            if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[buttons.length - 1].focus(); }
+            else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) { event.preventDefault(); buttons[0].focus(); }
+          }
+        }}>
+        {preview.pinned && <button className="battle-card-inspector-close" type="button" onClick={() => closePreview(true)} aria-label="カード詳細を閉じる"><Icon name="close" size={17} /></button>}
+        <CardView card={previewCard} state={state} inspect showUpgradePreview={false} />
+        {preview.pinned ? <div className="battle-card-inspector-actions">
+          <p>{cardTargetMode(CARD_DEFINITIONS[previewCard.cardId], previewCard.upgraded) === 'enemy'
+            ? `対象：${(getEnemies(state).find((enemy) => getEnemyKey(enemy) === state.selectedEnemyId && enemy.hp > 0) ?? getEnemies(state).find((enemy) => enemy.hp > 0))?.name ?? '敵'}`
+            : '対象：カードの効果に従う'}</p>
+          <button type="button" disabled={disabled || !canPlayCard(state, previewCard.uid)} onClick={() => clickPlay(previewCard.uid)}>
+            {canPlayCard(state, previewCard.uid) ? 'このカードを使用' : '現在は使用できません'}
+          </button>
+        </div> : <p className="battle-card-inspector-hint">詳細ボタンで固定表示 / カードをクリックで使用</p>}
+      </div>
+    </>, document.body)}
     {createPortal(<div className="card-drag-overlay" ref={overlay} aria-hidden="true" data-quality={settings?.effectsQuality}>
       <svg className="card-targeting-curve" width="100%" height="100%">
         <defs><marker id={markerId} markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="currentColor" strokeWidth="1.4" /></marker></defs>

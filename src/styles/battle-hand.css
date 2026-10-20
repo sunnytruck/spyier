@@ -136,3 +136,230 @@
   .battle-hand .battle-hand-slot,
   .battle-hand .battle-hand-slot > .game-card { animation: none; transition: none; }
 }
+
+/* The hand is a bounded tray; only its cards scroll, never the battle page. */
+.compact-battle .battle-hand {
+  --hand-card-width: 170px;
+  --hand-card-height: 206px;
+  display: grid;
+  grid-template-rows: 26px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  border-top: 1px solid #9c895a48;
+  background: linear-gradient(180deg, #1b2118ef, #111810f7);
+  overflow: hidden;
+}
+.app .compact-battle .battle-hand .hand-heading {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 0;
+  padding: 2px 10px;
+  min-height: 0;
+}
+.app .compact-battle .battle-hand .hand-heading h2 {
+  margin: 0;
+  font: 650 13px/1.3 var(--sans, sans-serif);
+  color: #eee1bd;
+  white-space: nowrap;
+}
+.app .compact-battle .battle-hand .hand-heading h2 > span { font-size: 12px; color: #c4c6ac; margin-left: 4px; }
+.app .compact-battle .battle-hand .hand-heading > p {
+  margin: 0 auto 0 0;
+  color: #c0c6ae;
+  font-size: 11px;
+  line-height: 1.3;
+  gap: 9px;
+}
+.hand-touch-instruction { display: none; }
+.hand-scroll-controls { display: flex; flex-shrink: 0; gap: 4px; }
+.hand-scroll-controls > button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #bc9e5d75;
+  border-radius: 4px;
+  background: #333528;
+  color: #f4dca4;
+  font-size: 20px;
+  cursor: pointer;
+}
+.app .compact-battle .battle-hand .battle-hand-cards {
+  display: flex;
+  align-items: start;
+  justify-content: safe center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 7px 13px 5px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scroll-padding: 13px;
+  overscroll-behavior: contain;
+}
+.app .compact-battle .battle-hand .battle-hand-slot { flex: 0 0 var(--hand-card-width); width: var(--hand-card-width); }
+.app .compact-battle .battle-hand .battle-hand-slot > .game-card {
+  width: var(--hand-card-width);
+  min-width: var(--hand-card-width);
+  height: var(--hand-card-height);
+  min-height: 0;
+  max-height: var(--hand-card-height);
+  margin: 0;
+  overflow: hidden;
+}
+.app .compact-battle .battle-hand .battle-hand-slot:hover,
+.app .compact-battle .battle-hand .battle-hand-slot:focus-within { transform: translateY(-3px); }
+.app .compact-battle .battle-hand .battle-hand-slot > .game-card:hover,
+.app .compact-battle .battle-hand .battle-hand-slot > .game-card:focus-visible { transform: none; }
+.app .compact-battle .battle-hand .card-heading { flex-shrink: 0; min-height: 37px; padding: 5px 8px; gap: 5px; }
+.app .compact-battle .battle-hand .card-heading h3 { font-size: 13px; line-height: 1.35; padding-right: 0; }
+.app .compact-battle .battle-hand .card-cost { width: 25px; min-width: 25px; height: 25px; font-size: 18px; }
+.app .compact-battle .battle-hand .card-type-symbol { display: none; }
+.app .compact-battle .battle-hand .card-art { height: 22px; margin: 0 8px; }
+.app .compact-battle .battle-hand .card-art-halo { width: 26px; height: 26px; }
+.app .compact-battle .battle-hand .card-description {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 6px 9px 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow: hidden;
+}
+.app .compact-battle .battle-hand .card-runtime {
+  flex-shrink: 0;
+  margin: 1px 8px 5px;
+  padding: 3px 5px;
+  max-height: 37px;
+  overflow: hidden;
+}
+.app .compact-battle .battle-hand .card-runtime-label { display: none; }
+.app .compact-battle .battle-hand .card-runtime-fact { font-size: 11px; line-height: 1.35; margin: 0; }
+.app .compact-battle .battle-hand .card-footer { min-height: 20px; margin: 0 8px 6px; padding: 2px 44px 0 0; font-size: 10px; line-height: 1.3; flex-shrink: 0; }
+.app .compact-battle .battle-hand .card-glyph { display: none; }
+.app .compact-battle .battle-hand .card-acquisition-badge { margin: 3px 8px 0; padding: 0 4px; font-size: 10px; line-height: 1.5; }
+.app .compact-battle .battle-hand .card-temporary-upgrade { margin: 0 8px 2px; font-size: 10px; line-height: 1.35; }
+.battle-card-detail-button {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 25px;
+  padding: 2px 5px;
+  border: 1px solid #bbac766b;
+  border-radius: 4px;
+  background: #252e23f5;
+  color: #f0ddb2;
+  font: 600 11px/1.2 var(--sans, sans-serif);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.battle-card-detail-button:hover, .battle-card-detail-button:focus-visible { border-color: #ffe2a2; background: #49442d; }
+.battle-hand-slot.is-card-dragging .battle-card-detail-button { visibility: hidden; }
+.app .compact-battle .empty-hand { min-height: 0; height: 100%; margin: auto; display: flex; align-items: center; gap: 15px; }
+.app .compact-battle .empty-hand p { font-size: 13px; }
+.app .compact-battle .empty-hand span { font-size: 12px; }
+
+/* Enlarging uses a viewport-clamped portal rather than scaling out of the tray. */
+.battle-card-inspector-backdrop { position: fixed; inset: 0; z-index: 1230; background: #080d0bc4; backdrop-filter: blur(2px); }
+.battle-card-inspector {
+  position: fixed;
+  z-index: 1235;
+  box-sizing: border-box;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #cfb77c;
+  border-radius: 8px;
+  padding: 6px;
+  color: #e8e4cd;
+  background: #182119fa;
+  box-shadow: 0 12px 40px #000c, 0 0 24px #c19d4c26;
+  font-family: var(--sans, "Yu Gothic", Meiryo, sans-serif);
+  scrollbar-width: thin;
+  scrollbar-color: #bca06d #182119;
+  animation: hand-preview-reveal 100ms ease-out;
+}
+.battle-card-inspector > .game-card.inspect-card {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  height: auto;
+  overflow: visible;
+  transform: none;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+}
+.battle-card-inspector .card-heading { padding: 9px 10px; padding-right: 28px; min-height: 46px; }
+.battle-card-inspector .card-heading h3 { font-size: 16px; line-height: 1.5; }
+.battle-card-inspector .card-art { height: 52px; }
+.battle-card-inspector .card-description { font-size: 14px; line-height: 1.8; min-height: 0; overflow: visible; padding: 11px 12px; }
+.battle-card-inspector .card-metadata { display: flex; justify-content: space-between; gap: 5px; padding: 0 11px 7px; font-size: 11px; color: #d3c79f; }
+.battle-card-inspector .card-runtime { margin: 0 10px 8px; padding: 8px; }
+.battle-card-inspector .card-runtime-fact { font-size: 13px; }
+.battle-card-inspector .card-footer { margin: 0 10px 6px; font-size: 11px; }
+.battle-card-inspector-close {
+  position: absolute;
+  top: 10px;
+  right: 9px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border: 1px solid #c3a97675;
+  border-radius: 4px;
+  color: #ffe6b2;
+  background: #282e22f5;
+  cursor: pointer;
+}
+.battle-card-inspector-hint { margin: 5px 4px 1px; font-size: 11px; line-height: 1.6; color: #d7cba9; }
+.battle-card-inspector-actions { position: sticky; bottom: -6px; padding: 7px 5px 5px; background: #182119f5; border-top: 1px solid #ad98544d; }
+.battle-card-inspector-actions p { margin: 0 0 6px; font-size: 12px; line-height: 1.5; color: #e2d4ad; }
+.battle-card-inspector-actions > button { width: 100%; min-height: 38px; border: 1px solid #dfbc70; border-radius: 4px; background: #64512e; color: #fff2d0; font-family: inherit; font-size: 14px; font-weight: 650; line-height: 1.4; cursor: pointer; }
+.battle-card-inspector-actions > button:disabled { color: #bcbdaa; border-color: #73765e; background: #30392a; cursor: default; }
+@keyframes hand-preview-reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 700px) {
+  .compact-battle .battle-hand { --hand-card-width: 150px; --hand-card-height: 174px; grid-template-rows: 25px minmax(0, 1fr); }
+  .app .compact-battle .battle-hand .battle-hand-cards { justify-content: flex-start; gap: 7px; padding: 5px 9px 5px; }
+  .app .compact-battle .battle-hand .hand-heading { padding-right: 7px; padding-left: 8px; gap: 6px; }
+  .app .compact-battle .battle-hand .hand-heading > p { font-size: 10px; }
+  .app .compact-battle .battle-hand .card-heading { padding: 4px 7px; min-height: 34px; }
+  .app .compact-battle .battle-hand .card-heading h3 { font-size: 12px; line-height: 1.4; }
+  .app .compact-battle .battle-hand .card-art { height: 15px; }
+  .app .compact-battle .battle-hand .card-description { font-size: 11px; line-height: 1.55; padding: 5px 8px 3px; }
+  .app .compact-battle .battle-hand .card-runtime { max-height: 31px; margin-bottom: 3px; }
+  .app .compact-battle .battle-hand .card-runtime-fact { font-size: 10px; line-height: 1.35; }
+  .app .compact-battle .battle-hand .card-footer { margin-bottom: 5px; min-height: 18px; font-size: 9px; }
+  .hand-scroll-controls > button { width: 27px; height: 23px; }
+}
+@media (hover: none) {
+  .hand-pointer-instruction { display: none; }
+  .hand-touch-instruction { display: inline; }
+  .battle-card-detail-button { min-height: 28px; min-width: 42px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .battle-card-inspector { animation: none; }
+}
+.battle-card-inspector[data-motion="instant"] { animation: none; }
+.battle-card-ghost.is-compact-hand-card .card-heading { min-height: 37px; padding: 5px 8px; }
+.battle-card-ghost.is-compact-hand-card .card-heading h3 { font-size: 13px; line-height: 1.35; }
+.battle-card-ghost.is-compact-hand-card .card-cost { width: 25px; height: 25px; min-width: 25px; font-size: 18px; }
+.battle-card-ghost.is-compact-hand-card .card-type-symbol { display: none; }
+.battle-card-ghost.is-compact-hand-card .card-art { height: 22px; margin: 0 8px; }
+.battle-card-ghost.is-compact-hand-card .card-description { min-height: 0; flex: 1 1 auto; padding: 6px 9px 4px; font-size: 12px; line-height: 1.6; overflow: hidden; }
+.battle-card-ghost.is-compact-hand-card .card-runtime { flex-shrink: 0; margin: 1px 8px 5px; padding: 3px 5px; max-height: 37px; overflow: hidden; }
+.battle-card-ghost.is-compact-hand-card .card-runtime-label { display: none; }
+.battle-card-ghost.is-compact-hand-card .card-runtime-fact { font-size: 11px; line-height: 1.35; }
+.battle-card-ghost.is-compact-hand-card .card-footer { min-height: 20px; padding: 2px 0 0; font-size: 10px; }

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Actor, CombatState, EnemyIntent, EnemyState, GameSettings } from '../types/game';
 import type { CombatCue } from '../presentation/types';
 import { getEnemies, getEnemyKey, predictEnemyDamage } from '../engine';
@@ -17,6 +18,52 @@ import { ClassResourceHud, EnemyResourceForecast, OrbSlots, OstyCompanion, StarE
 
 type Pile = 'drawPile' | 'discardPile' | 'exhaustPile' | 'powers';
 const keepChoiceOpen = () => {};
+interface StatusView { value: number; symbol: string; label: string; detail: string; color: string }
+
+/** A portal keeps status explanations visible beside screen-edge enemies. */
+function StatusChip({ status }: { status: StatusView }) {
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ left: 8, top: 8 });
+  const anchor = useRef<HTMLSpanElement>(null);
+  const tooltip = useRef<HTMLSpanElement>(null);
+  const id = useId();
+  useLayoutEffect(() => {
+    if (!open || !anchor.current || !tooltip.current) return;
+    const source = anchor.current.getBoundingClientRect();
+    const bounds = tooltip.current.getBoundingClientRect();
+    const left = Math.max(8, Math.min(window.innerWidth - bounds.width - 8, source.left + source.width / 2 - bounds.width / 2));
+    const below = source.bottom + 8;
+    const top = Math.max(8, Math.min(window.innerHeight - bounds.height - 8, below + bounds.height <= window.innerHeight - 8 ? below : source.top - bounds.height - 8));
+    setPosition({ left, top });
+  }, [open, status.detail, status.value]);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    const outside = (event: PointerEvent) => { if (!anchor.current?.contains(event.target as Node)) close(); };
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') close(); };
+    window.addEventListener('resize', close);
+    window.addEventListener('scroll', close, true);
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', escape);
+    return () => {
+      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', close, true);
+      document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [open]);
+  return <>
+    <span ref={anchor} className={`status-chip status-${status.color}`} tabIndex={0}
+      title={`${status.label} ${status.value}：${status.detail}`}
+      aria-label={`${status.label} ${status.value}：${status.detail}`} aria-describedby={open ? id : undefined}
+      onPointerEnter={(event) => { if (event.pointerType !== 'touch') setOpen(true); }}
+      onPointerLeave={() => { if (document.activeElement !== anchor.current) setOpen(false); }}
+      onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => setOpen(true)}>
+      <span>{status.symbol}</span><b>{status.value}</b>
+    </span>
+    {open && createPortal(<span className="battle-status-tooltip" id={id} ref={tooltip} role="tooltip" style={position}>{status.label} {status.value}<small>{status.detail}</small></span>, document.body)}
+  </>;
+}
 interface BattleProps {
   state: CombatState;
   resolving: boolean;
@@ -47,15 +94,15 @@ function intentExtras(intent: EnemyIntent): string {
     intent.weak ? `弱体${intent.weak}` : '',
     intent.vulnerable ? `脆弱${intent.vulnerable}` : '',
     intent.poison ? `毒${intent.poison}` : '',
-    intent.block ? `自分に${intent.block}ブロック` : '',
-    intent.strength ? `自分に筋力${intent.strength}` : '',
-    intent.alliesBlock ? `他の敵に${intent.alliesBlock}ブロック` : '',
-    intent.alliesStrength ? `他の敵に筋力${intent.alliesStrength}` : '',
+    intent.block ? `自身 防御${intent.block}` : '',
+    intent.strength ? `自身 筋力${intent.strength}` : '',
+    intent.alliesBlock ? `味方 防御${intent.alliesBlock}` : '',
+    intent.alliesStrength ? `味方 筋力${intent.alliesStrength}` : '',
     intent.allTargets ? '岩霊にも攻撃' : '',
   ].filter(Boolean).join(' / ');
 }
 
-function StatusChips({ actor, stillness = 0, intangible = 0 }: { actor: Actor; stillness?: number; intangible?: number }) {
+function StatusChips({ actor, stillness = 0, intangible = 0, dexterity = 0, vigor = 0, plate = 0 }: { actor: Actor; stillness?: number; intangible?: number; dexterity?: number; vigor?: number; plate?: number }) {
   const statuses = [
     {
       value: actor.strength,
@@ -113,36 +160,45 @@ function StatusChips({ actor, stillness = 0, intangible = 0 }: { actor: Actor; s
       detail: '敵の攻撃の各ヒットを最大1にします。次の敵ターン終了時に1減少。毒・HP消費・最大HP減少は軽減しません。',
       color: 'stillness',
     },
+    {
+      value: dexterity,
+      symbol: '敏',
+      label: '敏捷',
+      detail: `カードから得るブロック${dexterity >= 0 ? '+' : ''}${dexterity}。`,
+      color: 'stillness',
+    },
+    {
+      value: vigor,
+      symbol: '奮',
+      label: '活力',
+      detail: `次の攻撃カードの各ヒットに${vigor}ダメージを加算。攻撃カードを使用すると失われます。`,
+      color: 'strength',
+    },
+    {
+      value: plate,
+      symbol: '甲',
+      label: 'プレート',
+      detail: `ターン終了時に${plate}ブロックを得ます。敵の攻撃でHPを失うたびに1減少します。`,
+      color: 'stillness',
+    },
   ].filter((status) => status.value !== 0);
   return (
     <div className="status-chips">
       {statuses.map((status) => (
-        <span
-          key={status.label}
-          className={`status-chip status-${status.color}`}
-          title={`${status.label} ${status.value}：${status.detail}`}
-          tabIndex={0}
-          aria-label={`${status.label} ${status.value}：${status.detail}`}
-        >
-          <span>{status.symbol}</span>
-          <b>{status.value}</b>
-          <span className="tooltip">
-            {status.label} {status.value}
-            <small>{status.detail}</small>
-          </span>
-        </span>
+        <StatusChip key={status.label} status={status} />
       ))}
     </div>
   );
 }
 
-function HealthBar({ actor, player = false }: { actor: Actor; player?: boolean }) {
+function HealthBar({ actor, player = false, onDetails }: { actor: Actor; player?: boolean; onDetails?: () => void }) {
   const healthPercent = actor.maxHp > 0 ? Math.max(0, Math.min(100, actor.hp / actor.maxHp * 100)) : 0;
   return (
     <div className={`health-info ${player ? 'health-info--player' : ''}`}>
       <div className="actor-name">
         <span>{player ? 'じっと教 教祖' : '塔の守り手'}</span>
         <h2>{actor.name}</h2>
+        {onDetails && <button className="enemy-inspect-button" type="button" onClick={onDetails} aria-label={`${actor.name}の詳細を表示`} title="敵の特徴と行動を確認">ⓘ</button>}
       </div>
       <div className="health-line">
         <Icon name="heart" size={15} />
@@ -191,6 +247,7 @@ export function BattleScreen({
   const [logOpen, setLogOpen] = useState(false);
   const [chosenCards, setChosenCards] = useState<string[]>([]);
   const [fallenActors, setFallenActors] = useState<Set<string>>(() => new Set());
+  const [inspectedEnemyId, setInspectedEnemyId] = useState<string | null>(null);
   const divine = state.jitto === 100;
   const lastLog = state.log[state.log.length - 1];
   const enemies = getEnemies(state);
@@ -198,8 +255,8 @@ export function BattleScreen({
   const enemy = enemies[0];
   const selectedId =
     state.selectedEnemyId ?? getEnemyKey(enemies.find((actor) => actor.hp > 0) ?? enemy);
-  const selectedEnemy = enemies.find((actor) => getEnemyKey(actor) === selectedId) ?? enemy;
-  const selectedDefinition = ENEMY_DEFINITIONS[selectedEnemy.id];
+  const inspectedEnemy = enemies.find((actor) => getEnemyKey(actor) === inspectedEnemyId);
+  const inspectedDefinition = inspectedEnemy ? ENEMY_DEFINITIONS[inspectedEnemy.id] : null;
   const displayedIntent = getDisplayedEnemyIntent(enemy);
   const damage = predictEnemyDamage(state, getEnemyKey(enemy));
   const intentDescription =
@@ -232,7 +289,7 @@ export function BattleScreen({
       data-presentation-busy={presentation?.busy ? 'true' : 'false'}
       data-presentation-cue={presentation?.cue?.kind ?? 'idle'}
       data-player-class={state.classId ?? 'legacy'}
-      className={`battle-screen cinematic-battle ${state.classId ? 'has-class-resources' : ''} ${presentation?.settings.reducedMotion || presentation?.settings.speed === 'instant' ? 'motion-reduced' : ''} ${presentation?.settings.speed === 'fast' ? 'presentation-fast' : ''} ${divine ? 'is-divine' : ''} ${resolving ? 'is-presenting' : ''} ${multiple ? 'multi-enemy' : ''} ${campaign ? 'campaign-battle' : ''}`}
+      className={`battle-screen compact-battle cinematic-battle ${state.classId ? 'has-class-resources' : ''} ${presentation?.settings.reducedMotion || presentation?.settings.speed === 'instant' ? 'motion-reduced' : ''} ${presentation?.settings.speed === 'fast' ? 'presentation-fast' : ''} ${divine ? 'is-divine' : ''} ${resolving ? 'is-presenting' : ''} ${multiple ? 'multi-enemy' : ''} ${campaign ? 'campaign-battle' : ''}`}
     >
       {presentation && <CardFlights {...presentation} />}
       <section className="battle-heading">
@@ -242,7 +299,7 @@ export function BattleScreen({
             <span className="eyebrow-separator">/</span>{' '}
             {campaign ? getActDefinition(act).name : floor === 12 ? '静寂の頂' : 'じっと教の塔'}
           </p>
-          <h1>岩の意志を、示せ。</h1>
+          <h1 className="screen-reader-only">岩の意志を、示せ。</h1>
         </div>
         <div className="battle-progress">
           <span className="battle-mode">
@@ -258,12 +315,6 @@ export function BattleScreen({
           {presentation?.busy && <button className="battle-skip-button" onClick={presentation.skip} aria-label="戦闘演出をスキップ">演出をスキップ <span>»</span></button>}
         </div>
       </section>
-
-      {(selectedDefinition?.description || selectedDefinition?.gimmick) && <aside className="enemy-field-guide" aria-label="選択中の敵の特徴">
-        <div><span>敵の特徴</span><b>{selectedEnemy.name}</b>{selectedEnemy.intentPhase !== undefined && <span className="enemy-phase-label">行動変化済み</span>}</div>
-        <p>{selectedDefinition.gimmick ?? selectedDefinition.description}</p>
-        {selectedDefinition.gimmick && selectedDefinition.description && <details><summary>この守り手について</summary><p>{selectedDefinition.description}</p></details>}
-      </aside>}
 
       <section className="battle-arena" aria-label="戦闘フィールド">
         <div className="arena-scenery" aria-hidden="true">
@@ -286,7 +337,7 @@ export function BattleScreen({
         </div>
         <div className="combatant combatant--player">
           <div className="actor-status">
-            <StatusChips actor={state.player} stillness={state.stillness} intangible={state.intangible ?? 0} />
+            <StatusChips actor={state.player} stillness={state.stillness} intangible={state.intangible ?? 0} dexterity={state.dexterity ?? 0} vigor={state.vigor ?? 0} plate={state.plate ?? 0} />
             {divine && (
               <span className="divine-tag">
                 <Icon name="sun" size={13} />
@@ -376,7 +427,7 @@ export function BattleScreen({
                           ? '行動しません'
                           : visibleIntent.damage !== undefined
                             ? `${incoming}${(visibleIntent.hits ?? 1) > 1 ? ` × ${visibleIntent.hits}` : ''} ダメージ`
-                            : visibleIntent.description}
+                            : actor.stun ? '行動を1回休む' : intentExtras(visibleIntent) || visibleIntent.description}
                       </small>
                       {!dead && visibleIntent.damage !== undefined && intentExtras(visibleIntent) && <small className="intent-extra-effects">{intentExtras(visibleIntent)}</small>}
                     </div>
@@ -390,6 +441,7 @@ export function BattleScreen({
                     disabled={dead || resolving}
                     aria-pressed={selected}
                     aria-label={`攻撃対象に選択：${actor.name} ${index + 1}`}
+                    title={`${actor.name}：${ENEMY_DEFINITIONS[actor.id]?.gimmick ?? ENEMY_DEFINITIONS[actor.id]?.description ?? ''}`}
                     onClick={() => onSelectEnemy?.(enemyId)}
                   >
                     <div className="character-shadow" />
@@ -398,7 +450,7 @@ export function BattleScreen({
                       {dead ? '撃破' : selected ? '選択中' : 'クリックで選択'}
                     </span>
                   </button>
-                  <HealthBar actor={actor} />
+                  <HealthBar actor={actor} onDetails={() => setInspectedEnemyId(enemyId)} />
                   <EnemyResourceForecast state={state} enemy={actor} />
                 </div>
               );
@@ -427,7 +479,7 @@ export function BattleScreen({
                       ダメージ
                     </>
                   ) : (
-                    displayedIntent.description
+                    enemy.stun ? '行動を1回休む' : intentExtras(displayedIntent) || displayedIntent.description
                   )}
                 </small>
                 {displayedIntent.damage !== undefined && intentExtras(displayedIntent) && <small className="intent-extra-effects">{intentExtras(displayedIntent)}</small>}
@@ -443,12 +495,13 @@ export function BattleScreen({
               disabled={resolving || enemy.hp <= 0}
               aria-pressed={selectedId === getEnemyKey(enemy)}
               aria-label={`攻撃対象に選択：${enemy.name}`}
+              title={`${enemy.name}：${ENEMY_DEFINITIONS[enemy.id]?.gimmick ?? ENEMY_DEFINITIONS[enemy.id]?.description ?? ''}`}
             >
               <div className="character-shadow" />
               <div className="actor-motion" data-battle-actor={getEnemyKey(enemy)} data-fallen={fallenActors.has(getEnemyKey(enemy)) || undefined}><StoneSentinel /></div>
               <span className="target-label">選択中</span>
             </button>
-            <HealthBar actor={enemy} />
+            <HealthBar actor={enemy} onDetails={() => setInspectedEnemyId(getEnemyKey(enemy))} />
             <EnemyResourceForecast state={state} enemy={enemy} />
           </div>
         )}
@@ -618,6 +671,16 @@ export function BattleScreen({
         {lastLog?.text} エナジー{state.energy}。自分のHP{state.player.hp}。生存している敵
         {enemies.filter((actor) => actor.hp > 0).length}体 。じっとゲージ{state.jitto}。
       </div>
+
+      {inspectedEnemy && <Modal title={inspectedEnemy.name} subtitle="敵の特徴と行動" onClose={() => setInspectedEnemyId(null)} className="enemy-detail-modal">
+        <p className="modal-intro">{inspectedDefinition?.description ?? '塔を守る敵です。行動予告を確認して戦いましょう。'}</p>
+        {inspectedDefinition?.gimmick && <p className="enemy-detail-gimmick">{inspectedDefinition.gimmick}</p>}
+        {inspectedEnemy.intentPhase !== undefined && <p className="enemy-detail-gimmick">行動パターンが変化しています。</p>}
+        <HealthBar actor={inspectedEnemy} />
+        <StatusChips actor={inspectedEnemy} />
+        <div className="enemy-detail-intent"><b>次の行動：{getDisplayedEnemyIntent(inspectedEnemy).label}</b><p>{getDisplayedEnemyIntent(inspectedEnemy).description}</p>{getDisplayedEnemyIntent(inspectedEnemy).damage !== undefined && <p>現在の攻撃予測：{predictEnemyDamage(state, getEnemyKey(inspectedEnemy))}ダメージ × {getDisplayedEnemyIntent(inspectedEnemy).hits ?? 1}回（ブロック軽減前）</p>}{intentExtras(getDisplayedEnemyIntent(inspectedEnemy)) && <p>{intentExtras(getDisplayedEnemyIntent(inspectedEnemy))}</p>}</div>
+        <button className="secondary-button" onClick={() => setInspectedEnemyId(null)}>戦闘に戻る</button>
+      </Modal>}
 
       {state.pendingChoice && !presentation?.busy && <Modal title={getPendingChoiceLabel(state)} subtitle="CHOOSE YOUR CARDS" onClose={keepChoiceOpen} dismissible={false} wide>
         <p className="modal-intro">カードを選び、確定すると効果の続きを解決します。{state.pendingChoice.mode === 'exhaust' ? '廃棄したカードは、この戦闘では山札に戻りません。' : state.pendingChoice.mode === 'topdeck' ? '選んだカードを山札の一番上へ戻します。次のドローで先に引きます。' : state.pendingChoice.mode === 'retrieve' ? state.pendingChoice.sourceZone === 'drawPile' ? '選んだ山札のカードを手札に加えます。山札の残りの順序は変えません。' : '選んだ捨て札を手札に戻します。' : '捨てたカードは捨て札に移ります。'}</p>
