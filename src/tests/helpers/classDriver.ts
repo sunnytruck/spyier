@@ -1,7 +1,7 @@
 import { CARD_DEFINITIONS } from '../../data/cards';
 import { POTION_DEFINITIONS } from '../../data/potions';
 import { canPlayCard, getEnemies, getEnemyKey, predictEnemyDamage, reduceCombat } from '../../engine';
-import { canAscendAct, getShopCardPrice, reduceRun, SHOP_PRICES } from '../../engine/run';
+import { canAscendAct, getShopCardPrice, getShopPotionPrice, getShopRelicPrice, reduceRun } from '../../engine/run';
 import { getPendingChoiceCards } from '../../engine/actions/choices';
 import { attackCardBase, attackHitCount } from '../../engine/combat/resources';
 import { canUpgradeCard } from '../../presentation/cardUpgrade';
@@ -9,6 +9,7 @@ import type { CardInstance, CombatAction, CombatState, Effect } from '../../type
 import type { RunAction, RunState } from '../../types/run';
 import { chooseRunAction } from './runDriver';
 import { chooseBlessingAction } from './blessingDriver';
+import { chooseRelicAcquisitionAction } from './relicAcquisitionDriver';
 
 /** Approximate policy weights, never a production rule or a claim of optimal play. */
 function effectsValue(effects: Effect[]): number {
@@ -194,6 +195,7 @@ export function chooseClassCombatAction(state: CombatState): CombatAction {
 }
 
 export function chooseClassRunAction(state: RunState, options: { deckAware?: boolean } = {}): RunAction {
+  if (state.screen === 'relicAcquisition') return chooseRelicAcquisitionAction(state, reduceRun, (card, upgraded) => cardValue(card.cardId, upgraded));
   if (state.screen === 'blessing') return chooseBlessingAction(state, reduceRun, (card, upgraded) => cardValue(card.cardId, upgraded));
   if (canAscendAct(state)) return { type: 'ascendAct' };
   const acquisitionValue = (id: string) => options.deckAware ? draftValue(id, state) : cardValue(id);
@@ -211,9 +213,9 @@ export function chooseClassRunAction(state: RunState, options: { deckAware?: boo
   if (state.screen === 'shop') {
     const shop = state.shop!;
     const best = [...shop.cardIds].filter((id) => !shop.purchased.includes(`card:${id}`) && state.gold >= getShopCardPrice(state, id)).sort((a, b) => acquisitionValue(b) - acquisitionValue(a))[0];
-    if (shop.relicId && !shop.purchased.includes('relic') && state.gold >= SHOP_PRICES.relic) return { type: 'buyRelic' };
+    if (shop.relicId && !shop.purchased.includes('relic') && state.gold >= getShopRelicPrice(state)) return { type: 'buyRelic' };
     if (best && acquisitionValue(best) >= 20 && state.deck.length < 18 && state.gold >= getShopCardPrice(state, best)) return { type: 'buyCard', cardId: best };
-    if (shop.potionId && !shop.purchased.includes('potion') && state.gold >= SHOP_PRICES.potion && state.potions.includes(null)) return { type: 'buyPotion' };
+    if (shop.potionId && !shop.purchased.includes('potion') && state.gold >= getShopPotionPrice(state) && state.potions.includes(null)) return { type: 'buyPotion' };
     return { type: 'leaveNode' };
   }
   return chooseRunAction(state);

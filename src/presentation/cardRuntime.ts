@@ -2,7 +2,7 @@ import { CARD_DEFINITIONS } from '../data/cards';
 import { getCardCost } from '../engine';
 import { calculateDamage } from '../engine/combat/damage';
 import { reactToPlayerCard } from '../engine/combat/enemyAI';
-import { triggerRelics } from '../engine/combat/relics';
+import { cardBlockWithRelics, relicPassiveAmount, triggerRelics } from '../engine/combat/relics';
 import { attackCardBase, attackHitCount, nextOrbEvokeIndex, orbEffectValue, orbSlotCount } from '../engine/combat/resources';
 import { gainBlock } from '../engine/combat/state';
 import { findEnemy, getEnemies, normalizeInto } from '../engine/combat/targets';
@@ -88,8 +88,9 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
   if (!state || !definition || definition.unplayable || state.phase !== 'player') return null;
   const effects = card.upgraded ? definition.upgradedEffects : definition.effects;
   const knife = !!definition.tags?.includes('knife');
-  const damageRamp = !!state.cardDamageBonuses?.[card.cardId] || effects.some((effect) => effect.type === 'cardDamageBonus');
-  if (!effects.some((effect) => relevant(effect, knife, damageRamp))) return null;
+  const damageRamp = Boolean(state.vigor || relicPassiveAmount(state, 'strikeBonus') || relicPassiveAmount(state, 'upgradedAttackBonus')) || !!state.cardDamageBonuses?.[card.cardId] || effects.some((effect) => effect.type === 'cardDamageBonus');
+  const blockRelic = Boolean(state.dexterity || relicPassiveAmount(state, 'firstCardBlockMultiplier'));
+  if (!effects.some((effect) => relevant(effect, knife, damageRamp) || effect.type === 'block' && blockRelic)) return null;
 
   const projected = structuredClone(state);
   // Effects such as upgradeAll may update the played card before settlement.
@@ -109,7 +110,7 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
   projected.cardsPlayedThisTurn += 1;
   projected.stats.cardsPlayed += 1;
   reactToPlayerCard(projected, definition.type);
-  triggerRelics(projected, 'cardPlayed', { card: projectedCard });
+  triggerRelics(projected, 'cardPlayed', { card: projectedCard, amount: paidEnergy });
   if (definition.type === 'attack') {
     triggerRelics(projected, 'firstAttack');
     if (projected.powerStacks?.blockOnAttack) gainBlock(projected, 'player', projected.powerStacks.blockOnAttack);
@@ -169,17 +170,20 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
         break;
       }
       case 'block': {
-        if (!effect.bonusPer) break;
-        const amount = Math.max(0, Math.floor(scaledEffectAmount(projected, effect) + (definition.defense && projected.jitto >= 50 ? 2 : 0)));
-        push({ summary: `${valueLabels[effect.bonusPer.value]}${combatValue(projected, effect.bonusPer.value)} → ${amount}ブロック`,
-          detail: 'この効果の解決時点の値を参照します。防御カードのじっとゲージ補正も適用済みです。', amount });
+        if (!effect.bonusPer && !blockRelic) break;
+        const amount = cardBlockWithRelics(projected, scaledEffectAmount(projected, effect) + (definition.defense && projected.jitto >= 50 ? 2 : 0));
+        push({ summary: `${effect.bonusPer ? `${valueLabels[effect.bonusPer.value]}${combatValue(projected, effect.bonusPer.value)} → ` : '敏捷・レリック補正後 '}${amount}ブロック`,
+          detail: 'この効果の解決時点の値を参照します。防御カードのじっと・敏捷・最初のカードブロック補正も適用済みです。', amount });
         break;
       }
       case 'loseHp': {
-        const remaining = Math.max(0, projected.player.hp - effect.amount);
-        push({ summary: `HP ${projected.player.hp} → ${remaining}${remaining === 0 ? '・使用すると敗北' : ''}`,
-          detail: `HPを${effect.amount}直接消費します。ブロック・岩霊の護衛では防げません。HPが0になると後続の効果は発動しません。`,
-          amount: Math.min(projected.player.hp, effect.amount), warning: remaining === 0 });
+        const loss = Math.max(0, effect.amount - relicPassiveAmount(projected, 'hpLossReduction'));
+        const checkpoint = structuredClone(projected);
+        resolveEffects(checkpoint, [effect], definition, { sourceCard: projectedCard, xEnergy: paidEnergy });
+        const defeated = checkpoint.phase === 'defeat';
+        push({ summary: `HP ${projected.player.hp} → ${checkpoint.player.hp}${defeated ? '・使用すると敗北' : ''}`,
+          detail: `HPを${loss}直接消費します${loss !== effect.amount ? '（レリックの軽減後）' : ''}。ブロック・岩霊の護衛では防げません。復活レリックがあれば、その発動も反映します。敗北すると後続の効果は発動しません。`,
+          amount: Math.min(projected.player.hp, loss), warning: defeated });
         break;
       }
       case 'loseMaxHp': {
@@ -222,7 +226,7 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
         break;
       case 'starBurst': {
         const gained = current?.starsGainedThisTurn ?? 0;
-        const base = gained * effect.amount;
+        const base = attackCardBase(projected, { type: 'damage', amount: gained * effect.amount }, projectedCard);
         push({ summary: gained > 0 ? `今ターン✦${gained}×${effect.amount} → ${attackSummary(projected, base, !!effect.all)}` : '今ターンの星獲得0・攻撃は不発',
           detail: '参照するのは星の累計ではなく、このターンの獲得数です。攻撃補正後・敵ブロック軽減前。星は消費しません。',
           amount: gained > 0 && findEnemy(projected) ? calculateDamage(base, projected.player, findEnemy(projected)!) : 0 });
@@ -262,7 +266,7 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
         const amount = Math.max(0, Math.floor(effect.type === 'channel' ? scaledEffectAmount(projected, effect) : paidEnergy + effect.bonus));
         const focus = current?.focus ?? 0;
         push({ summary: `${orbName(effect.orb)}オーブ${amount}個 ／ 自動${orbEffectValue(effect.orb, 'passive', focus)}・解放${orbEffectValue(effect.orb, 'evoke', focus)}`,
-          detail: `集中力${focus}を適用済み。${orbOutcome(effect.orb, orbEffectValue(effect.orb, 'passive', focus))}。最大${orbSlotCount()}スロット。満杯なら右端を解放し、戦闘が続いていれば生成します。${effect.type === 'xChannel' ? `X＝消費エナジー${paidEnergy}。` : ''}`,
+          detail: `集中力${focus}を適用済み。${orbOutcome(effect.orb, orbEffectValue(effect.orb, 'passive', focus))}。最大${orbSlotCount(state)}スロット。満杯なら右端を解放し、戦闘が続いていれば生成します。${effect.type === 'xChannel' ? `X＝消費エナジー${paidEnergy}。` : ''}`,
           amount });
         break;
       }
@@ -309,8 +313,10 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
         for (const enemy of targets) {
           const status = effect.type === 'multiplyPoison' ? 'poison' : effect.status;
           const before = enemy[status];
+          const poisonBonus = status === 'poison' && enemy !== projected.player && effect.amount > 0 && effect.type !== 'multiplyPoison'
+            ? relicPassiveAmount(projected, 'poisonBonus') : 0;
           const after = effect.type === 'multiplyPoison' ? Math.max(0, Math.floor(before * effect.amount))
-            : effect.allowNegative && status === 'strength' ? before + effect.amount : Math.max(0, before + effect.amount);
+            : effect.allowNegative && status === 'strength' ? before + effect.amount : Math.max(0, before + effect.amount + poisonBonus);
           push({ summary: `${enemy.name} ${statusLabels[status]}${before} → ${after}${effect.type === 'temporaryStatus' ? '（このターン）' : ''}`,
             detail: `${status === 'poison' ? `毒がこのままなら次の${enemy === projected.player ? '自分' : '敵'}ターン開始に${Math.min(enemy.hp, after)}HP減少。ブロックを無視し、発動後に毒が1減ります。` : '先行するカード効果を解決した時点の値です。'}${effect.type === 'temporaryStatus' ? '敵の行動後、次の自分のターン開始前に、この効果で変化した分を戻します。' : ''}`, amount: after });
         }
@@ -343,7 +349,8 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
         break;
       case 'multiply': {
         const before = effect.resource === 'block' ? projected.player.block : projected.energy;
-        const after = Math.min(1_000_000, Math.max(0, Math.floor(before * effect.amount)));
+        const multiplied = Math.min(1_000_000, Math.max(0, Math.floor(before * effect.amount)));
+        const after = effect.resource === 'block' ? before + cardBlockWithRelics(projected, Math.max(0, multiplied - before), false, false) : multiplied;
         push({ summary: `${effect.resource === 'block' ? 'ブロック' : 'エナジー'} ${before} → ${after}`, detail: 'カードのコストと先行効果を解決した後の値に倍率を適用します。', amount: after });
         break;
       }

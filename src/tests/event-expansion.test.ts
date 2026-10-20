@@ -9,6 +9,7 @@ import { deserializeRun, isValidRunState, serializeRun } from '../engine/runPers
 import { getEnemies, getEnemyKey } from '../engine';
 import type { ClassId } from '../types/game';
 import type { MapNode, RunState } from '../types/run';
+import { chooseRelicAcquisitionAction } from './helpers/relicAcquisitionDriver';
 
 const ORIGINAL_EVENTS = ['sun_clock', 'shared_altar', 'moss_garden', 'morning_circle', 'restless_mirror'];
 const NEW_EVENTS = EVENT_IDS.filter((id) => !ORIGINAL_EVENTS.includes(id));
@@ -81,9 +82,25 @@ describe('expanded events are implemented content, not description-only rewards'
           expect(reduceRun(result, { type: 'eventChoice', index })).toBe(result);
           expect(reduceRun(restored, { type: 'eventChoice', index })).toBe(restored);
           expect(reduceRun(before, { type: 'eventChoice', index })).toEqual(result);
-          const continued = reduceRun(restored, { type: 'continueEvent' });
+          let continued = reduceRun(restored, { type: 'continueEvent' });
+          // Acquisition effects have their own persisted receipt and optional
+          // target selection. The event payment/ownership must not fire again.
+          for (let step = 0; continued.screen === 'relicAcquisition' && step < 8; step++) {
+            expect(reduceRun(continued, { type: 'continueEvent' })).toBe(continued);
+            expect(reduceRun(continued, { type: 'eventChoice', index })).toBe(continued);
+            const saved = serializeRun(continued);
+            const resumed = deserializeRun(saved)!;
+            expect(resumed).toEqual(continued);
+            expect(serializeRun(resumed)).toBe(saved);
+            const action = chooseRelicAcquisitionAction(continued, reduceRun);
+            const next = reduceRun(continued, action);
+            expect(next).not.toBe(continued);
+            expect(reduceRun(resumed, action)).toEqual(next);
+            continued = next;
+          }
           expect(continued.screen).toBe(result.eventResult?.combatEnemyIds ? 'combat' : 'map');
           expect(reduceRun(continued, { type: 'continueEvent' })).toBe(continued);
+          expect(reduceRun(continued, { type: 'confirmRelicAcquisition' })).toBe(continued);
           expect(deserializeRun(serializeRun(continued))).toEqual(continued);
           const choice = EVENT_DEFINITIONS[eventId].choices[index];
           if (choice.effects.some((effect) => effect.type === 'upgrade')) {

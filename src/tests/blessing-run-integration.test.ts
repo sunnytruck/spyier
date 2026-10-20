@@ -112,6 +112,21 @@ describe('new player campaigns commit a saved blessing before entering the map',
       state = next;
     }
     expect(receiptSeen).toBe(true);
+    // A relic blessing now resolves its own saved acquisition before the map.
+    // The blessing receipt remains final while any card targets are selected.
+    for (let step = 0; step < 6 && state.screen === 'relicAcquisition'; step++) {
+      const raw = serializeRun(state);
+      const restored = deserializeRun(raw)!;
+      expect(restored).not.toBeNull();
+      expect(serializeRun(restored)).toBe(raw);
+      const action = chooseClassRunAction(state);
+      const next = reduceRun(state, action);
+      expect(next).not.toBe(state);
+      expect(reduceRun(restored, action)).toEqual(next);
+      expect(next.blessingHistory).toEqual(state.blessingHistory);
+      expect(next.rngState).toBe(state.rngState);
+      state = next;
+    }
     expect(state.screen).toBe('map');
     expect(state.blessing).toBeNull();
     expect(state.blessingHistory).toHaveLength(1);
@@ -176,7 +191,27 @@ describe('new player campaigns commit a saved blessing before entering the map',
 
 describe('new campaigns advance through actual boss rewards and saved Act transitions', () => {
   it('can clear all three Acts through legal battles, boss rewards and two saved ascents', () => {
-    const seed = 'blessed-campaign-1';
+    // Adding a relic changes reward choices and the policy's resulting deck.
+    // Find one clear within a finite reproducible set, then replay it below
+    // with all saved Act-boundary assertions. No game state is injected.
+    let seed: string | undefined;
+    for (let attempt = 0; attempt < 32; attempt++) {
+      const candidateSeed = `blessed-campaign-${attempt}`;
+      const candidateDecide = createRoguelikeDriver('safe', candidateSeed);
+      let candidate = createBlessedRun(candidateSeed, 'machinist');
+      for (let step = 0; step < 6000 && candidate.screen !== 'defeat'; step++) {
+        if (candidate.screen === 'victory' && !canAscendAct(candidate)) break;
+        const next = reduceRun(candidate, candidateDecide(candidate));
+        expect(next, `${candidateSeed}:${candidate.screen}`).not.toBe(candidate);
+        candidate = next;
+      }
+      if (candidate.screen === 'victory' && candidate.act === 3) {
+        seed = candidateSeed;
+        break;
+      }
+    }
+    expect(seed, 'a legal three-Act clear within the deterministic seed set').toBeDefined();
+    if (!seed) throw new Error('No three-Act clear found');
     const decide = createRoguelikeDriver('safe', seed);
     let state = createBlessedRun(seed, 'machinist');
     const bossRewards: number[] = [];

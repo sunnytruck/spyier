@@ -3,6 +3,7 @@ import type { FloorMap, MapNode, NodeType, RunAction, RunState } from '../types/
 import { getAvailableNodes } from '../engine/run';
 import { getActDefinition } from '../data/acts';
 import { Icon } from '../components/Icon';
+import { MapNodeIcon } from '../components/MapNodeIcon';
 import '../styles/map-expansion.css';
 
 const nodeLabels: Record<NodeType, { name: string; description: string }> = {
@@ -14,51 +15,6 @@ const nodeLabels: Record<NodeType, { name: string; description: string }> = {
   treasure: { name: '宝箱', description: '古代の祝福、レリックを1つ獲得。' },
   boss: { name: '階層ボス', description: 'このActの最後の試練。準備を整えて挑みましょう。' },
 };
-
-function NodeIcon({ type, size = 24 }: { type: NodeType; size?: number }) {
-  if (type === 'battle') return <Icon name="sword" size={size} />;
-  if (type === 'rest') return <Icon name="flame" size={size} />;
-  if (type === 'event') return <Icon name="help" size={size} />;
-  return (
-    <svg
-      className="icon"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {type === 'shop' && (
-        <>
-          <path d="M3 10h18L18 4H6Zm1 0v11h16V10M9 21v-7h6v7" />
-          <path d="M3 10c0 4 4 4 5 0 0 4 7 4 8 0 0 4 5 4 5 0M9 4l-1 6m7-6 1 6" />
-        </>
-      )}
-      {type === 'treasure' && (
-        <>
-          <path d="M3 11V7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v4M3 11h18v9H3Z" />
-          <path d="M10 10h4v5h-4ZM7 4v7m10-7v7" />
-        </>
-      )}
-      {type === 'elite' && (
-        <>
-          <path d="m4 5 4 4 4-6 4 6 4-4-2 10H6ZM7 19h10M9 15l-1 4m7-4 1 4" />
-          <path d="m10 10 2 3 2-3" />
-        </>
-      )}
-      {type === 'boss' && (
-        <>
-          <path d="m3 20 3-9 3 2 3-9 3 9 3-2 3 9ZM6 20h12M10 17h4M12 1v1" />
-          <path d="m3 3 2 2m16-2-2 2" />
-        </>
-      )}
-    </svg>
-  );
-}
 
 const GRAPH_WIDTH = 640;
 const ZOOMS = [{ name: '縮小', value: .85 }, { name: '標準', value: 1 }, { name: '拡大', value: 1.2 }];
@@ -105,6 +61,7 @@ export function MapScreen({ state, onAction }: { state: RunState; onAction: (act
   const patternId = `map-dots-${useId().replace(/:/g, '')}`;
   const [zoom, setZoom] = useState(1);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [inspectedId, setInspectedId] = useState<string | null>(null);
   const available = getAvailableNodes(state);
   const availableIds = new Set(available.map((node) => node.id));
   const visitedIds = new Set(state.visited);
@@ -113,6 +70,8 @@ export function MapScreen({ state, onAction }: { state: RunState; onAction: (act
   const nextFloor = available[0]?.floor ?? Math.min(state.floor + 1, state.map.floors);
   const focusId = hoveredId ?? state.currentNodeId;
   const route = useMemo(() => focusId ? mapDescendants(state.map, focusId) : new Set(state.map.nodes.map((node) => node.id)), [state.map, focusId]);
+  const reachableIds = useMemo(() => state.currentNodeId ? mapDescendants(state.map, state.currentNodeId) : new Set(state.map.nodes.map((node) => node.id)), [state.map, state.currentNodeId]);
+  const inspected = byId.get(hoveredId ?? inspectedId ?? '');
   const activeTarget = state.map.nodes.find((node) => node.floor === nextFloor);
   const centerMap = useCallback(() => {
     if (!scroller.current || !activeTarget) return;
@@ -134,14 +93,16 @@ export function MapScreen({ state, onAction }: { state: RunState; onAction: (act
         <div className="run-map-chapter"><span>{state.act ? `第${act.id}層 / 全${state.maxActs}層` : '第一層'}</span><h2>{state.act ? act.name : '不動の回廊'}</h2><p>{state.act ? act.description : <>上へ、上へ。<br />道を選ぶたび、教えは変わる。</>}</p><div className="run-floor-progress"><span style={{ width: `${Math.min(100, state.visited.length / state.map.floors * 100)}%` }} /></div><small>{state.visited.length} / {state.map.floors} フロア踏破</small></div>
         <div className="run-map-next"><p className="section-kicker">NEXT DESTINATION</p><h3>次の目的地</h3><p>第 {nextFloor} フロア · {available.length}つの道</p><div>
           {available.map((node) => <button key={node.id} data-next-node-id={node.id} className="run-next-choice" onMouseEnter={() => setHoveredId(node.id)} onMouseLeave={() => setHoveredId(null)} onFocus={() => setHoveredId(node.id)} onBlur={() => setHoveredId(null)} onClick={() => chooseNode(node.id)}>
-            <NodeIcon type={node.type} size={20} /><span>{nodeLabels[node.type].name}<small>{laneName(node, state.map)} · {node.connections.length > 1 ? `${node.connections.length}方向へ分岐` : node.connections.length ? '次の道へ続く' : '最後の試練'}</small></span><Icon name="chevron" size={14} />
+            <MapNodeIcon type={node.type} size={20} /><span>{nodeLabels[node.type].name}<small>{laneName(node, state.map)} · {node.connections.length > 1 ? `${node.connections.length}方向へ分岐` : node.connections.length ? '次の道へ続く' : '最後の試練'}</small></span><Icon name="chevron" size={14} />
           </button>)}
         </div></div>
-        <div className="run-map-legend" aria-label="地点の種類">{(Object.keys(nodeLabels) as NodeType[]).map((type) => <div key={type} title={nodeLabels[type].description}><NodeIcon type={type} size={17} /><span>{nodeLabels[type].name}</span></div>)}</div>
+        <div className="run-map-legend" aria-label="地点の種類">{(Object.keys(nodeLabels) as NodeType[]).map((type) => <div key={type} title={nodeLabels[type].description}><MapNodeIcon type={type} size={17} /><span>{nodeLabels[type].name}</span></div>)}</div>
+        <p className="run-map-blessing-note"><MapNodeIcon type="blessing" size={21} /><span>Actのはじまりには、岩の祝福が道を照らします。</span></p>
         <p className="run-map-note"><Icon name="help" size={14} />明るい線は次の道、金の実線は歩いた道。<br />地点に重ねると、その先のつながりが光ります。</p>
       </aside>
       <div className="run-map-panel">
         <div className="run-map-toolbar"><span><b>分岐マップ</b><small>上が頂 · 全{state.map.floors}フロア</small></span><div className="run-map-zoom" role="group" aria-label="マップの表示倍率">{ZOOMS.map((option) => <button key={option.value} type="button" onClick={() => setZoom(option.value)} aria-pressed={zoom === option.value}>{option.name}</button>)}</div><button type="button" className="run-map-center" onClick={centerMap}><span aria-hidden="true">⌾</span> 現在地へ</button></div>
+        <div className="run-map-inspection" role="status" aria-live="polite">{inspected ? <><MapNodeIcon type={inspected.type} size={22} /><span><b>第{inspected.floor}フロア · {nodeLabels[inspected.type].name}</b><small>{nodeLabels[inspected.type].description} {availableIds.has(inspected.id) ? 'ここへ進めます。' : inspected.id === state.currentNodeId ? '現在地です。' : visitedIds.has(inspected.id) ? '踏破済みです。' : reachableIds.has(inspected.id) ? '接続する道を進むと到達できます。' : 'このルートからは移動できません。'}</small></span></> : <><MapNodeIcon type="blessing" size={22} /><span><b>岩に刻まれた道を選ぶ</b><small>地点に重ねるかタップすると、種類と状態を確認できます。</small></span></>}</div>
         <div className="run-map-scroll" ref={scroller} tabIndex={0} role="region" aria-label={`${state.map.floors}フロアの分岐マップ。上下にスクロールしてすべての経路を確認できます。`}>
           <div className="run-map-graph" style={{ height: layout.height }}>
             <svg className="run-map-lines" viewBox={`0 0 ${layout.width} ${layout.height}`} preserveAspectRatio="none" aria-hidden="true">
@@ -159,10 +120,11 @@ export function MapScreen({ state, onAction }: { state: RunState; onAction: (act
             </svg>
             {state.map.nodes.map((node) => {
               const point = layout.point(node); const selectable = availableIds.has(node.id); const visited = visitedIds.has(node.id); const current = state.currentNodeId === node.id;
-              const status = current ? '現在地' : selectable ? '選択可能' : visited ? '踏破済み' : '選択不可';
-              return <div key={node.id} className={`run-map-node-wrap${selectable ? ' is-available' : ''}${visited ? ' is-visited' : ''}${current ? ' is-current' : ''}${node.type === 'boss' ? ' is-boss' : ''}${!selectable && !visited && !current ? ' is-locked' : ''}${hoveredId && route.has(node.id) ? ' is-route-highlighted' : ''}`} data-map-state={current ? 'current' : selectable ? 'available' : visited ? 'visited' : 'locked'} style={{ left: `${point.x / layout.width * 100}%`, top: point.y }} onMouseEnter={() => setHoveredId(node.id)} onMouseLeave={() => setHoveredId(null)}>
+              const reachable = reachableIds.has(node.id);
+              const status = current ? '現在地' : selectable ? '選択可能' : visited ? '踏破済み' : reachable ? '未到達' : '移動不可能';
+              return <div key={node.id} className={`run-map-node-wrap${selectable ? ' is-available' : ''}${visited ? ' is-visited' : ''}${current ? ' is-current' : ''}${node.type === 'boss' ? ' is-boss' : ''}${!selectable && !visited && !current ? reachable ? ' is-unreached' : ' is-locked' : ''}${hoveredId && route.has(node.id) ? ' is-route-highlighted' : ''}`} data-map-state={current ? 'current' : selectable ? 'available' : visited ? 'visited' : reachable ? 'unreached' : 'locked'} data-node-status={current ? 'current' : selectable ? 'available' : visited ? 'visited' : reachable ? 'unreached' : 'blocked'} data-node-type={node.type} style={{ left: `${point.x / layout.width * 100}%`, top: point.y }} onMouseEnter={() => setHoveredId(node.id)} onMouseLeave={() => setHoveredId(null)} onPointerDownCapture={() => setInspectedId(node.id)}>
                 <button type="button" data-node-id={node.id} className="run-map-node" disabled={!selectable} onClick={() => chooseNode(node.id)} onFocus={() => setHoveredId(node.id)} onBlur={() => setHoveredId(null)} aria-current={current ? 'step' : undefined} aria-label={`第${node.floor}フロア ${laneName(node, state.map)} ${nodeLabels[node.type].name}。${status}${node.connections.length > 1 ? `。この先は${node.connections.length}方向に分岐` : ''}`} title={`${nodeLabels[node.type].description} ${status}`}>
-                  <NodeIcon type={node.type} size={node.type === 'boss' ? 28 : 23} />{visited && <span className="run-node-check">✓</span>}{!selectable && !visited && !current && <span className="run-node-locked" aria-hidden="true"><LockIcon /></span>}{node.connections.length > 1 && <span className="run-node-fork" aria-hidden="true">↟{node.connections.length}</span>}
+                  <MapNodeIcon type={node.type} size={node.type === 'boss' ? 28 : 23} />{visited && <span className="run-node-check">✓</span>}{!selectable && !visited && !current && !reachable && <span className="run-node-locked" aria-hidden="true"><LockIcon /></span>}{node.connections.length > 1 && <span className="run-node-fork" aria-hidden="true">↟{node.connections.length}</span>}
                 </button>
                 <span className="run-node-label">{nodeLabels[node.type].name}{(selectable || current) && <small>{current ? '⌾ 現在地' : '● 選択可能'}</small>}</span>
               </div>;
@@ -170,9 +132,9 @@ export function MapScreen({ state, onAction }: { state: RunState; onAction: (act
             <span className="run-map-start">旅のはじまり</span>
           </div>
         </div>
-        <div className="run-map-panel-foot" aria-label="地点の状態"><span><i /> 選択可能</span><span>⌾ 現在地</span><span>✓ 踏破済み</span><span><LockIcon /> 選択不可</span></div>
+        <div className="run-map-panel-foot" aria-label="地点の状態"><span><i /> 選択可能</span><span>⌾ 現在地</span><span>✓ 踏破済み</span><span><i className="state-unreached" /> 未到達</span><span><LockIcon /> 移動不可能</span></div>
       </div>
-      <details className="run-map-mobile-legend"><summary>地点の種類とマップの読み方</summary><div>{(Object.keys(nodeLabels) as NodeType[]).map((type) => <p key={type}><NodeIcon type={type} size={18} /><span><b>{nodeLabels[type].name}</b><small>{nodeLabels[type].description}</small></span></p>)}</div><p>接続された地点だけに進めます。選択しなかった道へは戻れません。</p></details>
+      <details className="run-map-mobile-legend"><summary>地点の種類とマップの読み方</summary><div>{(Object.keys(nodeLabels) as NodeType[]).map((type) => <p key={type}><MapNodeIcon type={type} size={18} /><span><b>{nodeLabels[type].name}</b><small>{nodeLabels[type].description}</small></span></p>)}</div><p>接続された地点だけに進めます。選択しなかった道へは戻れません。</p></details>
     </div>
   </div>;
 }

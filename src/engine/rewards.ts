@@ -10,7 +10,7 @@ type Rarity = NonNullable<CardDefinition['rarity']>;
 export const REWARD_RARITY_WEIGHTS: Record<RewardTier, Record<Rarity, number>> = {
   battle: { common: 60, uncommon: 33, rare: 7 },
   elite: { common: 45, uncommon: 40, rare: 15 },
-  boss: { common: 15, uncommon: 35, rare: 50 },
+  boss: { common: 0, uncommon: 0, rare: 100 },
   shop: { common: 40, uncommon: 45, rare: 15 },
 };
 
@@ -66,8 +66,10 @@ export function sampleCardRewards(
 ): { cardIds: string[]; rngState: number } {
   const remaining = [...new Set(pool)].filter((id) => {
     const card = CARD_DEFINITIONS[id];
-    return card && isNormalAcquisitionCard(card) && !previousChoices.includes(id);
+    return card && isNormalAcquisitionCard(card) && !previousChoices.includes(id) &&
+      (tier !== 'boss' || card.rarity === 'rare');
   });
+  const rareFallback = tier === 'boss' ? [...remaining] : [];
   const cardIds: string[] = [];
   const shownFamilies = new Set(previousChoices.flatMap((id) => [...cardBuildFamilies(CARD_DEFINITIONS[id])]));
   const roll = () => {
@@ -94,6 +96,10 @@ export function sampleCardRewards(
     cardBuildFamilies(CARD_DEFINITIONS[id]).forEach((family) => shownFamilies.add(family));
     remaining.splice(remaining.indexOf(id), 1);
   }
+  // A class with fewer than three implemented rares still gets three legal offers.
+  // Exhaust distinct rares first; never substitute a nonrare or alter source rarity metadata.
+  while (tier === 'boss' && cardIds.length < Math.max(0, Math.floor(count)) && rareFallback.length)
+    cardIds.push(rareFallback[Math.floor(roll() * rareFallback.length)]);
   return { cardIds, rngState };
 }
 

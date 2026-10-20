@@ -6,13 +6,15 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import { POTION_DEFINITIONS } from '../data/potions';
 import { EVENT_DEFINITIONS } from '../data/events';
 import { CLASS_DEFINITIONS } from '../data/classes';
-import { canAscendAct, canChooseEvent, getShopCardPrice, SHOP_PRICES } from '../engine/run';
+import { canAscendAct, canChooseEvent, getShopCardPrice, getShopRelicPrice, getShopPotionPrice, getShopRemovePrice } from '../engine/run';
 import { getActDefinition } from '../data/acts';
 import { CardView } from '../components/CardView';
 import { CardUpgradePreview } from '../components/CardUpgradePreview';
 import { canUpgradeCard } from '../presentation/cardUpgrade';
 import { Icon } from '../components/Icon';
 import { Modal } from '../components/Modal';
+import { RelicIcon, RelicBadge } from '../components/RelicIcon';
+import { RelicAcquisitionScreen } from './RelicAcquisitionScreen';
 import { RockDeity } from '../components/CharacterArt';
 import '../styles/run.css';
 import { MapScreen } from './MapScreen';
@@ -60,25 +62,6 @@ function ScreenHeading({
       </div>
       {children}
     </header>
-  );
-}
-
-function RelicBadge({ id, small = false }: { id: string; small?: boolean }) {
-  const definition = RELIC_DEFINITIONS[id];
-  if (!definition) return null;
-  return (
-    <span
-      className={`run-relic-badge${small ? ' is-small' : ''}`}
-      title={`${definition.name}：${definition.description}`}
-      tabIndex={0}
-    >
-      <span aria-hidden="true">{definition.glyph}</span>
-      {!small && <b>{definition.name}</b>}
-      <span className="run-item-tooltip">
-        <b>{definition.name}</b>
-        {definition.description}
-      </span>
-    </span>
   );
 }
 
@@ -234,8 +217,8 @@ function RewardScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAc
   return (
     <div className="run-centered-screen">
       <ScreenHeading
-        kicker="BATTLE REWARD"
-        title="新たな教えを、その手に。"
+        kicker={reward?.rareOnly ? 'BOSS · RARE CARD REWARD' : 'BATTLE REWARD'}
+        title={reward?.rareOnly ? 'レアな教えを、その手に。' : '新たな教えを、その手に。'}
         text="カードを1枚選び、デッキに加えましょう。受け取らずに進むこともできます。"
       />
       <div className="run-reward-summary">
@@ -252,9 +235,9 @@ function RewardScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAc
         )}
       </div>
       <div className="run-reward-cards">
-        {reward?.cardIds.map((cardId) => (
-          <div key={cardId} className="run-card-choice">
-            <CardView card={{ uid: `reward-${cardId}`, cardId, upgraded: false }} inspect />
+        {reward?.cardIds.map((cardId, index) => (
+          <div key={`${cardId}-${index}`} className="run-card-choice">
+            <CardView card={{ uid: `reward-${index}-${cardId}`, cardId, upgraded: false }} inspect />
             <span className="run-card-rarity">
               {CARD_DEFINITIONS[cardId]?.rarity === 'rare'
                 ? '希少な教え'
@@ -298,7 +281,7 @@ function RelicScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAct
         <div className="run-facility-content">
           <p className="section-kicker">RELIC DISCOVERED</p>
           <div className="run-discovered-relic">
-            <span className="run-large-glyph">{relic?.glyph ?? '◆'}</span>
+            <span className="run-large-glyph">{relicId && <RelicIcon id={relicId} size={76} />}</span>
             <div>
               <small>レリック</small>
               <h2>{relic?.name ?? '古代の祝福'}</h2>
@@ -458,7 +441,7 @@ function ShopScreen({
         <div className="run-shop-supplies">
           {relic && shop?.relicId && (
             <article className="run-shop-item">
-              <span className="run-supply-glyph">{relic.glyph}</span>
+              <span className="run-supply-glyph"><RelicIcon id={relic.id} size={52} /></span>
               <div>
                 <small>レリック</small>
                 <h3>{relic.name}</h3>
@@ -466,13 +449,13 @@ function ShopScreen({
               </div>
               <button
                 className="secondary-button"
-                disabled={isPurchased('relic', shop.relicId) || state.gold < SHOP_PRICES.relic}
+                disabled={isPurchased('relic', shop.relicId) || state.gold < getShopRelicPrice(state)}
                 onClick={() => onAction({ type: 'buyRelic' })}
               >
                 {isPurchased('relic', shop.relicId) ? (
                   '購入済み'
                 ) : (
-                  <Gold amount={SHOP_PRICES.relic} />
+                  <Gold amount={getShopRelicPrice(state)} />
                 )}
               </button>
             </article>
@@ -490,7 +473,7 @@ function ShopScreen({
                 className="secondary-button"
                 disabled={
                   isPurchased('potion', shop.potionId) ||
-                  state.gold < SHOP_PRICES.potion ||
+                  state.gold < getShopPotionPrice(state) ||
                   !state.potions.includes(null)
                 }
                 onClick={() => onAction({ type: 'buyPotion' })}
@@ -498,7 +481,7 @@ function ShopScreen({
                 {isPurchased('potion', shop.potionId) ? (
                   '購入済み'
                 ) : (
-                  <Gold amount={SHOP_PRICES.potion} />
+                  <Gold amount={getShopPotionPrice(state)} />
                 )}
               </button>
             </article>
@@ -515,11 +498,11 @@ function ShopScreen({
             <button
               className="secondary-button"
               disabled={
-                !!shop?.removed || state.gold < SHOP_PRICES.remove || state.deck.length <= 5
+                !!shop?.removed || state.gold < getShopRemovePrice(state) || state.deck.length <= 5
               }
               onClick={onRemove}
             >
-              {shop?.removed ? '利用済み' : <Gold amount={SHOP_PRICES.remove} />}
+              {shop?.removed ? '利用済み' : <Gold amount={getShopRemovePrice(state)} />}
             </button>
           </article>
         </div>
@@ -745,6 +728,9 @@ export function RunScreens({ state, onAction, onNewRun, onReplay, onTitle, setti
     case 'blessing':
       screen = <BlessingScreen state={state} onAction={onAction} settings={settings} />;
       break;
+    case 'relicAcquisition':
+      screen = <RelicAcquisitionScreen state={state} onAction={onAction} settings={settings} />;
+      break;
     case 'map':
       screen = <MapScreen state={state} onAction={onAction} />;
       break;
@@ -785,7 +771,7 @@ export function RunScreens({ state, onAction, onNewRun, onReplay, onTitle, setti
       {(deckOpen || removing) && (
         <Modal
           title={removing ? '手放す教えを選ぶ' : `現在のデッキ · ${state.deck.length}枚`}
-          subtitle={removing ? `REMOVE A CARD · ${SHOP_PRICES.remove} GOLD` : 'YOUR TEACHINGS'}
+          subtitle={removing ? `REMOVE A CARD · ${getShopRemovePrice(state)} GOLD` : 'YOUR TEACHINGS'}
           onClose={() => {
             setDeckOpen(false);
             setRemoving(false);
@@ -802,7 +788,7 @@ export function RunScreens({ state, onAction, onNewRun, onReplay, onTitle, setti
               <div className="run-card-choice" key={card.uid}>
                 <CardView card={card} inspect />
                 {removing && (
-                  <button className="secondary-button danger-text" disabled={state.deck.length <= 5 || state.gold < SHOP_PRICES.remove || !!state.shop?.removed} onClick={() => remove(card)}>
+                  <button className="secondary-button danger-text" disabled={state.deck.length <= 5 || state.gold < getShopRemovePrice(state) || !!state.shop?.removed} onClick={() => remove(card)}>
                     このカードを取り除く
                   </button>
                 )}

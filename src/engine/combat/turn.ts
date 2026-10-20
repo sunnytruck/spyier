@@ -4,7 +4,7 @@ import { drawInto } from '../actions/draw';
 import { calculateDamage } from './damage';
 import { appendLog, capEnemyAttackDamage, dealDamage, finishIfNeeded, gainBlock } from './state';
 import { findEnemy, getEnemies, getEnemyKey } from './targets';
-import { triggerRelics } from './relics';
+import { hasRelicPassive, relicPassiveAmount, triggerRelics } from './relics';
 import { generateCards, resources, triggerPassiveOrbs } from './resources';
 import { CARD_DEFINITIONS } from '../../data/cards';
 import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace';
@@ -34,8 +34,9 @@ function startPlayerPowers(state: CombatState): void {
   }
   if (stacks.poisonAura) {
     for (const enemy of getEnemies(state).filter((enemy) => enemy.hp > 0)) {
-      enemy.poison += stacks.poisonAura;
-      emitCombatCue(state, { kind: 'status', sourceId: 'player', targetId: getEnemyKey(enemy), status: 'poison', amount: stacks.poisonAura });
+      const applied = stacks.poisonAura + relicPassiveAmount(state, 'poisonBonus');
+      enemy.poison += applied;
+      emitCombatCue(state, { kind: 'status', sourceId: 'player', targetId: getEnemyKey(enemy), status: 'poison', amount: applied });
     }
     appendLog(state, `毒苔の教壇：すべての敵に毒 +${stacks.poisonAura}。`);
   }
@@ -75,6 +76,9 @@ export function resolveEndTurn(state: CombatState): void {
       throw new RangeError(`敵「${enemy.id}」の行動パターンがありません。`);
   }
   appendLog(state, `ターン${state.turn}を終了。`);
+  triggerRelics(state, 'turnEnd');
+  if (state.plate) gainBlock(state, 'player', state.plate);
+  if (finishIfNeeded(state)) return;
   emitCombatCue(state, { kind: 'turn', label: '敵のターン', sourceId: 'player' });
   const retained = [];
   const discarded = [];
@@ -93,7 +97,10 @@ export function resolveEndTurn(state: CombatState): void {
   }
   state.hand = retained;
   if (discarded.length) emitCombatCue(state, { kind: 'discard', sourceId: 'player', cards: discarded, fromZone: 'hand', toZone: 'discardPile' });
-  if (exhausted.length) emitCombatCue(state, { kind: 'exhaust', sourceId: 'player', cards: exhausted, fromZone: 'hand', toZone: 'exhaustPile' });
+  if (exhausted.length) {
+    emitCombatCue(state, { kind: 'exhaust', sourceId: 'player', cards: exhausted, fromZone: 'hand', toZone: 'exhaustPile' });
+    for (const card of exhausted) triggerRelics(state, 'cardExhausted', { card });
+  }
   triggerPassiveOrbs(state);
   if (finishIfNeeded(state)) return;
   if (state.classResources) {
@@ -194,10 +201,10 @@ export function resolveEndTurn(state: CombatState): void {
   }
   expireTurnModifiers(state);
   state.turn += 1;
-  state.player.block = 0;
+  state.player.block = Math.min(state.player.block, relicPassiveAmount(state, 'retainBlock'));
   tickPoison(state, 'player');
   if (finishIfNeeded(state)) return;
-  state.energy = state.maxEnergy + (state.classResources?.nextTurnEnergy ?? 0);
+  state.energy = state.maxEnergy + (state.classResources?.nextTurnEnergy ?? 0) + (hasRelicPassive(state, 'retainEnergy') ? state.energy : 0);
   if (state.classResources) {
     state.classResources.nextTurnEnergy = 0;
     state.classResources.starsGainedThisTurn = 0;
@@ -206,6 +213,7 @@ export function resolveEndTurn(state: CombatState): void {
   appendLog(state, `ターン${state.turn}。朝活しよ。エナジーを回復し、5枚引く。`);
   emitCombatCue(state, { kind: 'turn', sourceId: 'player', targetId: 'player', amount: state.turn, label: 'あなたのターン' });
   startPlayerPowers(state);
+  if (state.relicCounters?.nextTurnBlock) { const amount = state.relicCounters.nextTurnBlock; delete state.relicCounters.nextTurnBlock; gainBlock(state, 'player', amount); }
   triggerRelics(state, 'turnStart');
   const scheduled = state.scheduledEffects;
   if (scheduled) {

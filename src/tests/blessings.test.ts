@@ -16,6 +16,7 @@ function commit(state: BlessingRun, option: BlessingOption): BlessingRun {
 }
 function fixture(seed: string, classId: ClassId = 'berserker', act = 1): BlessingRun {
   let state: BlessingRun = createRun(seed, classId);
+  state.relicRules = 'sources-v1';
   state.hp -= 17;
   state.gold = 300;
   state.maxActs = 3;

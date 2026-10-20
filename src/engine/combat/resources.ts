@@ -1,4 +1,7 @@
 import { CARD_DEFINITIONS } from '../../data/cards';
+import sourceCardIndex from '../../data/sourceCardIndex.generated.json';
+const sourceCardNames = new Map(sourceCardIndex.cards.map((card) => [card.sourceId, card.sourceName]));
+export function isStrikeCard(cardId: string): boolean { const card = CARD_DEFINITIONS[cardId]; return Boolean(card && (card.name.includes('ストライク') || (card.sourceCardId && sourceCardNames.get(card.sourceCardId)?.includes('ストライク')))); }
 import type {
   CardDestination,
   CardInstance,
@@ -12,6 +15,7 @@ import { nextRandom } from '../random';
 import { appendLog, dealDamage, gainBlock } from './state';
 import { findEnemy, getEnemies } from './targets';
 import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace';
+import { relicPassiveAmount, triggerRelics } from './relics';
 import { combatValue, meetsEffectCondition, scaledEffectAmount } from './values';
 
 /** Kept in one place so provisional keyword tuning does not change card data. */
@@ -24,8 +28,8 @@ export const CLASS_RULES = {
 } as const;
 
 /** The battle engine and its read-only HUD share these existing orb rules. */
-export function orbSlotCount(): number {
-  return CLASS_RULES.orbSlots;
+export function orbSlotCount(state?: CombatState): number {
+  return CLASS_RULES.orbSlots + (state?.orbSlotBonus ?? 0);
 }
 
 export function nextOrbEvokeIndex(orbs: readonly OrbType[]): number | null {
@@ -48,6 +52,7 @@ export function attackCardBase(
 ): number {
   return scaledEffectAmount(state, effect, target) +
     (sourceCard ? state.cardDamageBonuses?.[sourceCard.cardId] ?? 0 : 0) +
+    (sourceCard && CARD_DEFINITIONS[sourceCard.cardId]?.type === 'attack' ? (state.vigor ?? 0) + (sourceCard.upgraded ? relicPassiveAmount(state, 'upgradedAttackBonus') : 0) + (isStrikeCard(sourceCard.cardId) ? relicPassiveAmount(state, 'strikeBonus') : 0) : 0) +
     (effect.fromBlock ? state.player.block : 0) +
     (effect.fromForge ? state.classResources?.forge ?? 0 : 0) +
     (sourceCard && CARD_DEFINITIONS[sourceCard.cardId]?.tags?.includes('knife')
@@ -110,6 +115,7 @@ export function generateCards(
     if (toHand.length) emitCombatCue(state, { kind: 'generate', card: toHand[0], cards: toHand, toZone: 'hand', amount: toHand.length });
     if (elsewhere.length) emitCombatCue(state, { kind: 'generate', card: elsewhere[0], cards: elsewhere, toZone: destination === 'hand' ? 'discardPile' : destination, amount: elsewhere.length });
   }
+  for (const card of generated) triggerRelics(state, 'cardGenerated', { card });
   return generated;
 }
 
@@ -177,7 +183,7 @@ export function channelOrbs(state: CombatState, orb: OrbType, amount: number): v
     count < Math.max(0, Math.floor(amount)) && state.phase === 'player';
     count += 1
   ) {
-    if (current.orbs.length >= orbSlotCount()) evokeOrb(state, 1);
+    if (current.orbs.length >= orbSlotCount(state)) evokeOrb(state, 1);
     if (state.phase === 'player') {
       current.orbs.push(orb);
       const index = current.orbs.length - 1;
@@ -191,6 +197,7 @@ export function triggerPassiveOrbs(state: CombatState): void {
   for (const [index, orb] of (state.classResources?.orbs ?? []).entries()) {
     if (state.phase !== 'player') break;
     triggerOrb(state, orb, false, index);
+    if (index === (state.classResources?.orbs.length ?? 0) - 1) for (let count = 0; count < relicPassiveAmount(state, 'rightmostOrbExtraPassive') && state.phase === 'player'; count++) triggerOrb(state, orb, false, index);
   }
 }
 
@@ -208,4 +215,5 @@ export function summonAttack(
     return;
   }
   withCombatTraceContext(state, { sourceId: 'osty', effect: 'summonDamage' }, () => dealDamage(state, 'enemy', amount + (plusSummonHp ? current.ostyHp : 0), false, enemy));
+  triggerRelics(state, 'ostyAttack');
 }

@@ -1,5 +1,6 @@
 import type { CardInstance, ClassId, CombatAction, CombatState } from './game';
 import type { BlessingAction, BlessingEncounter, BlessingRecord } from './blessing';
+import type { RelicAcquisitionAction, RelicAcquisitionState, RelicPersistentState } from './relics';
 
 export type NodeType = 'battle' | 'elite' | 'event' | 'shop' | 'rest' | 'treasure' | 'boss';
 export interface MapNode {
@@ -15,6 +16,7 @@ export interface FloorMap {
 }
 export type RunScreen =
   | 'blessing'
+  | 'relicAcquisition'
   | 'map'
   | 'combat'
   | 'reward'
@@ -33,6 +35,10 @@ export interface RunReward {
   potionId: string | null;
   /** New class runs select their final card before entering the first-act victory screen. */
   completesRun?: true;
+  /** New boss rolls only: saved older choices are not rerolled. */
+  rareOnly?: true;
+  /** Additional already-rolled relic rewards, after relicId. */
+  relicIds?: string[];
 }
 export interface ShopState {
   cardIds: string[];
@@ -71,6 +77,9 @@ export interface RunState {
   classId?: ClassId;
   /** Only new class runs opt in. Already saved rooms and legacy reward rolls remain intact. */
   rewardRules?: 'rarity-v1';
+  relicRules?: 'sources-v1';
+  relicState?: RelicPersistentState;
+  relicAcquisition?: RelicAcquisitionState | null;
   /** Absent on classic single-act saves. Only new blessed campaigns progress through acts. */
   act?: number;
   maxActs?: number;
@@ -101,7 +110,7 @@ export interface RunState {
   stats: { battlesWon: number; elitesDefeated: number; cardsAdded: number };
   log: string[];
 }
-export type RunAction = BlessingAction
+export type RunAction = BlessingAction | RelicAcquisitionAction
   | { type: 'ascendAct' }
   | { type: 'chooseNode'; nodeId: string }
   | { type: 'combat'; action: CombatAction }

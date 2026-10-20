@@ -36,21 +36,25 @@ describe('expanded relic catalog and class acquisition restrictions', () => {
     }
   });
 
-  it.each(CLASS_IDS)('%s gets all 25 neutral relics and its own one class relic', (classId) => {
+  it.each(CLASS_IDS)('%s retains the original 26 eligible relics and only accepts matching new class relics', (classId) => {
     const ids = eligibleRelicIds(classId);
-    expect(ids).toHaveLength(26);
+    const originalIds = [...LEGACY_RELIC_IDS, ...EXPANSION_RELIC_IDS];
+    expect(ids.filter((id) => originalIds.includes(id))).toHaveLength(26);
+    expect(ids.length).toBeGreaterThan(26);
     expect(ids.every((id) => !RELIC_DEFINITIONS[id].classId || RELIC_DEFINITIONS[id].classId === classId)).toBe(true);
     for (const id of EXPANSION_RELIC_IDS.filter((id) => RELIC_DEFINITIONS[id].classId))
       expect(isRelicEligible(id, classId)).toBe(RELIC_DEFINITIONS[id].classId === classId);
   });
 
   it('never offers class relics to legacy runs, and rejects unknown IDs safely', () => {
-    expect(eligibleRelicIds()).toHaveLength(25);
+    const originalIds = [...LEGACY_RELIC_IDS, ...EXPANSION_RELIC_IDS];
+    expect(eligibleRelicIds().filter((id) => originalIds.includes(id))).toHaveLength(25);
     expect(eligibleRelicIds().every((id) => !RELIC_DEFINITIONS[id].classId)).toBe(true);
     for (const id of ['unknown', 'toString', '__proto__']) expect(isRelicEligible(id)).toBe(false);
+    const before = eligibleRelicIds();
     const copy = eligibleRelicIds();
     copy.length = 0;
-    expect(eligibleRelicIds()).toHaveLength(25);
+    expect(eligibleRelicIds()).toEqual(before);
   });
 
   it.each(CLASS_IDS)('ignores other classes’ relic effects even if manually inserted into %s', (classId) => {

@@ -19,6 +19,7 @@ export const BLESSING_TEMPLATES: Record<string, BlessingTemplate> = Object.fromE
   { id: 'sacred_trade', title: '古札と希少な一札', flavor: '教えをひとつ手放し、別の可能性へ。', risk: 'risky', costs: [], rewards: [{ kind: 'remove', amount: 1 }, { kind: 'cards', amount: 1, pool: 'rare' }] },
   { id: 'class_mastery', title: '職業の二重奏', flavor: '互いを支える二札を、修行の道へ。', risk: 'risky', costs: [{ kind: 'gold', base: 45, perAct: 15 }], rewards: [{ kind: 'cards', amount: 2, pool: 'synergy' }] },
   { id: 'exclusive_lesson', title: '出会いだけの教え', flavor: '特別な教えには、御神体の欠片をひとつ。', risk: 'risky', costs: [{ kind: 'maxHp', base: 5, perAct: 2 }], rewards: [{ kind: 'cards', amount: 1, pool: 'exclusive' }] },
+  { id: 'ancient_audience', title: 'エンシェントの授け物', flavor: '古い岩の力を迎える。取得後に追加の選択や代償がある場合は、必ず説明を確かめよう。', risk: 'risky', costs: [{ kind: 'maxHp', base: 8, perAct: 3 }], rewards: [{ kind: 'relic', pool: 'ancient' }] },
 ] satisfies BlessingTemplate[]).map((template) => [template.id, template]));
 
 const CHARACTER_PRESENTATION: Record<BlessingCharacterId, Pick<BlessingCharacter, 'artId' | 'backgroundTheme' | 'effectTheme' | 'availableActs' | 'dialogues'>> = {

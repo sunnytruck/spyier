@@ -230,6 +230,7 @@ export interface CombatEvent {
 }
 
 export interface CombatState {
+  encounterType?: 'battle' | 'elite' | 'boss' | 'event';
   version: 1;
   seed: string;
   rngState: number;
@@ -253,6 +254,12 @@ export interface CombatState {
   relicIds?: string[];
   potions?: (string | null)[];
   relicCounters?: Record<string, number>;
+  /** Run-wide relic counters are copied into and out of each battle by the run reducer. */
+  relicState?: Record<string, number>;
+  dexterity?: number;
+  plate?: number;
+  vigor?: number;
+  orbSlotBonus?: number;
   cardsPlayedThisTurn: number;
   stats: { cardsPlayed: number; damageDealt: number };
   log: BattleLog[];
@@ -271,6 +278,9 @@ export interface CombatState {
 }
 
 export interface CombatOptions {
+  initialEnergyBonus?: number;
+  encounterType?: 'battle' | 'elite' | 'boss' | 'event';
+  relicState?: Record<string, number>;
   deck?: CardInstance[];
   hp?: number;
   maxHp?: number;

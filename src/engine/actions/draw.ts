@@ -1,5 +1,6 @@
 import type { CardInstance, CombatState } from '../../types/game';
 import { shuffle } from '../random';
+import { triggerRelics } from '../combat/relics';
 import { appendLog } from '../combat/state';
 import { emitCombatCue, inheritCombatTrace } from '../../presentation/trace';
 
@@ -24,6 +25,7 @@ export function drawInto(state: CombatState, amount: number): void {
       state.rngState = shuffled.rngState;
       appendLog(state, '捨て札をシャッフルして山札に戻した。');
       emitCombatCue(state, { kind: 'discard', cards: reshuffled, fromZone: 'discardPile', toZone: 'drawPile', label: 'シャッフル' });
+      triggerRelics(state, 'shuffle');
     }
     const card = state.drawPile.pop();
     if (!card) break;

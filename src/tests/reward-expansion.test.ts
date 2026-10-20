@@ -26,11 +26,13 @@ describe('rarity-aware offers for new runs', () => {
         const result = sampleCardRewards(pool, rng, tier);
         expect(result).toEqual(sampleCardRewards(pool, rng, tier));
         expect(result.cardIds).toHaveLength(3);
-        expect(new Set(result.cardIds).size).toBe(3);
+        const available = tier === 'boss' ? pool.filter((id) => CARD_DEFINITIONS[id].rarity === 'rare') : pool;
+        expect(new Set(result.cardIds).size).toBe(Math.min(3, available.length));
         for (const id of result.cardIds) {
           expect(CARD_DEFINITIONS[id].classId).toBe(classId);
           expect(CARD_DEFINITIONS[id].tokenOnly).not.toBe(true);
           expect(CARD_DEFINITIONS[id].rewardEligible).not.toBe(false);
+          if (tier === 'boss') expect(CARD_DEFINITIONS[id].rarity).toBe('rare');
         }
       }
     }
@@ -56,8 +58,11 @@ describe('rarity-aware offers for new runs', () => {
 
   it('handles exhausted rarity groups and tiny pools without duplicates or consuming RNG for no cards', () => {
     const ids = getCardPool('berserker', 'combat').slice(0, 2);
-    for (const tier of ['battle', 'elite', 'boss', 'shop'] as RewardTier[])
+    for (const tier of ['battle', 'elite', 'shop'] as RewardTier[])
       expect(sampleCardRewards([...ids, ...ids, 'token_knife', 'missing'], 123, tier).cardIds.sort()).toEqual([...ids].sort());
+    expect(sampleCardRewards(ids, 123, 'boss')).toEqual({ cardIds: [], rngState: 123 });
+    const rare = getCardPool('berserker', 'combat').find((id) => CARD_DEFINITIONS[id].rarity === 'rare')!;
+    expect(sampleCardRewards([rare, ...ids, 'token_knife'], 123, 'boss').cardIds).toEqual([rare, rare, rare]);
     expect(sampleCardRewards([], 123, 'battle')).toEqual({ cardIds: [], rngState: 123 });
     expect(sampleCardRewards(ids, 123, 'battle', 0)).toEqual({ cardIds: [], rngState: 123 });
   });

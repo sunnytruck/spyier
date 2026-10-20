@@ -11,6 +11,7 @@ import { isValidCombatState } from './persistence';
 import { getCardPool } from './cardPools';
 import { isValidBlessingState } from './blessings';
 import { isActId } from '../data/acts';
+import { isValidRelicAcquisitionState } from './relicAcquisition';
 
 export const RUN_SAVE_KEY = 'iwason-spire:run:v2';
 let warning: string | null = null;
@@ -46,6 +47,34 @@ function mapShape(v: unknown): v is FloorMap {
 
 /** Reject incompatible saves atomically. Restoration never regenerates rooms or rewards. */
 export function isValidRunState(value: unknown): value is RunState {
+  // A saved acquisition overlays an already committed room. Validate both the
+  // exact frozen acquisition proof and the unchanged underlying room contract.
+  // returnScreen is validated by the acquisition engine and cannot recurse here.
+  if (record(value) && value.screen === 'relicAcquisition') {
+    try {
+      if (!isValidRelicAcquisitionState(value as unknown as RunState)) return false;
+      const acquisition = (value as unknown as RunState).relicAcquisition!;
+      const current = record(value.map) && Array.isArray(value.map.nodes)
+        ? value.map.nodes.find((node) => record(node) && node.id === value.currentNodeId) : undefined;
+      const relic = RELIC_DEFINITIONS[acquisition.relicId];
+      if (relic.classId && relic.classId !== value.classId) return false;
+      if (acquisition.source === 'blessing') {
+        if (value.floor !== 0 || value.currentNodeId !== null ||
+          !Array.isArray(value.blessingHistory) || !value.blessingHistory.some((entry) =>
+            record(entry) && entry.act === value.act && record(entry.receipt) &&
+            Array.isArray(entry.receipt.relicIds) && entry.receipt.relicIds.includes(acquisition.relicId))) return false;
+      } else if (acquisition.source === 'shop') {
+        if (!record(current) || current.type !== 'shop' || !record(value.shop) ||
+          value.shop.relicId !== acquisition.relicId || !Array.isArray(value.shop.purchased) ||
+          !value.shop.purchased.includes('relic')) return false;
+      } else if (acquisition.source === 'event') {
+        if (!record(current) || current.type !== 'event') return false;
+      } else if (!record(current) || !['treasure', 'elite', 'boss', 'event'].includes(String(current.type))) return false;
+      return isValidRunState({ ...value, screen: acquisition.returnScreen, relicAcquisition: null });
+    } catch {
+      return false;
+    }
+  }
   if (
     !record(value) ||
     value.version !== 2 ||
@@ -88,6 +117,14 @@ export function isValidRunState(value: unknown): value is RunState {
   )
     return false;
   if (value.rewardRules !== undefined && (value.rewardRules !== 'rarity-v1' || value.classId === undefined)) return false;
+  if (value.relicRules !== undefined && (value.relicRules !== 'sources-v1' || value.classId === undefined)) return false;
+  if (value.relicState !== undefined && (!record(value.relicState) ||
+    Object.entries(value.relicState).some(([key, amount]) => !text(key, 200) || !int(amount)))) return false;
+  try {
+    if (!isValidRelicAcquisitionState(value as unknown as RunState)) return false;
+  } catch {
+    return false;
+  }
   if (value.maxHp === 0 && (value.screen !== 'defeat' || value.hp !== 0)) return false;
   if (!isValidBlessingState(value as unknown as RunState)) return false;
   if (value.act !== undefined) {
@@ -130,7 +167,7 @@ export function isValidRunState(value: unknown): value is RunState {
   if (
     !unique(value.relicIds, (id) => known(id, RELIC_DEFINITIONS), RELIC_IDS.length) ||
     !Array.isArray(value.potions) ||
-    value.potions.length !== 3 ||
+    value.potions.length < 3 || value.potions.length > 20 ||
     !value.potions.every((id) => id === null || known(id, POTION_DEFINITIONS))
   )
     return false;
@@ -155,7 +192,9 @@ export function isValidRunState(value: unknown): value is RunState {
   if (value.reward !== null) {
     if (
       !record(value.reward) ||
-      !unique(value.reward.cardIds, (id) => known(id, CARD_DEFINITIONS), 3) ||
+      !Array.isArray(value.reward.cardIds) || value.reward.cardIds.length > 3 ||
+      !value.reward.cardIds.every((id) => known(id, CARD_DEFINITIONS)) ||
+      (value.reward.rareOnly !== true && new Set(value.reward.cardIds).size !== value.reward.cardIds.length) ||
       !int(value.reward.gold) ||
       (value.reward.relicId !== null && !known(value.reward.relicId, RELIC_DEFINITIONS)) ||
       (value.reward.potionId !== null && !known(value.reward.potionId, POTION_DEFINITIONS)) ||
@@ -166,6 +205,25 @@ export function isValidRunState(value: unknown): value is RunState {
     if (value.classId) {
       const pool = getCardPool(value.classId as RunState['classId'], 'combat');
       if (!value.reward.cardIds.every((id) => pool.includes(id))) return false;
+    }
+    if (value.reward.rareOnly !== undefined && (value.reward.rareOnly !== true ||
+      value.reward.completesRun !== true || current?.type !== 'boss' || !value.classId ||
+      value.reward.cardIds.length !== 3 || !value.reward.cardIds.every((id) =>
+        CARD_DEFINITIONS[id].rarity === 'rare' && CARD_DEFINITIONS[id].classId === value.classId))) return false;
+    if (value.reward.rareOnly === true) {
+      const rares = getCardPool(value.classId as RunState['classId'], 'combat')
+        .filter((id) => CARD_DEFINITIONS[id].rarity === 'rare');
+      // Every slot remains rare even when this class currently has fewer than
+      // three implemented rare definitions. Duplicate only after covering them.
+      if (new Set(value.reward.cardIds).size !== Math.min(3, rares.length)) return false;
+    }
+    if (value.reward.relicIds !== undefined && (
+      !unique(value.reward.relicIds, (id) => known(id, RELIC_DEFINITIONS), RELIC_IDS.length) ||
+      value.reward.relicIds.includes(value.reward.relicId as string))) return false;
+    if (value.relicRules === 'sources-v1') {
+      const rewards = [value.reward.relicId, ...((value.reward.relicIds ?? []) as string[])].filter((id): id is string => typeof id === 'string');
+      if (rewards.some((id) => RELIC_DEFINITIONS[id].acquisition !== 'normal' ||
+        (RELIC_DEFINITIONS[id].classId && RELIC_DEFINITIONS[id].classId !== value.classId))) return false;
     }
   }
   if (value.shop !== null) {
@@ -181,6 +239,10 @@ export function isValidRunState(value: unknown): value is RunState {
     if (value.classId) {
       const pool = getCardPool(value.classId as RunState['classId'], 'shop');
       if (!value.shop.cardIds.every((id) => pool.includes(id))) return false;
+    }
+    if (value.relicRules === 'sources-v1' && typeof value.shop.relicId === 'string') {
+      const relic = RELIC_DEFINITIONS[value.shop.relicId];
+      if (relic.acquisition !== 'shop' || (relic.classId && relic.classId !== value.classId)) return false;
     }
     const stock = value.shop.cardIds;
     const prices = value.shop.cardPrices;
@@ -226,7 +288,7 @@ export function isValidRunState(value: unknown): value is RunState {
       !int(result.hpChange, -1_000_000) || !int(result.goldChange, -1_000_000) ||
       !cardList(result.upgradedCards) || !cardList(result.addedCards) || !cardList(result.removedCards) ||
       !unique(result.relicIds, (id) => known(id, RELIC_DEFINITIONS), RELIC_IDS.length) ||
-      !Array.isArray(result.potionIds) || result.potionIds.length > 3 || !result.potionIds.every((id) => known(id, POTION_DEFINITIONS)) ||
+      !Array.isArray(result.potionIds) || result.potionIds.length > 20 || !result.potionIds.every((id) => known(id, POTION_DEFINITIONS)) ||
       value.screen !== 'eventResult' || value.combat !== null || value.eventCombat != null) return false;
     const deck = value.deck as RunState['deck'];
     if (result.upgradedCards.some((card) => !card.upgraded || !deck.some((c) => c.uid === card.uid && c.cardId === card.cardId && c.upgraded))) return false;
@@ -270,6 +332,7 @@ export function isValidRunState(value: unknown): value is RunState {
         return false;
       if (
         JSON.stringify(value.combat.relicIds ?? []) !== JSON.stringify(value.relicIds) ||
+        JSON.stringify(value.combat.relicState ?? {}) !== JSON.stringify(value.relicState ?? {}) ||
         JSON.stringify(value.combat.potions ?? [null, null, null]) !== JSON.stringify(value.potions)
       )
         return false;

@@ -1,5 +1,6 @@
 import type { EventCardPoolPolicy } from '../engine/cardPools';
 import type { ClassId } from '../types/game';
+import { RELIC_EVENT_DEFINITIONS } from './relicEvents';
 
 export type EventEffect =
   | { type: 'heal'; amount: number }
@@ -14,7 +15,7 @@ export type EventEffect =
       pool?: EventCardPoolPolicy;
     }
   | { type: 'upgrade' }
-  | { type: 'relic' }
+  | { type: 'relic'; relicId?: string }
   | { type: 'remove'; amount: number }
   | { type: 'maxHp'; amount: number }
   | { type: 'potion' }
@@ -39,6 +40,7 @@ export interface EventDefinition {
 
 /** Original encounters: rewards use the run's saved RNG, never render-time randomness. */
 export const EVENT_DEFINITIONS: Record<string, EventDefinition> = {
+  ...RELIC_EVENT_DEFINITIONS,
   sun_clock: {
     id: 'sun_clock',
     title: '八時を指す日時計',

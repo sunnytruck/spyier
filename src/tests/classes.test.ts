@@ -26,7 +26,7 @@ describe('selectable classes and legacy compatibility', () => {
     for (const invalid of [null, 'colorless', 'unknown', 0, {}, 'toString']) expect(isClassId(invalid)).toBe(false);
   });
 
-  it.each(CLASS_IDS)('%s starts its own deck, HP, relic and reproducible first combat', (classId) => {
+  it.each(CLASS_IDS)('%s keeps the legacy factory deck, HP, starter and reproducible first combat', (classId) => {
     const definition = CLASS_DEFINITIONS[classId];
     const run = createRun(`class-start-${classId}`, classId);
     expect(run.classId).toBe(classId);
@@ -35,7 +35,7 @@ describe('selectable classes and legacy compatibility', () => {
     expect(run.deck.map((card) => card.cardId)).toEqual(definition.starterDeck);
     expect(run.deck).toHaveLength(10);
     expect(new Set(run.deck.map((card) => card.uid)).size).toBe(10);
-    expect(run.relicIds).toEqual([definition.starterRelicId]);
+    expect(run.relicIds).toEqual([definition.legacyStarterRelicId]);
     expect(run.deck.every((card) => CARD_DEFINITIONS[card.cardId].classId === classId)).toBe(true);
     const first = reduceRun(run, { type: 'chooseNode', nodeId: getAvailableNodes(run)[0].id });
     expect(first.screen).toBe('combat');

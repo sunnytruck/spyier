@@ -1,34 +1,80 @@
 import type { CardType, ClassId, Effect } from '../types/game';
+import type { RelicRunEffect } from '../types/relics';
+import { STARTER_RELIC_DEFINITIONS } from './starterRelics';
+import { REFERENCE_RELIC_DEFINITIONS } from './referenceRelics';
+import { ACQUISITION_RELIC_DEFINITIONS } from './acquisitionRelics';
 
-export type RelicTrigger = 'combatStart' | 'turnStart' | 'firstAttack' | 'cardPlayed' | 'enemyKilled' | 'victory';
+export type RelicTrigger = 'combatStart' | 'firstHand' | 'turnStart' | 'turnEnd' | 'firstAttack' | 'cardPlayed' | 'enemyKilled' | 'victory'
+  | 'hpLost' | 'cardExhausted' | 'cardDiscarded' | 'cardGenerated' | 'ostyAttack' | 'shuffle' | 'acquire';
 export type RelicEffectKind =
   | 'block' | 'strength' | 'draw' | 'energy' | 'heal' | 'gauge'
   | 'enemyWeak' | 'enemyVulnerable' | 'enemyPoison' | 'cleansePoison'
-  | 'knife' | 'stars' | 'summon' | 'frost';
-
+  | 'knife' | 'stars' | 'summon' | 'frost' | 'lightning' | 'forge' | 'focus' | 'dexterity'
+  | 'damageAll' | 'damageRandom' | 'damageAllTurn' | 'enemyStrength' | 'thorns' | 'plate'
+  | 'soul' | 'upgradeHand' | 'upgradeDrawPile' | 'nextTurnBlock' | 'nextTurnEnergy' | 'blockPerHand'
+  | 'energyDraw' | 'loseHp' | 'vigor' | 'orbSlots' | 'run';
+export interface RelicEffect {
+  trigger: RelicTrigger;
+  kind: RelicEffectKind;
+  amount: number;
+  scope?: 'card' | 'turn' | 'battle' | 'run';
+  cardType?: CardType;
+  cardEffect?: Effect['type'];
+  atCard?: number;
+  every?: number;
+  turn?: number;
+  minTurn?: number;
+  maxTurn?: number;
+  hpAtMostPercent?: number;
+  noBlock?: boolean;
+  blockAtLeast?: number;
+  noAttack?: boolean;
+  cardUpgraded?: boolean;
+  cardCostAtLeast?: number;
+  bossOnly?: boolean;
+  eliteOnly?: boolean;
+  handEmpty?: boolean;
+  energyAtLeast?: number;
+}
+export interface RelicPassives {
+  initialDrawAdjustment?: number;
+  poisonBonus?: number;
+  upgradedAttackBonus?: number;
+  strikeBonus?: number;
+  retainEnergy?: boolean;
+  retainBlock?: number;
+  hpLossReduction?: number;
+  firstCardBlockMultiplier?: number;
+  rightmostOrbExtraPassive?: number;
+  hpThresholdStrength?: { percent: number; amount: number };
+  reviveHpPercent?: number;
+}
+export type RelicRarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'shop' | 'ancient' | 'event';
+export type RelicAcquisition = 'starter' | 'normal' | 'shop' | 'ancient' | 'event';
 export interface RelicDefinition {
   id: string;
   name: string;
   description: string;
   glyph: string;
-  /** Missing means every class, including saves created before class selection. */
   classId?: ClassId;
-  effect: {
-    trigger: RelicTrigger;
-    kind: RelicEffectKind;
-    amount: number;
-    /** Card triggers can count matching cards per turn or across this battle. */
-    scope?: 'card' | 'turn' | 'battle';
-    cardType?: CardType;
-    cardEffect?: Effect['type'];
-    atCard?: number;
-    turn?: number;
-    hpAtMostPercent?: number;
-  };
+  effect: RelicEffect;
+  /** Additional independent hooks, leaving legacy single-effect saves unchanged. */
+  effects?: RelicEffect[];
+  passive?: RelicPassives;
+  rarity?: RelicRarity;
+  acquisition?: RelicAcquisition;
+  sourceRelicId?: string;
+  sourceRelicName?: string;
+  runEffect?: RelicRunEffect;
+  upgradeFrom?: string;
+  upgradeTo?: string;
 }
 
 /** A relic trigger is resolved by the engine, never directly by a screen. */
 export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
+  ...STARTER_RELIC_DEFINITIONS,
+  ...REFERENCE_RELIC_DEFINITIONS,
+  ...ACQUISITION_RELIC_DEFINITIONS,
   warm_pebble: {
     id: 'warm_pebble',
     name: '温石',
@@ -44,6 +90,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     effect: { trigger: 'combatStart', kind: 'block', amount: 7 },
   },
   prayer_knuckle: {
+    sourceRelicId: 'relsrc_a353ac8debe2', sourceRelicName: 'ヴァジュラ', rarity: 'common', acquisition: 'normal',
     id: 'prayer_knuckle',
     name: '祈りの拳石',
     glyph: '拳',
@@ -51,6 +98,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     effect: { trigger: 'combatStart', kind: 'strength', amount: 1 },
   },
   fossil_bookmark: {
+    sourceRelicId: 'relsrc_0fd1adb01829', sourceRelicName: 'バックパック', rarity: 'common', acquisition: 'normal',
     id: 'fossil_bookmark',
     name: '化石のしおり',
     glyph: '頁',
@@ -58,6 +106,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     effect: { trigger: 'combatStart', kind: 'draw', amount: 2 },
   },
   amber_spark: {
+    sourceRelicId: 'relsrc_904ab1459de4', sourceRelicName: 'ランタン', rarity: 'common', acquisition: 'normal',
     id: 'amber_spark',
     name: '琥珀の火種',
     glyph: '灯',
@@ -125,6 +174,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     effect: { trigger: 'cardPlayed', kind: 'energy', amount: 1, scope: 'turn', cardType: 'attack', atCard: 3 },
   },
   ember_lens: {
+    sourceRelicId: 'relsrc_bddea18adfd1', sourceRelicName: 'レッドマスク', rarity: 'common', acquisition: 'normal',
     id: 'ember_lens', name: '煙る琥珀眼', glyph: '眼',
     description: '戦闘開始時、すべての敵に弱体を1与える。',
     effect: { trigger: 'combatStart', kind: 'enemyWeak', amount: 1 },
@@ -135,6 +185,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
     effect: { trigger: 'combatStart', kind: 'enemyPoison', amount: 2 },
   },
   stone_mask: {
+    sourceRelicId: 'relsrc_1d1fcb9c4ff1', sourceRelicName: 'ビー玉袋', rarity: 'common', acquisition: 'normal',
     id: 'stone_mask', name: 'ひび割れの面', glyph: '面',
     description: '戦闘開始時、すべての敵に脆弱を1与える。',
     effect: { trigger: 'combatStart', kind: 'enemyVulnerable', amount: 1 },
@@ -201,13 +252,17 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   },
 };
 
+for (const relic of Object.values(RELIC_DEFINITIONS)) {
+  relic.rarity ??= 'uncommon';
+  relic.acquisition ??= 'normal';
+}
 export const RELIC_IDS = Object.keys(RELIC_DEFINITIONS);
 /** Original IDs remain addressable; count checks must not freeze the expanded catalog. */
 export const LEGACY_RELIC_IDS = [
   'warm_pebble', 'gate_fragment', 'prayer_knuckle', 'fossil_bookmark', 'amber_spark',
   'sacred_chalk', 'layered_charm', 'morning_bell', 'first_vow', 'pilgrim_cup',
 ];
-export const EXPANSION_RELIC_IDS = RELIC_IDS.filter((id) => !LEGACY_RELIC_IDS.includes(id));
+export const EXPANSION_RELIC_IDS = ['cracked_sandal', 'waking_hourglass', 'inkstone_ledger', 'guard_rhythm', 'sword_echo', 'ember_lens', 'moss_vial', 'stone_mask', 'pilgrim_veil', 'victory_ladle', 'amber_hourglass', 'quarry_trophy', 'soul_ladle', 'echo_prism', 'dawn_censer', 'scarred_bracelet', 'silent_whetstone', 'star_map', 'spirit_lantern', 'core_cage'];
 
 export function isRelicEligible(id: string, classId?: ClassId): boolean {
   const relic = Object.hasOwn(RELIC_DEFINITIONS, id) ? RELIC_DEFINITIONS[id] : undefined;
@@ -217,4 +272,30 @@ export function isRelicEligible(id: string, classId?: ClassId): boolean {
 /** Legacy runs without a class receive neutral relics only. */
 export function eligibleRelicIds(classId?: ClassId): string[] {
   return RELIC_IDS.filter((id) => isRelicEligible(id, classId));
+}
+
+export { STARTER_RELIC_IDS, STARTER_UPGRADE_IDS } from './starterRelics';
+/** Upgraded starters suppress their predecessor even in an old, inconsistent inventory. */
+export function activeRelicIds(ids: readonly string[]): string[] {
+  const unique = [...new Set(ids)];
+  const superseded = new Set(unique.map((id) => RELIC_DEFINITIONS[id]?.upgradeFrom).filter(Boolean));
+  return unique.filter((id) => !superseded.has(id));
+}
+export function getStarterRelicUpgrade(id: string): string | undefined {
+  return RELIC_DEFINITIONS[id]?.upgradeTo;
+}
+export function replaceStarterRelic(ids: readonly string[], classId: ClassId): string[] | null {
+  const starter = Object.values(STARTER_RELIC_DEFINITIONS).find((relic) => relic.classId === classId && relic.upgradeTo);
+  if (!starter || !ids.includes(starter.id) || ids.includes(starter.upgradeTo!)) return null;
+  return [...new Set(ids.filter((id) => id !== starter.id).concat(starter.upgradeTo!))];
+}
+
+/** Acquisition source and class restrictions are independent catalog axes. */
+export function getRelicPool(classId: ClassId | undefined, source: 'normal' | 'shop' | 'ancient' | 'event' | 'starterUpgrade', owned: readonly string[] = []): string[] {
+  return RELIC_IDS.filter((id) => {
+    const relic = RELIC_DEFINITIONS[id];
+    if (!isRelicEligible(id, classId) || owned.includes(id)) return false;
+    if (relic.upgradeFrom && source !== 'starterUpgrade') return false;
+    return source === 'starterUpgrade' ? Boolean(relic.upgradeFrom && owned.includes(relic.upgradeFrom)) : relic.acquisition === source;
+  });
 }

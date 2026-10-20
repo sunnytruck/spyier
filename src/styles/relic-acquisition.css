@@ -1,0 +1,67 @@
+.relic-acquisition-screen { --relic-reveal-duration: .65s; max-width: 1240px; min-width: 0; margin: 0 auto; padding-bottom: 44px; font-family: var(--sans); }
+.relic-acquisition-altar { position: relative; isolation: isolate; display: flex; align-items: center; gap: 28px; padding: 30px; border: 1px solid #bfa56b69; border-radius: 6px; background: radial-gradient(ellipse at 15% 50%, #d9bd6e1c, transparent 50%), linear-gradient(135deg, #293021, #1a221b); overflow: hidden; }
+.relic-acquisition-altar > .relic-emblem { flex-shrink: 0; filter: drop-shadow(0 0 20px #d5be7445); }
+.relic-acquisition-altar > div:not(.relic-acquisition-rays) { min-width: 0; flex: 1; }
+.relic-acquisition-altar h2 { margin: 7px 0 11px; font: 600 26px/1.4 var(--serif); color: #f0dfab; overflow-wrap: anywhere; }
+.relic-acquisition-altar p:not(.section-kicker) { margin: 0; color: #e1dfc9; font-size: 15px; line-height: 1.95; overflow-wrap: anywhere; }
+.relic-acquisition-altar > .text-button { align-self: flex-start; flex-shrink: 0; font-size: 12px; }
+.relic-acquisition-rays { position: absolute; z-index: -1; pointer-events: none; inset: 0; opacity: 0; background: repeating-conic-gradient(from 15deg at 80px 50%, #e9d68d20 0deg 4deg, transparent 4deg 27deg); }
+.relic-acquisition-screen.is-result .relic-acquisition-rays { animation: relic-acquisition-reveal var(--relic-reveal-duration) ease-out both; }
+.relic-acquisition-selection, .relic-acquisition-receipt { margin-top: 28px; padding: 26px; border: 1px solid #a69e613f; border-radius: 6px; background: #1d281dc9; }
+.relic-acquisition-selection > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.relic-acquisition-selection h2, .relic-acquisition-receipt h2 { margin: 0 0 10px; font: 600 21px/1.5 var(--sans); color: #eadeb9; }
+.relic-acquisition-selection h3, .relic-acquisition-receipt h3 { margin: 0 0 15px; font: 600 16px/1.6 var(--sans); color: #e3d6ae; }
+.relic-acquisition-selection > header p, .relic-acquisition-receipt > p { margin: 0; font-size: 14px; color: #d1d6bb; line-height: 1.9; overflow-wrap: anywhere; }
+.relic-acquisition-selection > header > b { flex-shrink: 0; color: #ebd49a; font-size: 14px; padding-top: 3px; }
+.relic-acquisition-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 22px; margin: 25px 0; align-items: stretch; }
+.relic-acquisition-card { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 14px 10px; border: 1px solid transparent; border-radius: 6px; }
+.relic-acquisition-card.is-selected { background: #b99c4320; border-color: #ddc78495; }
+.relic-acquisition-card > .game-card.inspect-card { width: min(100%, 260px); margin: 0 auto; height: auto; flex: 1; }
+.relic-acquisition-screen .game-card.inspect-card { max-width: 270px; min-width: 0; height: auto; }
+.relic-acquisition-screen .game-card.inspect-card { min-height: 330px; height: auto; }
+.relic-acquisition-screen .card-description { min-height: 100px; height: auto; max-height: none; overflow: visible; font-size: 14px; line-height: 1.9; }
+.relic-acquisition-screen .card-heading h3 { font-size: 17px; line-height: 1.55; overflow-wrap: anywhere; white-space: normal; }
+.relic-acquisition-card > button { width: min(100%, 260px); min-height: 46px; margin-top: auto; font-size: 13px; }
+.relic-acquisition-confirm-preview { border-top: 1px solid #b6a56c36; padding-top: 23px; margin-top: 20px; }
+.relic-acquisition-confirm-preview > div { display: flex; justify-content: center; align-items: start; flex-wrap: wrap; gap: 25px; }
+.relic-acquisition-confirm-preview .card-upgrade-comparison { min-width: 0; max-width: 320px; flex: 1 1 270px; }
+.relic-transform-preview { display: flex; gap: 13px; align-items: center; justify-content: center; max-width: 620px; min-width: 0; }
+.relic-transform-preview > div { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; max-width: 270px; }
+.relic-transform-preview > div > span { color: #dacfaa; text-align: center; font-size: 13px; }
+.relic-transform-preview > span { color: #d4c187; font-size: 25px; flex-shrink: 0; }
+.relic-selected-card { display: flex; flex-direction: column; gap: 13px; align-items: center; min-width: 0; max-width: 280px; }
+.relic-selected-card > p { font-size: 13px; color: #d8d2ad; }
+.relic-acquisition-summary { margin: 20px 0 0; padding: 13px 15px; border: 1px solid #bcaa6c40; border-radius: 4px; color: #f0dcaa; font-size: 13px; line-height: 1.9; overflow-wrap: anywhere; }
+.relic-acquisition-actions { margin-top: 25px; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-top: 20px; border-top: 1px solid #aaa16a38; }
+.relic-acquisition-actions > p { color: #c7ceb4; font-size: 12px; line-height: 1.9; max-width: 580px; margin: 0; }
+.relic-acquisition-actions > button { min-height: 48px; flex-shrink: 0; font-size: 14px; white-space: normal; }
+.relic-acquisition-deltas { display: flex; gap: 12px; flex-wrap: wrap; margin: 18px 0; }
+.relic-acquisition-deltas > span { padding: 6px 12px; border: 1px solid #9ba96850; border-radius: 4px; background: #263525; color: #d2e3ba; font-size: 14px; }
+.relic-acquisition-deltas > .is-loss { color: #f1b7a5; background: #422922; border-color: #ca8c7950; }
+.relic-receipt-cards, .relic-starter-replacement { margin-top: 24px; }
+.relic-receipt-cards > div { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 20px; }
+.relic-starter-replacement p { display: flex; gap: 12px; align-items: center; color: #cfd3b6; font-size: 13px; line-height: 1.8; }
+.relic-acquisition-screen.is-fast { --relic-reveal-duration: .36s; }
+.relic-acquisition-screen.motion-reduced *, .app.speed-instant .relic-acquisition-screen *, .app.reduced-motion .relic-acquisition-screen * { animation: none !important; transition: none !important; }
+@keyframes relic-acquisition-reveal { 0% { opacity: 0; scale: .96; } 35% { opacity: .85; } 100% { opacity: 0; scale: 1.05; } }
+@media (max-width: 700px) {
+  .relic-acquisition-altar { padding: 20px 16px; gap: 16px; flex-wrap: wrap; }
+  .relic-acquisition-altar > .relic-emblem { --relic-size: 70px !important; }
+  .relic-acquisition-altar > .text-button { margin-left: auto; min-height: 32px; }
+  .relic-acquisition-altar h2 { font-size: 22px; }
+  .relic-acquisition-altar p:not(.section-kicker) { font-size: 13px; }
+  .relic-acquisition-selection, .relic-acquisition-receipt { padding: 20px 13px; margin-top: 20px; }
+  .relic-acquisition-selection > header { flex-wrap: wrap; gap: 8px; }
+  .relic-acquisition-selection h2, .relic-acquisition-receipt h2 { font-size: 19px; }
+  .relic-acquisition-selection > header p, .relic-acquisition-receipt > p { font-size: 13px; }
+  .relic-acquisition-card-grid { grid-template-columns: minmax(0, 1fr); gap: 13px; }
+  .relic-acquisition-card { padding: 14px 12px; }
+  .relic-acquisition-screen .game-card.inspect-card { width: min(100%, 270px); }
+  .relic-acquisition-screen .card-description { font-size: 14px; }
+  .relic-transform-preview { flex-direction: column; gap: 15px; }
+  .relic-transform-preview > span { rotate: 90deg; }
+  .relic-transform-preview > div { width: min(270px, 100%); }
+  .relic-acquisition-actions { flex-direction: column; align-items: stretch; gap: 17px; }
+  .relic-acquisition-actions > button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .relic-acquisition-screen * { animation: none !important; transition: none !important; } }

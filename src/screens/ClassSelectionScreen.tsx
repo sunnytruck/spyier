@@ -3,6 +3,7 @@ import { RELIC_DEFINITIONS } from '../data/relics';
 import type { ClassId } from '../types/game';
 import { CardView } from '../components/CardView';
 import { Icon } from '../components/Icon';
+import { RelicIcon } from '../components/RelicIcon';
 import { RockDeity } from '../components/CharacterArt';
 import { orbEffectValue, orbSlotCount } from '../engine/combat/resources';
 
@@ -57,7 +58,7 @@ export function ClassSelectionScreen({ selected, onSelect, onStart, onBack }: {
             <div><dt>初期デッキ</dt><dd>{job.starterDeck.length}枚</dd></div>
             <div><dt>固有の力</dt><dd>{job.resourceSummary}</dd></div>
           </dl>
-          {relic && <div className="class-starting-relic"><span>{relic.glyph}</span><div><b>初期レリック · {relic.name}</b><p>{relic.description}</p></div></div>}
+          {relic && <div className="class-starting-relic"><RelicIcon id={relic.id} size={46} /><div><b>初期レリック · {relic.name}</b><p>{relic.description}</p></div></div>}
           <button className="primary-button" onClick={onStart}>この職業で探索を始める <Icon name="arrow" size={18} /></button>
           <p className="class-pool-note">実装・検証済みのカードのみ出現します。無色カードは商人や出来事で入手できます。</p>
         </div>

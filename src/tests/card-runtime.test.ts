@@ -4,6 +4,7 @@ import { createCombat, getCardCost, getEnemies, getEnemyKey, reduceCombat } from
 import { serializeGame, deserializeGame } from '../engine/persistence';
 import { getCardRuntimeInfo } from '../presentation/cardRuntime';
 import { getCardPresentation } from '../presentation/cardUpgrade';
+import { getHealthSpendView } from '../engine/combat/resourceView';
 import type { CardInstance, ClassId, CombatState } from '../types/game';
 
 function fixture(cardId: string, upgraded = false, multi = false): CombatState {
@@ -36,6 +37,33 @@ function addCards(state: CombatState, zone: 'hand' | 'drawPile' | 'discardPile' 
 }
 
 describe('runtime card facts use the actual combat rules', () => {
+  it('shows relic-adjusted HP payment, including a saved once-per-run revival', () => {
+    const state = fixture('berserker_hemokinesis');
+    state.relicIds = ['ref_tungsten_rod'];
+    state.player.hp = 2;
+    expect(fact(state, 'loseHp')).toMatchObject({ amount: 1, warning: false, summary: 'HP 2 → 1' });
+    expect(getHealthSpendView(state, state.hand[0])).toEqual({ amount: 1, lethal: false });
+    expect(play(state).player.hp).toBe(1);
+    state.relicIds = ['ref_lizard_tail'];
+    state.relicState = {};
+    expect(fact(state, 'loseHp')).toMatchObject({ amount: 2, warning: false, summary: 'HP 2 → 40' });
+    expect(getHealthSpendView(state, state.hand[0]).lethal).toBe(false);
+    expect(play(state).player.hp).toBe(40);
+    state.relicState['used:ref_lizard_tail'] = 1;
+    expect(fact(state, 'loseHp').warning).toBe(true);
+    expect(getHealthSpendView(state, state.hand[0]).lethal).toBe(true);
+  });
+
+  it('includes relic poison and attack bonuses in the exact displayed effect', () => {
+    const poison = fixture('assassin_deadly_poison');
+    poison.relicIds = ['ref_snecko_skull'];
+    expect(fact(poison, 'status').amount).toBe(6);
+    expect(fact(poison, 'status').amount).toBe(play(poison).enemy.poison);
+    const stars = fixture('oracle_star_burst', true);
+    stars.vigor = 8;
+    stars.classResources!.starsGainedThisTurn = 2;
+    expect(fact(stars, 'starBurst').amount).toBe(500 - play(stars).enemy.hp);
+  });
   it.each([false, true])('star burst reads this-turn gains, applies attack modifiers, and does not spend cumulative stars (%s)', (upgraded) => {
     const state = fixture('oracle_star_burst', upgraded, true);
     state.classResources!.stars = 99;

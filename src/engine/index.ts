@@ -7,7 +7,7 @@ import { getPendingChoiceCards } from './actions/choices';
 import { appendLog, applyGauge, gainBlock } from './combat/state';
 import { resolveEndTurn } from './combat/turn';
 import { findEnemy, getEnemies, getEnemyKey, normalizeInto } from './combat/targets';
-import { triggerRelics } from './combat/relics';
+import { relicPassiveAmount, triggerRelics } from './combat/relics';
 import { resolveEffects } from './effects/resolve';
 import { createClassResources } from './combat/resources';
 import { reactToPlayerCard } from './combat/enemyAI';
@@ -41,6 +41,7 @@ export function createCombat(
       ...(ids.length > 1 ? { instanceId: `${id}-${index}` } : {}),
     };
   });
+  if (options.initialEnergyBonus !== undefined && (!Number.isSafeInteger(options.initialEnergyBonus) || options.initialEnergyBonus < 0)) throw new RangeError('開始エナジーの補正が不正です。');
   const maxHp = options.maxHp ?? 80;
   const hp = Math.min(maxHp, options.hp ?? maxHp);
   if (!Number.isSafeInteger(maxHp) || maxHp <= 0 || !Number.isSafeInteger(hp) || hp <= 0)
@@ -65,6 +66,7 @@ export function createCombat(
   );
   const state: CombatState = {
     version: 1,
+    ...(options.encounterType ? { encounterType: options.encounterType } : {}),
     seed: normalizedSeed,
     rngState: shuffled.rngState,
     turn: 1,
@@ -82,7 +84,7 @@ export function createCombat(
     },
     enemy: enemies[0],
     ...(enemies.length > 1 ? { enemies, selectedEnemyId: getEnemyKey(enemies[0]) } : {}),
-    energy: 3,
+    energy: 3 + (options.initialEnergyBonus ?? 0),
     maxEnergy: 3,
     jitto: 0,
     deck,
@@ -98,9 +100,10 @@ export function createCombat(
     events: [],
     nextId: 1,
     ...(options.classId ? { classId: options.classId, classResources: createClassResources() } : {}),
+    ...(options.relicState ? { relicState: { ...options.relicState } } : {}),
     ...(options.relicIds ? { relicIds: [...new Set(options.relicIds)], relicCounters: {} } : {}),
     ...(options.potions
-      ? { potions: [...options.potions.slice(0, 3), null, null, null].slice(0, 3) }
+      ? { potions: [...options.potions.slice(0, 20), null, null, null].slice(0, Math.min(20, Math.max(3, options.potions.length))) }
       : {}),
   };
   appendLog(
@@ -109,7 +112,8 @@ export function createCombat(
   );
   triggerRelics(state, 'combatStart');
   triggerRelics(state, 'turnStart');
-  drawInto(state, 5);
+  drawInto(state, Math.max(0, 5 + relicPassiveAmount(state, 'initialDrawAdjustment')));
+  triggerRelics(state, 'firstHand');
   return state;
 }
 
@@ -139,6 +143,7 @@ export function canPlayCard(state: CombatState, cardUid: string, targetId?: stri
 
 function settlePlayedCard(state: CombatState, card: CardInstance): void {
   const definition = CARD_DEFINITIONS[card.cardId];
+  if (definition.type === 'attack' && state.vigor) { state.vigor = 0; emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'vigor', amount: 0, label: '活力を消費' }); }
   let toZone: 'powers' | 'exhaustPile' | 'discardPile';
   if (definition.type === 'power') {
     state.powers.push(card);
@@ -151,6 +156,7 @@ function settlePlayedCard(state: CombatState, card: CardInstance): void {
     toZone = 'discardPile';
   }
   emitCombatCue(state, { kind: toZone === 'exhaustPile' ? 'exhaust' : toZone === 'powers' ? 'power' : 'discard', sourceId: 'player', card, cards: [card], fromZone: 'played', toZone });
+  if (toZone === 'exhaustPile') triggerRelics(state, 'cardExhausted', { card });
 }
 
 function potionRelevantState(state: CombatState): string {
@@ -219,6 +225,7 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
     next[toZone].push(...chosenCards);
     delete next.pendingChoice;
     emitCombatCue(next, { kind: choice.mode === 'retrieve' ? 'draw' : choice.mode === 'exhaust' ? 'exhaust' : 'discard', sourceId: 'player', cards: chosenCards, fromZone: sourceZone, toZone });
+    if (choice.mode === 'exhaust' || choice.mode === 'discard') for (const card of chosenCards) triggerRelics(next, choice.mode === 'exhaust' ? 'cardExhausted' : 'cardDiscarded', { card });
     appendLog(
       next,
       `${action.cardIds.length}枚を${choice.mode === 'topdeck' ? '山札の一番上に置いた' : choice.mode === 'retrieve' ? '手札に戻した' : choice.mode === 'discard' ? '捨て札にした' : '廃棄した'}。`,
@@ -271,7 +278,8 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
   emitCombatCue(next, { kind: 'cardPlay', sourceId: 'player', targetId, card, fromZone: 'hand', toZone: 'played', label: definition.name });
   withCombatTraceContext(next, { sourceId: 'player', card }, () => {
     reactToPlayerCard(next, definition.type);
-    triggerRelics(next, 'cardPlayed', { card });
+    if (definition.type === 'attack' && next.relicIds?.length) { next.relicCounters ??= {}; const key = `attacks-turn:${next.turn}`; next.relicCounters[key] = (next.relicCounters[key] ?? 0) + 1; }
+    triggerRelics(next, 'cardPlayed', { card, amount: paidEnergy });
     if (definition.type === 'attack') {
       triggerRelics(next, 'firstAttack');
       if (next.powerStacks?.blockOnAttack) gainBlock(next, 'player', next.powerStacks.blockOnAttack);

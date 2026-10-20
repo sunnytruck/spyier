@@ -1,7 +1,7 @@
 import type { BattleLog, CombatEvent, CombatState, EnemyState, Target } from '../../types/game';
 import { findEnemy, getEnemies, getEnemyKey, normalizeInto } from './targets';
 import { emitCombatCue, traceCombatDeaths } from '../../presentation/trace';
-import { triggerRelics } from './relics';
+import { getActiveRelics, relicPassiveAmount, triggerRelics } from './relics';
 
 /** Internal helpers deliberately mutate a reducer-owned clone, never live UI state. */
 export function appendLog(
@@ -34,6 +34,14 @@ export function finishIfNeeded(state: CombatState): boolean {
     return true;
   }
   if (state.player.hp <= 0) {
+    const revive = getActiveRelics(state).find((relic) => relic.passive?.reviveHpPercent && !(state.relicState?.[`used:${relic.id}`]));
+    if (revive && state.player.maxHp > 0) {
+      state.relicState ??= {}; state.relicState[`used:${revive.id}`] = 1;
+      state.player.hp = Math.max(1, Math.floor(state.player.maxHp * revive.passive!.reviveHpPercent! / 100));
+      appendLog(state, `「${revive.name}」でHP${state.player.hp}に復活。`);
+      emitCombatCue(state, { kind: 'heal', targetId: 'player', amount: state.player.hp, resource: `relic:${revive.id}`, resourceAction: 'activate', label: revive.name });
+      return false;
+    }
     state.player.hp = 0;
     state.phase = 'defeat';
     appendLog(state, '岩尊けいとは静かに横たわった。「8時か、ねんねやな」', 'result');
@@ -109,6 +117,7 @@ export function dealDamage(
         emitCombatCue(state, { kind: 'resource', targetId: 'osty', resource: 'ostyHp', amount: 0, resourceAction: 'vanish', label: '岩霊の消滅' });
     }
   }
+  if (target === 'player') remaining = Math.max(0, remaining - relicPassiveAmount(state, 'hpLossReduction'));
   const damage = Math.min(actor.hp, remaining);
   actor.hp -= damage;
   if (target === 'enemy') state.stats.damageDealt += damage;
@@ -127,6 +136,10 @@ export function dealDamage(
   normalizeInto(state);
   emitCombatCue(state, { kind: 'impact', targetId, amount: damage, blocked,
     ...(absorbedBySummon > 0 ? { absorbed: absorbedBySummon } : {}) });
+  if (target === 'player' && damage > 0) {
+    if (options.enemyAttack && state.plate) state.plate = Math.max(0, state.plate - 1);
+    triggerRelics(state, 'hpLost', { amount: damage });
+  }
   if (target === 'enemy' && actor.hp === 0)
     triggerRelics(state, 'enemyKilled', { enemyId: targetId });
   finishIfNeeded(state);

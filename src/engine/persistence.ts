@@ -119,7 +119,7 @@ function classState(value: Record<string, unknown>): boolean {
       !integer(resources.focus, -1_000_000) ||
       !integer(resources.temporaryFocus, -1_000_000) ||
       !Array.isArray(resources.orbs) ||
-      resources.orbs.length > 3 ||
+      resources.orbs.length > 3 + (typeof value.orbSlotBonus === 'number' ? value.orbSlotBonus : 0) ||
       !resources.orbs.every((orb) => oneOf(orb, ['lightning', 'frost']))
     )
       return false;
@@ -198,6 +198,11 @@ export function isValidCombatState(value: unknown): value is CombatState {
   if (!enemy(value.enemy) || !classState(value)) return false;
   if (value.player.maxHp === 0 && value.phase !== 'defeat') return false;
   if (value.intangible !== undefined && !integer(value.intangible)) return false;
+  if (value.encounterType !== undefined && !oneOf(value.encounterType, ['battle', 'elite', 'boss', 'event'])) return false;
+  if (value.dexterity !== undefined && !integer(value.dexterity, -1_000_000)) return false;
+  if (['plate', 'vigor', 'orbSlotBonus'].some((key) => value[key] !== undefined && !integer(value[key], 0, key === 'orbSlotBonus' ? 20 : 1_000_000))) return false;
+  if (value.relicState !== undefined && (!record(value.relicState) ||
+    !Object.entries(value.relicState).every(([key, count]) => text(key, 200) && integer(count)))) return false;
   if (value.cardDamageBonuses !== undefined && (!record(value.cardDamageBonuses) ||
     !Object.entries(value.cardDamageBonuses).every(([id, amount]) => Object.hasOwn(CARD_DEFINITIONS, id) && integer(amount)))) return false;
   const enemies = value.enemies === undefined ? [value.enemy] : value.enemies;
@@ -221,7 +226,7 @@ export function isValidCombatState(value: unknown): value is CombatState {
   if (
     value.potions !== undefined &&
     (!Array.isArray(value.potions) ||
-      value.potions.length !== 3 ||
+      value.potions.length < 3 || value.potions.length > 20 ||
       !value.potions.every(
         (id) => id === null || (typeof id === 'string' && Object.hasOwn(POTION_DEFINITIONS, id)),
       ))

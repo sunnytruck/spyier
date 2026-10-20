@@ -14,6 +14,7 @@ import {
 import { findEnemy, getEnemies, getEnemyKey } from '../combat/targets';
 import { attackCardBase, attackHitCount, channelOrbs, evokeOrb, fetchGeneratedCard, generateCards, resources, summonAttack } from '../combat/resources';
 import { meetsEffectCondition, scaledEffectAmount } from '../combat/values';
+import { cardBlockWithRelics, relicPassiveAmount, triggerRelics } from '../combat/relics';
 import { nextRandom } from '../random';
 import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace';
 
@@ -73,8 +74,10 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
       }
     }
   },
-  block: (state, effect, card) => {
-    gainBlock(state, 'player', scaledEffectAmount(state, effect) + (card.defense && state.jitto >= 50 ? 2 : 0));
+  block: (state, effect, card, context) => {
+    const base = scaledEffectAmount(state, effect) + (card.defense && state.jitto >= 50 ? 2 : 0);
+    const amount = context.source !== 'potion' && context.sourceCard ? cardBlockWithRelics(state, base, true) : base;
+    gainBlock(state, 'player', amount);
   },
   gauge: (state, effect) => applyGauge(state, effect.amount),
   draw: (state, effect) => drawInto(state, effect.amount * (effect.perOrbType ? new Set(state.classResources?.orbs ?? []).size : 1)),
@@ -96,7 +99,7 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
     for (const actor of targets) {
       const previous = actor[effect.status];
       actor[effect.status] = effect.allowNegative && effect.status === 'strength'
-        ? actor[effect.status] + effect.amount : Math.max(0, actor[effect.status] + effect.amount);
+        ? actor[effect.status] + effect.amount : Math.max(0, actor[effect.status] + effect.amount + (effect.status === 'poison' && actor !== state.player && effect.amount > 0 ? relicPassiveAmount(state, 'poisonBonus') : 0));
       appendLog(
         state,
         `${actor.name}に${labels[effect.status]} ${effect.amount > 0 ? '+' : ''}${effect.amount}。`,
@@ -200,20 +203,20 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
       state.exhaustPile.push(card);
       moved.push(card);
     }
-    if (moved.length) emitCombatCue(state, { kind: 'exhaust', sourceId: 'player', cards: moved, fromZone: 'hand', toZone: 'exhaustPile' });
+    if (moved.length) { emitCombatCue(state, { kind: 'exhaust', sourceId: 'player', cards: moved, fromZone: 'hand', toZone: 'exhaustPile' }); for (const card of moved) triggerRelics(state, 'cardExhausted', { card }); }
   },
   drawTo: (state, effect) => drawInto(state, Math.max(0, effect.amount - state.hand.length)),
   redraw: (state) => {
     const moved = [...state.hand];
     state.discardPile.push(...moved);
     state.hand = [];
-    if (moved.length) emitCombatCue(state, { kind: 'discard', sourceId: 'player', cards: moved, fromZone: 'hand', toZone: 'discardPile' });
+    if (moved.length) { emitCombatCue(state, { kind: 'discard', sourceId: 'player', cards: moved, fromZone: 'hand', toZone: 'discardPile' }); for (const card of moved) triggerRelics(state, 'cardDiscarded', { card }); }
     drawInto(state, moved.length);
   },
-  multiply: (state, effect) => {
+  multiply: (state, effect, _card, context) => {
     const before = effect.resource === 'energy' ? state.energy : state.player.block;
     const after = Math.min(1_000_000, Math.max(0, Math.floor(before * effect.amount)));
-    if (effect.resource === 'block') gainBlock(state, 'player', Math.max(0, after - before));
+    if (effect.resource === 'block') { const gained = Math.max(0, after - before); gainBlock(state, 'player', context.sourceCard && context.source !== 'potion' ? cardBlockWithRelics(state, gained, true, false) : gained); }
     else {
       state.energy = after;
       emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'energy', amount: after - before });
@@ -259,7 +262,7 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
     const gained = resources(state).starsGainedThisTurn;
     emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'stars', amount: 0, resourceAction: 'reference', label: `当ターンの星${gained}を参照` });
     if (gained <= 0) return;
-    const amount = gained * effect.amount;
+    const amount = attackCardBase(state, { type: 'damage', amount: gained * effect.amount }, context.sourceCard);
     const enemies = effect.all ? getEnemies(state).filter((enemy) => enemy.hp > 0) : [findEnemy(state, context.targetId)].filter((enemy) => enemy !== undefined);
     for (const enemy of enemies) {
       if (state.phase !== 'player') break;
@@ -336,6 +339,7 @@ export function resolveEffects(
         state[toZone].push(...moved);
         state[sourceZone] = [];
         emitCombatCue(state, { kind: mode === 'retrieve' ? 'draw' : mode === 'exhaust' ? 'exhaust' : 'discard', sourceId: 'player', card: context.sourceCard, cards: moved, fromZone: sourceZone, toZone });
+        if (mode === 'exhaust' || mode === 'discard') for (const card of moved) triggerRelics(state, mode === 'exhaust' ? 'cardExhausted' : 'cardDiscarded', { card });
         continue;
       }
       if (!context.sourceCard) continue;

@@ -96,10 +96,10 @@ describe('limited-card acquisition metadata remains explicit and fail-closed', (
     const blessing = add('blessing', { acquisition: 'blessingOnly' });
     const generated = add('generated', { acquisition: 'generatedOnly' });
     const empty = add('empty', { effects: [] });
-    const normal = add('normal');
+    const normal = add('normal', { rarity: 'rare' });
     for (const tier of ['battle', 'elite', 'boss', 'shop'] as const) {
       const sampled = sampleCardRewards([blessing.id, generated.id, empty.id, normal.id], seedToState(`category-${tier}`), tier, 4);
-      expect(sampled.cardIds).toEqual([normal.id]);
+      expect(sampled.cardIds).toEqual(Array.from({ length: tier === 'boss' ? 4 : 1 }, () => normal.id));
       const none = sampleCardRewards([blessing.id, generated.id, empty.id], sampled.rngState, tier, 3);
       expect(none.cardIds).toEqual([]);
       expect(none.rngState).toBe(sampled.rngState);

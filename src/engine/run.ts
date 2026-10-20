@@ -4,7 +4,7 @@ import { ENEMY_DEFINITIONS, getActEnemyId, getEncounterGroupsForFloor } from '..
 import { ACT_IDS, getActDefinition } from '../data/acts';
 import { EVENT_DEFINITIONS, EVENT_IDS } from '../data/events';
 import { POTION_IDS } from '../data/potions';
-import { eligibleRelicIds, RELIC_DEFINITIONS } from '../data/relics';
+import { getRelicPool, RELIC_DEFINITIONS } from '../data/relics';
 import type { CardInstance, ClassId, CombatAction } from '../types/game';
 import type { EventResult, MapNode, RunAction, RunReward, RunState } from '../types/run';
 import { createCombat, reduceCombat } from './index';
@@ -15,12 +15,22 @@ import { nextRandom, seedToState, shuffle } from './random';
 import { newShopCardPrice, sampleCardRewards } from './rewards';
 import { createBlessingEncounter, reduceBlessing } from './blessings';
 import { getCardAcquisitionCategory } from './cardAcquisition';
+import {
+  acquireRelic, applyOwnedRelicAcquisition, canAcquireRelic, consumeRelicNextBattleEnergy,
+  addRelicAwareCard, gainRunGold, getRelicShopPrice, onRelicRest, onRelicRoomEntered,
+  onRelicVictory, reduceRelicAcquisition, getRelicAwareHpLoss, loseRelicAwareHp,
+} from './relicAcquisition';
 
 export const SHOP_PRICES = { card: 55, relic: 120, potion: 35, remove: 60 } as const;
 
 export function getShopCardPrice(state: Pick<RunState, 'shop'>, cardId: string): number {
-  return state.shop?.cardPrices?.[cardId] ?? SHOP_PRICES.card;
+  const base = state.shop?.cardPrices?.[cardId] ?? SHOP_PRICES.card;
+  return 'relicIds' in state ? getRelicShopPrice(state as RunState, base) : base;
 }
+
+export const getShopRelicPrice = (state: RunState) => getRelicShopPrice(state, SHOP_PRICES.relic);
+export const getShopPotionPrice = (state: RunState) => getRelicShopPrice(state, SHOP_PRICES.potion);
+export const getShopRemovePrice = (state: RunState) => getRelicShopPrice(state, SHOP_PRICES.remove);
 
 function log(state: RunState, message: string): void {
   state.log.push(message);
@@ -39,6 +49,13 @@ function pick<T>(state: RunState, values: readonly T[]): T | undefined {
 }
 
 function cardChoices(state: RunState, source: CardAcquisitionSource): string[] {
+  // New boss offers are rare-only even for a continuing run that predates rarity-v1.
+  // Already saved offers never pass through this generator again.
+  if (source === 'combat' && state.map.nodes.find((node) => node.id === state.currentNodeId)?.type === 'boss') {
+    const drawn = sampleCardRewards(getCardPool(state.classId, source), state.rngState, 'boss', 3);
+    state.rngState = drawn.rngState;
+    return drawn.cardIds;
+  }
   if (state.rewardRules === 'rarity-v1' && state.classId) {
     const pool = getCardPool(state.classId, source);
     const nodeType = state.map.nodes.find((node) => node.id === state.currentNodeId)?.type;
@@ -69,18 +86,25 @@ function cardChoices(state: RunState, source: CardAcquisitionSource): string[] {
   return choices;
 }
 
-function availableRelic(state: RunState): string | null {
-  return (
-    pick(
-      state,
-      eligibleRelicIds(state.classId).filter((id) => !state.relicIds.includes(id)),
-    ) ?? null
-  );
+function availableRelic(state: RunState, source: 'normal' | 'shop' = 'normal'): string | null {
+  const pool = getRelicPool(state.classId, source, state.relicIds).filter((id) => canAcquireRelic(state, id));
+  if (!pool.length) return null;
+  if (source === 'shop') return pick(state, pool) ?? null;
+  const node = state.map.nodes.find((room) => room.id === state.currentNodeId);
+  const weights = node?.type === 'boss' ? { common: 20, uncommon: 45, rare: 35 }
+    : node?.type === 'elite' ? { common: 40, uncommon: 40, rare: 20 }
+      : { common: 65, uncommon: 28, rare: 7 };
+  const tiers = (['common', 'uncommon', 'rare'] as const).filter((rarity) =>
+    pool.some((id) => RELIC_DEFINITIONS[id].rarity === rarity));
+  const weight = (rarity: typeof tiers[number]) => weights[rarity] +
+    (rarity === 'rare' ? ((state.act ?? 1) - 1) * 3 : 0);
+  let roll = random(state) * tiers.reduce((sum, rarity) => sum + weight(rarity), 0);
+  const tier = tiers.find((rarity) => (roll -= weight(rarity)) < 0) ?? tiers.at(-1);
+  return pick(state, pool.filter((id) => RELIC_DEFINITIONS[id].rarity === tier)) ?? null;
 }
 
 function addCard(state: RunState, cardId: string): void {
-  state.deck.push({ uid: `card-${state.nextCardId++}`, cardId, upgraded: false });
-  state.stats.cardsAdded += 1;
+  addRelicAwareCard(state, cardId);
   log(state, `「${CARD_DEFINITIONS[cardId].name}」をデッキに加えた。ほいっと〜。`);
 }
 
@@ -131,7 +155,7 @@ export function createRun(seed = 'IWASON-SPIRE', classId?: ClassId): RunState {
       cardId,
       upgraded: false,
     })),
-    relicIds: [profession?.starterRelicId ?? 'warm_pebble'],
+    relicIds: [profession?.legacyStarterRelicId ?? profession?.starterRelicId ?? 'warm_pebble'],
     potions: ['spring_water', null, null],
     combat: null,
     reward: null,
@@ -149,6 +173,8 @@ export function createRun(seed = 'IWASON-SPIRE', classId?: ClassId): RunState {
 /** New player-facing campaigns begin at the temple. createRun remains the classic API. */
 export function createBlessedRun(seed = 'IWASON-SPIRE', classId: ClassId = 'berserker'): RunState {
   const state = createRun(seed, classId);
+  state.relicIds = [CLASS_DEFINITIONS[classId].starterRelicId];
+  state.relicRules = 'sources-v1';
   state.act = 1;
   state.maxActs = ACT_IDS.length;
   state.actHistory = [];
@@ -178,6 +204,7 @@ function ascendAct(state: RunState): RunState {
   next.currentNodeId = null;
   next.visited = [];
   returnToMap(next);
+  next.relicRules = 'sources-v1';
   next.screen = 'blessing';
   next.blessing = null;
   next.blessing = createBlessingEncounter(next);
@@ -202,18 +229,17 @@ export function canChooseEvent(state: RunState, index: number): boolean {
   const choice = EVENT_DEFINITIONS[state.eventId]?.choices[index];
   const event = EVENT_DEFINITIONS[state.eventId];
   if (event?.classIds && (!state.classId || !event.classIds.includes(state.classId))) return false;
-  if (!choice || state.gold < (choice.goldCost ?? 0) || state.hp <= (choice.hpCost ?? 0))
+  if (!choice || state.gold < (choice.goldCost ?? 0) || state.hp <= getRelicAwareHpLoss(state, choice.hpCost ?? 0))
     return false;
   if (
     choice.effects.some((effect) => effect.type === 'upgrade') &&
     !state.deck.some(canUpgradeRunCard)
   )
     return false;
-  if (
-    choice.effects.some((effect) => effect.type === 'relic') &&
-    eligibleRelicIds(state.classId).every((id) => state.relicIds.includes(id))
-  )
-    return false;
+  const afterPayment = { ...state, hp: state.hp - getRelicAwareHpLoss(state, choice.hpCost ?? 0), gold: state.gold - (choice.goldCost ?? 0) };
+  if (choice.effects.some((effect) => effect.type === 'relic' && (effect.relicId
+    ? !getRelicPool(state.classId, 'event', state.relicIds).includes(effect.relicId) || !canAcquireRelic(afterPayment, effect.relicId)
+    : !getRelicPool(state.classId, 'normal', state.relicIds).some((id) => canAcquireRelic(afterPayment, id))))) return false;
   if (
     state.classId &&
     choice.effects.some(
@@ -280,6 +306,7 @@ function enterNode(state: RunState, node: MapNode): void {
   state.eventId = null;
   state.eventResult = null;
   state.eventCombat = null;
+  onRelicRoomEntered(state, node.type);
   if (node.type === 'battle' || node.type === 'elite' || node.type === 'boss') {
     const enemyIds = [...pick(state, getEncounterGroupsForFloor(node.floor, node.type === 'battle' ? 'combat' : node.type, state.act ?? 1))!];
     // Keep the encounter suffix inside the combat seed limit even for a 256-character run seed.
@@ -290,9 +317,13 @@ function enterNode(state: RunState, node: MapNode): void {
       maxHp: state.maxHp,
       relicIds: state.relicIds,
       potions: state.potions,
+      encounterType: node.type,
+      initialEnergyBonus: consumeRelicNextBattleEnergy(state),
+      ...(state.relicState ? { relicState: state.relicState } : {}),
       ...(state.classId ? { classId: state.classId } : {}),
     });
     state.screen = 'combat';
+    finishCombat(state);
     log(
       state,
       `${node.floor}階：${node.type === 'boss' ? '塔主' : node.type === 'elite' ? 'エリート' : '敵'}との戦闘。`,
@@ -304,7 +335,7 @@ function enterNode(state: RunState, node: MapNode): void {
     state.reward = { cardIds: [], gold: 0, relicId, potionId: null };
     if (relicId) state.screen = 'relic';
     else {
-      state.gold += 45;
+      gainRunGold(state, 45);
       log(state, '宝箱から45ゴールドを得た。レリックはすべて持っている。');
       returnToMap(state);
     }
@@ -315,7 +346,7 @@ function enterNode(state: RunState, node: MapNode): void {
     state.shop = {
       cardIds,
       ...(state.rewardRules === 'rarity-v1' ? { cardPrices: Object.fromEntries(cardIds.map((id) => [id, newShopCardPrice(id)])) } : {}),
-      relicId: availableRelic(state),
+      relicId: availableRelic(state, 'shop'),
       potionId: pick(state, POTION_IDS) ?? null,
       purchased: [],
       removed: false,
@@ -338,6 +369,7 @@ function finishCombat(state: RunState): void {
   state.maxHp = combat.player.maxHp;
   state.potions = [...(combat.potions ?? state.potions)];
   state.rngState = combat.rngState;
+  if (combat.relicState) state.relicState = { ...combat.relicState };
   if (combat.phase === 'player') return;
   if (combat.phase === 'defeat') {
     state.screen = 'defeat';
@@ -347,6 +379,7 @@ function finishCombat(state: RunState): void {
   const node = state.map.nodes.find((candidate) => candidate.id === state.currentNodeId)!;
   state.stats.battlesWon += 1;
   if (node.type === 'elite') state.stats.elitesDefeated += 1;
+  onRelicVictory(state, node.type === 'elite' ? 'elite' : node.type === 'boss' ? 'boss' : node.type === 'event' ? 'event' : 'battle');
   if (node.type === 'boss' && !state.classId) {
     state.screen = 'victory';
     log(state, '第一階層を突破！ 塔主を鎮め、じっと教の教えは次の階層へ。「ほいっと〜！」');
@@ -358,13 +391,13 @@ function finishCombat(state: RunState): void {
       : node.type === 'elite'
         ? 40 + Math.floor(random(state) * 16)
         : 18 + Math.floor(random(state) * 13)) + (state.eventCombat?.bonusGold ?? 0);
-  state.gold += gold;
+  const actualGold = gainRunGold(state, gold);
   const reward: RunReward = {
-    gold,
+    gold: actualGold,
     cardIds: cardChoices(state, 'combat'),
     relicId: node.type === 'elite' || state.eventCombat?.relicOnVictory ? availableRelic(state) : null,
     potionId: null,
-    ...(node.type === 'boss' ? { completesRun: true as const } : {}),
+    ...(node.type === 'boss' ? { completesRun: true as const, rareOnly: true as const } : {}),
   };
   // A bottle is credited at the same atomic transition as gold, never when clicking a reward.
   const potionRoll = random(state);
@@ -375,7 +408,7 @@ function finishCombat(state: RunState): void {
   }
   state.reward = reward;
   state.screen = 'reward';
-  log(state, `戦闘に勝利。${gold}ゴールドを得た。カードを1枚選ぶか、見送ろう。`);
+  log(state, `戦闘に勝利。${actualGold}ゴールドを得た。カードを1枚選ぶか、見送ろう。`);
 }
 
 function combatAction(state: RunState, action: CombatAction): RunState {
@@ -388,11 +421,39 @@ function combatAction(state: RunState, action: CombatAction): RunState {
   return next;
 }
 
-/** One immutable action boundary for exploration, combat, rewards, and purchases. */
+function grantRelic(state: RunState, relicId: string, source: 'reward' | 'shop', returnScreen: RunState['screen']): RunState {
+  if (state.relicRules === 'sources-v1' || RELIC_DEFINITIONS[relicId]?.runEffect?.acquire?.length)
+    return acquireRelic(state, relicId, source, returnScreen, `${state.currentNodeId}:${source}:${relicId}`);
+  // Already-running classic games retain their original direct pickup flow.
+  state.relicIds.push(relicId);
+  return state;
+}
+
+/** Combat is an exact live inventory while fighting; terminal hero totals follow exploration rewards. */
 export function reduceRun(state: RunState, action: RunAction): RunState {
+  const next = reduceRunInternal(state, action);
+  if (next !== state && next.combat && next.combat.phase !== 'player') {
+    next.combat.player.hp = next.hp;
+    next.combat.player.maxHp = next.maxHp;
+  }
+  return next;
+}
+
+/** One immutable action boundary for exploration, combat, rewards, and purchases. */
+function reduceRunInternal(state: RunState, action: RunAction): RunState {
+  if (['selectRelicCards', 'confirmRelicAcquisition', 'continueRelicAcquisition'].includes(action.type))
+    return reduceRelicAcquisition(state, action as import('../types/relics').RelicAcquisitionAction);
+  if (state.screen === 'relicAcquisition') return state;
   if (action.type === 'ascendAct') return ascendAct(state);
-  if (['chooseBlessing', 'selectBlessingTargets', 'confirmBlessing', 'continueBlessing'].includes(action.type))
-    return reduceBlessing(state, action as import('../types/blessing').BlessingAction);
+  if (['chooseBlessing', 'selectBlessingTargets', 'confirmBlessing', 'continueBlessing'].includes(action.type)) {
+    const next = reduceBlessing(state, action as import('../types/blessing').BlessingAction);
+    if (next !== state && action.type === 'continueBlessing') {
+      const relicId = state.blessing?.receipt?.relicIds[0];
+      if (relicId && (state.relicRules === 'sources-v1' || RELIC_DEFINITIONS[relicId].runEffect?.acquire?.length))
+        return applyOwnedRelicAcquisition(next, relicId, 'blessing', 'map', `${state.blessing!.id}:${relicId}`);
+    }
+    return next;
+  }
   if (state.screen === 'victory' || state.screen === 'defeat') return state;
   if (action.type === 'combat') return combatAction(state, action.action);
   if (action.type === 'usePotion')
@@ -426,10 +487,11 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
       return state;
     const next = structuredClone(state);
     const relicId = next.reward!.relicId!;
-    next.relicIds.push(relicId);
     log(next, `新たなレリックを獲得。石に刻まれた力が味方する。`);
-    finishReward(next);
-    return next;
+    const more = next.reward!.relicIds ?? [];
+    if (more.length) { next.reward!.relicId = more[0]; next.reward!.relicIds = more.slice(1); }
+    else finishReward(next);
+    return grantRelic(next, relicId, 'reward', next.screen);
   }
   if (action.type === 'buyCard') {
     if (
@@ -452,26 +514,25 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
       !state.shop?.relicId ||
       state.shop.purchased.includes('relic') ||
       state.relicIds.includes(state.shop.relicId) ||
-      state.gold < SHOP_PRICES.relic
+      state.gold < getShopRelicPrice(state) || !canAcquireRelic(state, state.shop.relicId)
     )
       return state;
     const next = structuredClone(state);
-    next.gold -= SHOP_PRICES.relic;
-    next.relicIds.push(next.shop!.relicId!);
+    next.gold -= getShopRelicPrice(state);
     next.shop!.purchased.push('relic');
-    return next;
+    return grantRelic(next, next.shop!.relicId!, 'shop', 'shop');
   }
   if (action.type === 'buyPotion') {
     if (
       state.screen !== 'shop' ||
       !state.shop?.potionId ||
       state.shop.purchased.includes('potion') ||
-      state.gold < SHOP_PRICES.potion ||
+      state.gold < getShopPotionPrice(state) ||
       !state.potions.includes(null)
     )
       return state;
     const next = structuredClone(state);
-    next.gold -= SHOP_PRICES.potion;
+    next.gold -= getShopPotionPrice(state);
     next.potions[next.potions.indexOf(null)] = next.shop!.potionId;
     next.shop!.purchased.push('potion');
     return next;
@@ -481,13 +542,13 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
       state.screen !== 'shop' ||
       !state.shop ||
       state.shop.removed ||
-      state.gold < SHOP_PRICES.remove ||
+      state.gold < getShopRemovePrice(state) ||
       state.deck.length <= 5 ||
       !state.deck.some((card) => card.uid === action.cardUid)
     )
       return state;
     const next = structuredClone(state);
-    next.gold -= SHOP_PRICES.remove;
+    next.gold -= getShopRemovePrice(state);
     next.deck = next.deck.filter((card) => card.uid !== action.cardUid);
     next.shop!.removed = true;
     next.shop!.purchased.push('remove');
@@ -500,8 +561,7 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
     const next = structuredClone(state);
     if (action.choice === 'upgrade') next.screen = 'upgrade';
     else {
-      const healed = Math.min(next.maxHp - next.hp, Math.ceil(next.maxHp * 0.3));
-      next.hp += healed;
+      const healed = onRelicRest(next, Math.ceil(next.maxHp * 0.3));
       log(next, `休憩してHPを${healed}回復。「朝活しよ」。`);
       returnToMap(next);
     }
@@ -525,11 +585,11 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
     const next = structuredClone(state);
     const event = EVENT_DEFINITIONS[next.eventId!];
     const choice = event.choices[action.index];
-    next.hp -= choice.hpCost ?? 0;
+    loseRelicAwareHp(next, choice.hpCost ?? 0);
     next.gold -= choice.goldCost ?? 0;
     for (const effect of choice.effects) {
       if (effect.type === 'heal') next.hp = Math.min(next.maxHp, next.hp + effect.amount);
-      else if (effect.type === 'gold') next.gold += effect.amount;
+      else if (effect.type === 'gold') gainRunGold(next, effect.amount);
       else if (effect.type === 'card') {
         const cardId = next.classId && !effect.fixed
           ? pick(next, getCardPool(next.classId, 'event', effect.pool))
@@ -542,7 +602,7 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
         );
         if (card) card.upgraded = true;
       } else if (effect.type === 'relic') {
-        const relicId = availableRelic(next);
+        const relicId = effect.relicId ?? availableRelic(next);
         if (relicId) next.relicIds.push(relicId);
       } else if (effect.type === 'remove') {
         for (let count = 0; count < effect.amount; count++) {
@@ -605,12 +665,18 @@ export function reduceRun(state: RunState, action: RunAction): RunState {
       };
       next.combat = createCombat(battleSeed, result.combatEnemyIds.map((id) => getActEnemyId(id, next.act ?? 1)), {
         deck: next.deck, hp: next.hp, maxHp: next.maxHp, relicIds: next.relicIds, potions: next.potions,
+        encounterType: 'event', initialEnergyBonus: consumeRelicNextBattleEnergy(next),
+        ...(next.relicState ? { relicState: next.relicState } : {}),
         ...(next.classId ? { classId: next.classId } : {}),
       });
       next.eventResult = null;
       next.screen = 'combat';
+      finishCombat(next);
       log(next, `${EVENT_DEFINITIONS[result.eventId].title}：試練の戦闘が始まった。`);
     } else returnToMap(next);
+    const relicId = result.relicIds.find((id) => !next.relicState?.[`acquired:${id}`]);
+    if (relicId && (state.relicRules === 'sources-v1' || RELIC_DEFINITIONS[relicId].runEffect?.acquire?.length))
+      return applyOwnedRelicAcquisition(next, relicId, 'event', next.screen, `${result.eventId}:${state.currentNodeId}:${relicId}`);
     return next;
   }
   if (action.type === 'leaveNode') {

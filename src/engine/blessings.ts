@@ -1,10 +1,12 @@
 import { BLESSING_CHARACTERS, BLESSING_TEMPLATES } from '../data/blessings';
 import { CARD_DEFINITIONS } from '../data/cards';
-import { eligibleRelicIds, RELIC_DEFINITIONS } from '../data/relics';
+import { eligibleRelicIds, getRelicPool, RELIC_DEFINITIONS } from '../data/relics';
 import type { CardInstance, ClassId, Effect } from '../types/game';
 import type { BlessingAction, BlessingBasis, BlessingCharacterId, BlessingEncounter, BlessingOption, BlessingReceipt, BlessingRecord, BlessingReward, BlessingRun, BlessingTemplate } from '../types/blessing';
 import { getBlessingCardPool, getCardPool } from './cardPools';
 import { nextRandom, seedToState } from './random';
+import { addRelicAwareCard, canAcquireRelic, gainRunGold, getRelicAwareHpLoss, loseRelicAwareHp } from './relicAcquisition';
+import type { RelicAcquisitionRun } from '../types/relics';
 
 const int = (value: unknown, min = 0, max = 1_000_000): value is number => Number.isSafeInteger(value) && Number(value) >= min && Number(value) <= max;
 const object = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -21,13 +23,19 @@ function randomFor(seed: string): () => number {
 }
 function pick<T>(values: T[], random: () => number): T | undefined { return values[Math.floor(random() * values.length)]; }
 function basisOf(state: BlessingRun): BlessingBasis {
-  return { hp: state.hp, maxHp: state.maxHp, gold: state.gold, deck: structuredClone(state.deck), relicIds: [...state.relicIds], nextCardId: state.nextCardId };
+  return { hp: state.hp, maxHp: state.maxHp, gold: state.gold, deck: structuredClone(state.deck), relicIds: [...state.relicIds], nextCardId: state.nextCardId,
+    ...(state.relicState ? { relicState: structuredClone(state.relicState) } : {}) };
 }
 function validBasis(value: unknown, classId?: ClassId): value is BlessingBasis {
   if (!object(value) || !int(value.hp, 1) || !int(value.maxHp, 1) || value.hp > value.maxHp || !int(value.gold) || !int(value.nextCardId, 1)) return false;
   if (!Array.isArray(value.deck) || value.deck.length < 1 || value.deck.length > 1000 || !value.deck.every((card) => object(card) && typeof card.uid === 'string' && card.uid.length > 0 && card.uid.length <= 100 && typeof card.cardId === 'string' && Object.hasOwn(CARD_DEFINITIONS, card.cardId) && typeof card.upgraded === 'boolean')) return false;
   if (new Set(value.deck.map((card) => card.uid)).size !== value.deck.length) return false;
+  if (value.relicState !== undefined && (!object(value.relicState) || !Object.entries(value.relicState).every(([key, count]) => key.length <= 200 && int(count)))) return false;
   return Array.isArray(value.relicIds) && value.relicIds.every((id) => typeof id === 'string' && eligibleRelicIds(classId).includes(id)) && new Set(value.relicIds).size === value.relicIds.length;
+}
+
+function relicInventory(basis: BlessingBasis, classId?: ClassId): RelicAcquisitionRun {
+  return { ...basis, classId, seed: '', screen: 'blessing', rngState: 0, potions: [null, null, null], stats: { cardsAdded: 0 }, log: [] };
 }
 function flattenEffects(effects: Effect[]): Effect[] {
   return effects.flatMap((effect) => effect.type === 'conditional' || effect.type === 'nextTurn' ? [effect, ...flattenEffects(effect.effects)] : [effect]);
@@ -68,7 +76,14 @@ function buildOption(seed: string, classId: ClassId | undefined, basis: Blessing
       if (cardIds.length !== reward.amount || new Set(cardIds).size !== cardIds.length || cardIds.some((id) => !pool.includes(id))) return null;
       rewards.push({ kind: 'cards', cardIds });
     } else if (reward.kind === 'relic') {
-      const pool = eligibleRelicIds(classId).filter((id) => !basis.relicIds.includes(id));
+      const paid = structuredClone(basis);
+      for (const cost of costs) {
+        if (cost.kind === 'gold') paid.gold -= cost.amount;
+        if (cost.kind === 'hp') paid.hp -= getRelicAwareHpLoss(paid, cost.amount);
+        if (cost.kind === 'maxHp') { paid.maxHp -= cost.amount; paid.hp = Math.min(paid.hp, paid.maxHp); }
+      }
+      const pool = getRelicPool(classId, reward.pool ?? 'normal', basis.relicIds)
+        .filter((id) => canAcquireRelic(relicInventory(paid, classId), id));
       const relicId = stored?.kind === 'relic' ? stored.relicId : pick(pool, random);
       if (!relicId || !pool.includes(relicId)) return null;
       rewards.push({ kind: 'relic', relicId });
@@ -110,7 +125,7 @@ function buildOption(seed: string, classId: ClassId | undefined, basis: Blessing
 
 function canApply(basis: BlessingBasis, option: BlessingOption): boolean {
   for (const cost of option.costs) {
-    if (cost.kind === 'hp' && basis.hp <= cost.amount) return false;
+    if (cost.kind === 'hp' && basis.hp <= getRelicAwareHpLoss(basis, cost.amount)) return false;
     if (cost.kind === 'maxHp' && basis.maxHp <= cost.amount) return false;
     if (cost.kind === 'gold' && basis.gold < cost.amount) return false;
   }
@@ -131,7 +146,9 @@ export function createBlessingEncounter(state: BlessingRun, act = state.act ?? 1
   let roll = random() * characters.reduce((sum, character) => sum + character.weight, 0);
   const characterId: BlessingCharacterId = act === 1 ? 'jitto_god' : characters.find((character) => (roll -= character.weight) < 0)?.id ?? characters[characters.length - 1].id;
   const character = BLESSING_CHARACTERS[characterId];
-  const candidates = Object.values(BLESSING_TEMPLATES).map((template) => buildOption(state.seed, state.classId, basis, act, template, undefined, characterId)).filter((option): option is BlessingOption => option !== null);
+  const candidates = Object.values(BLESSING_TEMPLATES)
+    .filter((template) => state.relicRules === 'sources-v1' || !template.rewards.some((reward) => reward.kind === 'relic' && reward.pool === 'ancient'))
+    .map((template) => buildOption(state.seed, state.classId, basis, act, template, undefined, characterId)).filter((option): option is BlessingOption => option !== null);
   const optionRandom = randomFor(`${state.seed}:blessing:${act}:offers`);
   const options: BlessingOption[] = [];
   function take(risk?: BlessingOption['risk']) {
@@ -165,20 +182,24 @@ export function getBlessingTargetCards(state: BlessingRun): CardInstance[] {
 function applyOption(basis: BlessingBasis, option: BlessingOption, uids: string[], encounter: Pick<BlessingEncounter, 'id' | 'act' | 'characterId'>): { after: BlessingBasis; receipt: BlessingReceipt } {
   const after = structuredClone(basis);
   const receipt: BlessingReceipt = { encounterId: encounter.id, act: encounter.act, characterId: encounter.characterId, optionId: option.id, title: option.title, description: '', hpChange: 0, maxHpChange: 0, goldChange: 0, removedCards: [], upgradedCards: [], transformedCards: [], addedCards: [], relicIds: [] };
+  function withRelics(action: (inventory: RelicAcquisitionRun) => void) {
+    const inventory = relicInventory(after);
+    action(inventory);
+    for (const key of ['hp', 'maxHp', 'gold', 'deck', 'relicIds', 'nextCardId'] as const) Object.assign(after, { [key]: inventory[key] });
+    if (inventory.relicState) after.relicState = inventory.relicState;
+  }
   function add(cardId: string) {
-    let uid = `card-${after.nextCardId++}`;
-    while (after.deck.some((card) => card.uid === uid)) uid = `card-${after.nextCardId++}`;
-    const card = { uid, cardId, upgraded: false };
-    after.deck.push(card); receipt.addedCards.push({ ...card });
+    while (after.deck.some((card) => card.uid === `card-${after.nextCardId}`)) after.nextCardId++;
+    withRelics((inventory) => receipt.addedCards.push(...addRelicAwareCard(inventory, cardId).map((card) => ({ ...card }))));
   }
   for (const cost of option.costs) {
-    if (cost.kind === 'hp') after.hp -= cost.amount;
+    if (cost.kind === 'hp') withRelics((inventory) => loseRelicAwareHp(inventory, cost.amount));
     else if (cost.kind === 'maxHp') { after.maxHp -= cost.amount; after.hp = Math.min(after.hp, after.maxHp); }
     else if (cost.kind === 'gold') after.gold -= cost.amount;
     else if (cost.kind === 'curse') for (let count = 0; count < cost.amount; count++) add(cost.cardId);
   }
   for (const reward of option.rewards) {
-    if (reward.kind === 'gold') after.gold += reward.amount;
+    if (reward.kind === 'gold') withRelics((inventory) => gainRunGold(inventory, reward.amount));
     else if (reward.kind === 'maxHp') { after.maxHp += reward.amount; after.hp += reward.amount; }
     else if (reward.kind === 'heal') after.hp = Math.min(after.maxHp, after.hp + reward.amount);
     else if (reward.kind === 'cards') reward.cardIds.forEach(add);

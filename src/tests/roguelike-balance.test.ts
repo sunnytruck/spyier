@@ -3,6 +3,7 @@ import { CARD_DEFINITIONS } from '../data/cards';
 import { CLASS_IDS } from '../data/classes';
 import { isRelicEligible } from '../data/relics';
 import { getEnemies } from '../engine';
+import { getCardPool } from '../engine/cardPools';
 import { createRun, getAvailableNodes, reduceRun } from '../engine/run';
 import { deserializeRun, isValidRunState, serializeRun } from '../engine/runPersistence';
 import type { ClassId } from '../types/game';
@@ -19,7 +20,10 @@ function assertInventory(state: RunState): void {
   expect(new Set(state.relicIds).size).toBe(state.relicIds.length);
   if (state.screen === 'reward') {
     const cards = state.reward!.cardIds;
-    expect(new Set(cards).size).toBe(cards.length);
+    const eligible = state.reward!.rareOnly
+      ? getCardPool(state.classId, 'combat').filter((id) => CARD_DEFINITIONS[id].rarity === 'rare')
+      : getCardPool(state.classId, 'combat');
+    expect(new Set(cards).size).toBe(Math.min(cards.length, eligible.length));
     for (const id of cards) {
       const definition = CARD_DEFINITIONS[id];
       expect(definition).toBeDefined();
@@ -28,6 +32,7 @@ function assertInventory(state: RunState): void {
       expect(definition.unplayable).not.toBe(true);
       expect(definition.effects.length).toBeGreaterThan(0);
       expect(definition.upgradedEffects.length).toBeGreaterThan(0);
+      if (state.reward!.rareOnly) expect(definition.rarity).toBe('rare');
     }
     if (state.reward!.relicId) expect(isRelicEligible(state.reward!.relicId!, state.classId)).toBe(true);
   }

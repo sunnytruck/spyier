@@ -29,6 +29,7 @@ export interface BlessingBasis {
   deck: CardInstance[];
   relicIds: string[];
   nextCardId: number;
+  relicState?: Record<string, number>;
 }
 export interface BlessingReceipt {
   encounterId: string; act: number; characterId: BlessingCharacterId; optionId: string;
@@ -68,6 +69,8 @@ export interface BlessingRecord {
 export interface BlessingRun {
   seed: string;
   classId?: ClassId;
+  relicRules?: 'sources-v1';
+  relicState?: Record<string, number>;
   screen: string;
   act?: number;
   maxActs?: number;
@@ -92,7 +95,7 @@ export interface BlessingTemplate {
   rewards: (
     | { kind: 'maxHp' | 'heal' | 'gold'; base: number; perAct?: number; percent?: boolean }
     | { kind: 'cards'; amount: number; pool: 'class' | 'rare' | 'synergy' | 'exclusive' }
-    | { kind: 'relic' }
+    | { kind: 'relic'; pool?: 'ancient' }
     | { kind: BlessingTargetKind; amount: number; atAct3?: number }
   )[];
 }

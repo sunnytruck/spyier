@@ -1,7 +1,20 @@
+import { useEffect, useRef, useState } from 'react';
 import type { RunState } from '../types/run';
+import type { GameSettings } from '../types/game';
+import type { CombatCue } from '../presentation/types';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { POTION_DEFINITIONS } from '../data/potions';
 import { Icon } from './Icon';
+import { RelicIcon } from './RelicIcon';
+
+/** New cues carry a stable ID; the name fallback supports older presentation adapters. */
+export function getActivatedRelicId(cue?: CombatCue | null): string | null {
+  if (!cue) return null;
+  const id = cue.resource?.startsWith('relic:') ? cue.resource.slice(6) : null;
+  if (id && Object.hasOwn(RELIC_DEFINITIONS, id)) return id;
+  if (cue.effect !== 'relic') return null;
+  return Object.values(RELIC_DEFINITIONS).find((relic) => relic.name === cue.label)?.id ?? null;
+}
 
 export function RunHud({
   state,
@@ -9,13 +22,34 @@ export function RunHud({
   onRelics,
   onPotion,
   disabled = false,
+  cue,
+  sequence = 0,
+  settings,
 }: {
   state: RunState;
   onDeck: () => void;
   onRelics: () => void;
   onPotion: (slot: number) => void;
   disabled?: boolean;
+  cue?: CombatCue | null;
+  sequence?: number;
+  settings?: GameSettings;
 }) {
+  const previousRelics = useRef(new Set(state.relicIds));
+  const [acquiredIds, setAcquiredIds] = useState<string[]>([]);
+  const activeId = getActivatedRelicId(cue);
+  const noMotion = settings?.reducedMotion || settings?.speed === 'instant';
+  const relicKey = state.relicIds.join('\0');
+  useEffect(() => {
+    const added = state.relicIds.filter((id) => !previousRelics.current.has(id));
+    previousRelics.current = new Set(state.relicIds);
+    if (!added.length || noMotion) { setAcquiredIds([]); return; }
+    setAcquiredIds(added);
+    const timer = window.setTimeout(() => setAcquiredIds([]), settings?.speed === 'fast' ? 360 : 650);
+    return () => window.clearTimeout(timer);
+  }, [relicKey, noMotion, settings?.speed]);
+  const highlightedId = activeId && state.relicIds.includes(activeId) ? activeId : acquiredIds[0];
+  const displayedRelics = [...new Set([...(highlightedId ? [highlightedId] : []), ...state.relicIds])].slice(0, 3);
   const player =
     state.screen === 'combat' && state.combat
       ? state.combat.player
@@ -53,9 +87,10 @@ export function RunHud({
           state.relicIds.map((id) => RELIC_DEFINITIONS[id]?.name).join(' / ') || 'レリックを確認'
         }
       >
-        <Icon name="sun" size={17} />
+        {displayedRelics.length ? <span className="hud-relic-dock" aria-hidden="true">{displayedRelics.map((id) => <span className="hud-relic-token" key={`${id}-${id === activeId ? sequence : 0}`} title={`${RELIC_DEFINITIONS[id]?.name}：${RELIC_DEFINITIONS[id]?.description}`}><RelicIcon id={id} size={30} active={!noMotion && id === activeId} acquired={!noMotion && acquiredIds.includes(id)} /></span>)}</span> : <Icon name="sun" size={17} />}
         <b>{state.relicIds.length}</b>
       </button>
+      {activeId && !noMotion && <span className="relic-activation-caption" key={`${activeId}-${sequence}`} role="status"><RelicIcon id={activeId} size={26} /><span>{RELIC_DEFINITIONS[activeId]?.name} が発動</span></span>}
       <div className="hud-potions" aria-label="ポーション">
         {state.potions.map((potionId, slot) => {
           const potion = potionId ? POTION_DEFINITIONS[potionId] : null;

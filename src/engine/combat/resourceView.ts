@@ -3,6 +3,7 @@ import type { CardInstance, CombatState, Effect, EnemyState, OrbType } from '../
 import { calculateDamage } from './damage';
 import { attackCardBase, nextOrbEvokeIndex, orbEffectValue, orbSlotCount } from './resources';
 import { findEnemy } from './targets';
+import { getActiveRelics, relicPassiveAmount } from './relics';
 
 /** Read-only projections: none of these selectors initialise resources, advance RNG, or play cards. */
 export interface OrbSlotView {
@@ -19,11 +20,11 @@ export function getOrbView(state: CombatState) {
   const nextEvokeIndex = nextOrbEvokeIndex(orbs);
   return {
     count: orbs.length,
-    capacity: orbSlotCount(),
+    capacity: orbSlotCount(state),
     focus,
     temporaryFocus: state.classResources?.temporaryFocus ?? 0,
     nextEvokeIndex,
-    slots: Array.from({ length: orbSlotCount() }, (_, index): OrbSlotView => {
+    slots: Array.from({ length: orbSlotCount(state) }, (_, index): OrbSlotView => {
       const type = orbs[index] ?? null;
       return {
         index, type,
@@ -107,7 +108,7 @@ export function getStarView(state: CombatState) {
         cardUid: card.uid, name: cardName(card), factor: effect.amount,
         baseDamage: base,
         // A zero-gain burst is skipped entirely, including strength modifiers.
-        damagePerHit: gainedThisTurn > 0 ? attackDamage(state, base) : 0,
+        damagePerHit: gainedThisTurn > 0 ? attackDamage(state, attackCardBase(state, { type: 'damage', amount: base }, card)) : 0,
       }];
     })),
   };
@@ -144,6 +145,8 @@ export function getKnifeView(state: CombatState) {
 }
 
 export function getHealthSpendView(state: CombatState, card: CardInstance) {
-  const amount = cardEffects(card).reduce((sum, effect) => sum + (effect.type === 'loseHp' ? Math.max(0, Math.floor(effect.amount)) : 0), 0);
-  return { amount, lethal: amount > 0 && state.player.hp <= amount };
+  const reduction = relicPassiveAmount(state, 'hpLossReduction');
+  const amount = cardEffects(card).reduce((sum, effect) => sum + (effect.type === 'loseHp' ? Math.max(0, Math.floor(effect.amount) - reduction) : 0), 0);
+  const canRevive = getActiveRelics(state).some((relic) => relic.passive?.reviveHpPercent && !state.relicState?.[`used:${relic.id}`]);
+  return { amount, lethal: amount > 0 && state.player.hp <= amount && !canRevive };
 }

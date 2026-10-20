@@ -14,12 +14,14 @@ import {
   canAscendAct,
   createRun,
   getAvailableNodes,
+  getShopCardPrice,
+  getShopRelicPrice,
   reduceRun,
-  SHOP_PRICES,
 } from '../../engine/run';
 import type { CombatAction, CombatState } from '../../types/game';
 import type { MapNode, RunAction, RunState } from '../../types/run';
 import { chooseBlessingAction } from './blessingDriver';
+import { chooseRelicAcquisitionAction } from './relicAcquisitionDriver';
 
 function incoming(state: CombatState): number {
   return getEnemies(state)
@@ -145,6 +147,7 @@ export function createRunDriver(strategic = true): (state: RunState) => RunActio
     return values[(policyRng >>> 0) % values.length];
   };
   return (state: RunState): RunAction => {
+    if (state.screen === 'relicAcquisition') return chooseRelicAcquisitionAction(state, reduceRun, (card) => cardValue(card.cardId));
     if (state.screen === 'blessing') return chooseBlessingAction(state, reduceRun, (card) => cardValue(card.cardId));
     if (canAscendAct(state)) return { type: 'ascendAct' };
     let action: RunAction;
@@ -235,12 +238,12 @@ export function createRunDriver(strategic = true): (state: RunState) => RunActio
       const best = [...shop.cardIds]
         .filter((id) => !shop.purchased.includes(`card:${id}`))
         .sort((a, b) => cardValue(b) - cardValue(a))[0];
-      if (shop.relicId && !shop.purchased.includes('relic') && state.gold >= SHOP_PRICES.relic)
+      if (shop.relicId && !shop.purchased.includes('relic') && state.gold >= getShopRelicPrice(state))
         action = { type: 'buyRelic' };
       else if (
         best &&
         cardValue(best) > 72 &&
-        state.gold >= SHOP_PRICES.card &&
+        state.gold >= getShopCardPrice(state, best) &&
         state.deck.length < 16
       )
         action = { type: 'buyCard', cardId: best };

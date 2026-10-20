@@ -10,6 +10,8 @@ import { CardView } from '../components/CardView';
 import { CardUpgradePreview } from '../components/CardUpgradePreview';
 import { BlessingCharacterArt } from '../components/BlessingCharacterArt';
 import { Icon } from '../components/Icon';
+import { RelicIcon } from '../components/RelicIcon';
+import { getRelicAwareHpLoss } from '../engine/relicAcquisition';
 import '../styles/blessings.css';
 
 type Encounter = NonNullable<RunState['blessing']>;
@@ -37,9 +39,9 @@ function cardName(cardId: string) {
   return CARD_DEFINITIONS[cardId]?.name ?? cardId;
 }
 
-function costText(cost: Cost) {
+function costText(cost: Cost, state: RunState) {
   if (cost.kind === 'curse') return `呪い「${cardName(cost.cardId)}」を${cost.amount}枚受け取る`;
-  if (cost.kind === 'hp') return `HPを${cost.amount}失う`;
+  if (cost.kind === 'hp') { const actual = getRelicAwareHpLoss(state, cost.amount); return `HPを${actual}失う${actual !== cost.amount ? `（基本${cost.amount}・レリックで軽減）` : ''}`; }
   if (cost.kind === 'maxHp') return `最大HP −${cost.amount}`;
   return `${cost.amount}Gを支払う`;
 }
@@ -69,7 +71,7 @@ function BlessingCard({ card }: { card: CardInstance }) {
 function RelicPreview({ relicId }: { relicId: string }) {
   const relic = RELIC_DEFINITIONS[relicId];
   if (!relic) return null;
-  return <article className="blessing-relic-preview"><span aria-hidden="true">{relic.glyph}</span><div><small>レリック</small><h3>{relic.name}</h3><p>{relic.description}</p></div></article>;
+  return <article className="blessing-relic-preview"><span><RelicIcon id={relicId} size={66} /></span><div><small>レリック</small><h3>{relic.name}</h3><p>{relic.description}</p></div></article>;
 }
 
 /** The engine persists every choice. This screen only previews and confirms it. */
@@ -136,7 +138,7 @@ export function BlessingScreen({ state, onAction, settings = { speed: 'normal', 
           <div className="blessing-offer-kicker"><span>{String(index + 1).padStart(2, '0')} · BLESSING</span><b>{chosen ? result ? '受領済み' : '選択中' : option.risk === 'risky' ? '代償あり' : '代償なし'}</b></div>
           <h2>{option.title}</h2><p className="blessing-offer-description">{option.description}</p>
           <div className="blessing-offer-benefit"><span>受け取る祝福</span><ul>{option.rewards.map((reward, number) => <li key={number}>{rewardText(reward)}</li>)}</ul></div>
-          <div className={`blessing-offer-price${option.costs.length ? '' : ' is-free'}`}><span>代償</span>{option.costs.length ? <ul>{option.costs.map((cost, number) => <li key={number}>{costText(cost)}</li>)}</ul> : <p>なし</p>}</div>
+          <div className={`blessing-offer-price${option.costs.length ? '' : ' is-free'}`}><span>代償</span>{option.costs.length ? <ul>{option.costs.map((cost, number) => <li key={number}>{costText(cost, state)}</li>)}</ul> : <p>なし</p>}</div>
           {reason && !result && <p className="blessing-disabled-reason">{reason}</p>}
           <button type="button" className={chosen ? 'primary-button' : 'secondary-button'} disabled={!canChoose} aria-pressed={chosen} onClick={() => { if (chosen) { detailHeading.current?.focus({ preventScroll: true }); detailHeading.current?.scrollIntoView({ block: 'start', behavior: noMotion ? 'auto' : 'smooth' }); } else onAction({ type: 'chooseBlessing', optionId: option.id }); }}>{result ? chosen ? 'この祝福を受け取った' : '選ばなかった祝福' : chosen ? '選択中 · 内容を確認' : 'この祝福の内容を確認'}<Icon name={chosen ? 'sun' : 'chevron'} size={16} /></button>
         </article>;
@@ -145,7 +147,7 @@ export function BlessingScreen({ state, onAction, settings = { speed: 'normal', 
 
     {!result && selected && <section className="blessing-confirm-panel" aria-label="祝福の確認">
       <header><p className="eyebrow">CONFIRM YOUR BLESSING</p><h2 ref={detailHeading} tabIndex={-1}>{selected.title}</h2><p>選んだ祝福と対象カードは保存されます。下の「祝福を確定して受け取る」を押すまで、代償も報酬も発生しません。</p></header>
-      <div className="blessing-confirm-summary"><div><h3>受け取るもの</h3><ul>{selected.rewards.map((reward, index) => <li key={index}>{rewardText(reward)}</li>)}</ul></div><div><h3>支払う代償</h3>{selected.costs.length ? <ul>{selected.costs.map((cost, index) => <li key={index}>{costText(cost)}</li>)}</ul> : <p>なし</p>}</div></div>
+      <div className="blessing-confirm-summary"><div><h3>受け取るもの</h3><ul>{selected.rewards.map((reward, index) => <li key={index}>{rewardText(reward)}</li>)}</ul></div><div><h3>支払う代償</h3>{selected.costs.length ? <ul>{selected.costs.map((cost, index) => <li key={index}>{costText(cost, state)}</li>)}</ul> : <p>なし</p>}</div></div>
       <div className="blessing-reward-previews">{selected.rewards.flatMap((reward) => reward.kind === 'cards' ? reward.cardIds.map((cardId, index) => <BlessingCard key={`${cardId}-${index}`} card={{ uid: `blessing-preview-${cardId}-${index}`, cardId, upgraded: false }} />) : reward.kind === 'relic' ? [<RelicPreview key={reward.relicId} relicId={reward.relicId} />] : [])}</div>
       {selected.costs.filter((cost): cost is Extract<Cost, { kind: 'curse' }> => cost.kind === 'curse').map((cost, index) => <details className="blessing-curse-detail" key={index}><summary>代償の呪い「{cardName(cost.cardId)}」の効果を見る</summary><BlessingCard card={{ uid: `blessing-curse-${index}`, cardId: cost.cardId, upgraded: false }} /></details>)}
       {selected.target && <div className="blessing-targets"><div className="blessing-target-heading"><h3>{selected.target.kind === 'remove' ? 'デッキから削除するカード' : selected.target.kind === 'upgrade' ? '強化するカード' : '変化させるカード'}を選択</h3><b>選択 {blessing.selectedCardUids.length} / {selected.target.count}枚</b></div><p>{selected.target.kind === 'upgrade' ? '強化済みのカードは候補に含まれません。選択後に強化前後の効果を確認できます。' : selected.target.kind === 'transform' ? '変化先は今回の祝福で固定されています。表示を確認してから確定できます。' : '選んだカードだけをデッキから削除します。'}</p>

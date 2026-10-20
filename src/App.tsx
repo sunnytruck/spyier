@@ -5,6 +5,7 @@ import { createBlessedRun, createRun, reduceRun } from './engine/run';
 import { loadRun, saveRun, clearRun, getRunSaveWarning } from './engine/runPersistence';
 import { RELIC_DEFINITIONS } from './data/relics';
 import { RunHud } from './components/RunHud';
+import { RelicIcon } from './components/RelicIcon';
 import { RunScreens } from './screens/RunScreens';
 import { createCombat, reduceCombat } from './engine';
 import {
@@ -246,6 +247,9 @@ export default function App() {
         {screen === 'run' && shownRun ? (
           <RunHud
             state={shownRun}
+            cue={presentation.activeCue}
+            sequence={presentation.activeSequence}
+            settings={motionSettings}
             disabled={resolving}
             onDeck={() => setModal('deck')}
             onRelics={() => setModal('relics')}
@@ -572,7 +576,7 @@ export default function App() {
               const relic = RELIC_DEFINITIONS[id];
               return relic ? (
                 <article key={id}>
-                  <span>{relic.glyph}</span>
+                  <span><RelicIcon id={id} size={54} /></span>
                   <div>
                     <h3>{relic.name}</h3>
                     <p>{relic.description}</p>
