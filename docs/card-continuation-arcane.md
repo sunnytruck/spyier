@@ -54,4 +54,4 @@
 
 個別の独立した期待値で、同名コピーの威力上昇、2ターン予約、負の集中力、増設24スロット分の保存、対象指定雷/霜非発動、オーブ種類の動的変化、X=0、ヒットごとのブロック、ランダム再現、カード選択継続、デバフ6種類、手札50枚、敏捷性、プレートの被弾/毒の違いも確認する。ケミカルXとペン先は、事前表示と実際の結果が一致することを確認する。テスラコイルの最初の攻撃で対象を倒した場合、後続の自動効果とプレビューが別の敵へ移らないことも確認する。
 
-実行済み：`npx vitest run src/tests/continuation-arcane-cards.test.ts src/tests/card-runtime.test.ts src/tests/presentation-targeting.test.ts` → **3ファイル・172テスト成功**。ブラウザでの9/27スロット検証とプロジェクト全体の回帰テスト・ビルドは、統合担当の最終結果に記録する。
+実行済み：`npx vitest run src/tests/continuation-arcane-cards.test.ts src/tests/card-runtime.test.ts src/tests/presentation-targeting.test.ts` → **3ファイル・172テスト成功**。ブラウザ検証は1920×1080・1366×768・390×844で9/27スロットを含む21ケース成功（[詳細](content-browser-validation.md)）。プロジェクト全体の回帰テスト・ビルドは統合担当の最終結果に記録する。

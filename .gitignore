@@ -5,6 +5,7 @@ pages-output/
 *.tsbuildinfo
 playwright-report/
 test-results/
+__pycache__/
 .env
 .env.*
 !.env.example
