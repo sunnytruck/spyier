@@ -6,6 +6,7 @@ import { CLASS_DEFINITIONS } from '../../data/classes';
 import { CARD_DEFINITIONS } from '../../data/cards';
 import { CardView } from '../CardView';
 import { ResourceDetails } from './ResourceDetails';
+import { effectivePlayerStrength } from '../../engine/combat/relics';
 import './class-resources.css';
 
 export { OrbSlots } from './OrbSlots';
@@ -17,6 +18,7 @@ export function ClassResourceHud({ state }: { state: CombatState }) {
   const close = useCallback(() => setOpen(false), []);
   if (!state.classId) return null;
   const definition = CLASS_DEFINITIONS[state.classId];
+  const strength = effectivePlayerStrength(state);
   const orb = getOrbView(state);
   const stars = getStarView(state);
   const summon = getSummonView(state);
@@ -28,7 +30,7 @@ export function ClassResourceHud({ state }: { state: CombatState }) {
   const enemies = getEnemies(state).filter((enemy) => enemy.hp > 0);
   const poisoned = enemies.filter((enemy) => enemy.poison > 0);
   const resourceSummary = {
-    berserker: `筋力 ${state.player.strength}、HP消費カード ${hpSpenders.length}枚`,
+    berserker: `筋力 ${strength}、HP消費カード ${hpSpenders.length}枚`,
     assassin: `石刃強化 +${knife.bonusDamage}、手札の石刃 ${knife.cardsInHand}枚、毒 ${poisoned.length}体`,
     oracle: `鍛造 ${stars.forge}、聖剣の基礎威力 ${stars.sword.forgedBaseDamage}`,
     necromancer: `岩霊 ${summon.active ? '護衛中' : '不在'}、手札の命令 ${summon.commands.length}件`,
@@ -38,7 +40,7 @@ export function ClassResourceHud({ state }: { state: CombatState }) {
     <div className={`class-resource-shelf class-resource-shelf--${state.classId}`} aria-label={`${definition.displayName}の固有リソース`}>
       <span className="class-resource-profession">{definition.glyph} {definition.displayName}</span>
       <button type="button" className="class-resource-readout" onClick={() => setOpen(true)} title={`${resourceSummary}。クリック・タップで効果と条件を確認できます。`} aria-label={`${definition.displayName}、${resourceSummary}。固有リソースの詳細を表示`}>
-        {state.classId === 'berserker' && <><span className="resource-stat" data-resource-hud="strength"><span className="resource-motion"><span aria-hidden="true">↑</span><b>{state.player.strength}</b></span><span>筋力</span></span><small>{hpSpenders.length ? `HP消費カード ${hpSpenders.length}枚 · 詳細` : '攻撃1ヒットごとに加算'}</small></>}
+        {state.classId === 'berserker' && <><span className="resource-stat" data-resource-hud="strength"><span className="resource-motion"><span aria-hidden="true">↑</span><b>{strength}</b></span><span>筋力</span></span><small>{hpSpenders.length ? `HP消費カード ${hpSpenders.length}枚 · 詳細` : '攻撃1ヒットごとに加算'}</small></>}
         {state.classId === 'assassin' && <><span className="resource-stat" data-resource-hud="knife"><span className="resource-motion"><span aria-hidden="true">〆</span><b>+{knife.bonusDamage}</b></span><span>石刃強化</span></span><small>手札の石刃 {knife.cardsInHand}枚 · 毒 {poisoned.length}体</small></>}
         {state.classId === 'oracle' && <><span className="resource-stat" data-resource-hud="forge"><span className="resource-motion"><span aria-hidden="true">⚒</span><b>{stars.forge}</b></span><span>鍛造</span></span><small>聖剣 {stars.sword?.forgedBaseDamage ?? '—'} 基礎威力 · 詳細</small></>}
         {state.classId === 'necromancer' && <><span className="resource-stat"><span className="resource-motion"><span aria-hidden="true">霊</span><b>{summon.active ? '護衛' : '不在'}</b></span><span>岩霊の命令</span></span><small>{summon.commands.length ? `手札に命令 ${summon.commands.length}件 · 詳細` : '召喚して、カードで攻撃を命令'}</small></>}
@@ -47,7 +49,7 @@ export function ClassResourceHud({ state }: { state: CombatState }) {
       {(state.classResources?.nextTurnEnergy ?? 0) > 0 && <span className="resource-next-energy">次ターンのエナジー +{state.classResources!.nextTurnEnergy}</span>}
     </div>
     {open && <ResourceDetails title={`${definition.displayName}の戦い方`} onClose={close}>
-      {state.classId === 'berserker' && <><p>現在の筋力 <strong>{state.player.strength}</strong>。攻撃1ヒットごとの基礎ダメージに加算され、弱体・敵の脆弱を反映して計算します。</p><p>HP消費はブロックや岩霊で防げません。HPが0になると敗北します。</p>{hpSpenders.length ? <><h3>手札のHP消費</h3><ul>{hpSpenders.map(({ card, amount }) => <li key={card.uid}><strong>{CARD_DEFINITIONS[card.cardId].name}{card.upgraded ? '＋' : ''}</strong>：HP {amount}消費{amount >= state.player.hp && <em className="resource-lethal-warning"> · 使用すると敗北</em>}</li>)}</ul></> : <p>現在の手札にHPを消費するカードはありません。</p>}<p>ブロックを攻撃に使うカードは現在のブロックを参照します。連続攻撃では筋力が各ヒットに加算されます。</p></>}
+      {state.classId === 'berserker' && <><p>現在の筋力 <strong>{strength}</strong>。攻撃1ヒットごとの基礎ダメージに加算され、弱体・敵の脆弱を反映して計算します。</p><p>HP消費はブロックや岩霊で防げません。HPが0になると敗北します。</p>{hpSpenders.length ? <><h3>手札のHP消費</h3><ul>{hpSpenders.map(({ card, amount }) => <li key={card.uid}><strong>{CARD_DEFINITIONS[card.cardId].name}{card.upgraded ? '＋' : ''}</strong>：HP {amount}消費{amount >= state.player.hp && <em className="resource-lethal-warning"> · 使用すると敗北</em>}</li>)}</ul></> : <p>現在の手札にHPを消費するカードはありません。</p>}<p>ブロックを攻撃に使うカードは現在のブロックを参照します。連続攻撃では筋力が各ヒットに加算されます。</p></>}
       {state.classId === 'assassin' && <><p>石刃強化 <strong>+{knife.bonusDamage}</strong> · 手札の石刃 <strong>{knife.cardsInHand}枚</strong></p><p>通常の石刃：基礎 <strong>{knife.baseDamage}</strong>、選択中の敵への現在の攻撃値 <strong>{knife.damagePerHit}</strong>。敵ブロックで軽減されます。</p><p>石刃は使うと廃棄される生成カードです。強化版はカードに記載された基礎値を使い、同じ石刃強化が加算されます。</p><h3>次の毒・破滅の処理</h3><ul>{enemies.map((enemy) => { const view = getEnemyResourceView(enemy); return <li key={enemy.instanceId ?? enemy.id}><strong>{enemy.name}</strong>：毒 {view.poison} → 次に{view.poisonDamage}ダメージ、毒は{view.poisonAfterTick}へ{view.doomTriggers ? ' · 続いて破滅発動' : ''}</li>; })}</ul><p>毒は敵ターン開始時、ブロックを無視してHPを減らし、毒の蓄積値が1減ります。</p></>}
       {state.classId === 'oracle' && <><p>所持星 <strong>{stars.stars}</strong> · このターンの獲得星 <strong>{stars.gainedThisTurn}</strong></p><p>現在の星は消費コストではありません。星を参照するカードは<strong>このターンの獲得数</strong>を使い、星を消費しません。</p>{stars.burstCards.length > 0 && <><h3>手札の星参照カード</h3><ul>{stars.burstCards.map((card, index) => <li key={`${card.cardUid}-${index}`}><strong>{card.name}</strong>：{stars.gainedThisTurn} × {card.factor} = 基礎{card.baseDamage}、選択中の敵へ{card.damagePerHit}ダメージ{stars.gainedThisTurn === 0 && '（獲得0のため不発）'}</li>)}</ul></>}{stars.sword && <><h3>聖剣 · 現在の鍛造 {stars.forge}</h3><p>{stars.sword.generated ? '生成済みの聖剣' : '未生成 · 顕現すると生成'} · コスト <strong>{stars.sword.cost}</strong></p><p>基礎{stars.sword.baseDamage} ＋ 鍛造{stars.forge} ＝ 基礎威力 <strong>{stars.sword.forgedBaseDamage}</strong>。筋力・弱体・敵の脆弱を反映した選択中の敵への攻撃値は <strong>{stars.sword.damagePerHit}</strong>（ブロック軽減前）。</p><div className="resource-card-preview"><CardView card={stars.sword.card} state={state} inspect showUpgradePreview={false} /></div></>}</>}
       {state.classId === 'necromancer' && <><p>岩霊HP <strong>{summon.hp}</strong>。{summon.guardRule}</p><p>{summon.attackRule}</p><p>破滅は敵のターン開始時、毒の後に判定します。破滅が敵の残りHP以上なら撃破します。</p><ul>{enemies.map((enemy) => { const view = getEnemyResourceView(enemy); return <li key={enemy.instanceId ?? enemy.id}><strong>{enemy.name}</strong>：破滅 {view.doom} / 毒の後のHP {view.hpAfterPoison}{view.doomTriggers ? ' · 次の敵ターンに発動' : ''}</li>; })}</ul></>}

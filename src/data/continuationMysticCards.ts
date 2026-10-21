@@ -1,0 +1,67 @@
+import type { CardDefinition, Effect } from '../types/game';
+import { createReferenceCard } from './referenceCard';
+
+const damage = (amount: number, all = false): Effect => ({ type: 'damage', amount, ...(all ? { all: true } : {}) });
+const drainStrength = (amount: number, all = false): Effect => ({
+  type: 'temporaryStatus', target: all ? 'allEnemies' : 'enemy', status: 'strength', amount: -amount, allowNegative: true,
+});
+
+/** Numeric source-backed additions; ownership and display labels remain separate. */
+export const CONTINUATION_MYSTIC_CARDS: CardDefinition[] = [
+  createReferenceCard({ id: 'oracle_gravitational_pressure', classId: 'oracle', sourceName: '重圧', name: '星岩の重たい説法', type: 'attack', glyph: '圧', rarity: 'common',
+    description: '敵全体に7ダメージ。このターン、敵全体の筋力−1。',
+    upgradedDescription: '敵全体に8ダメージ。このターン、敵全体の筋力−2。',
+    effects: [damage(7, true), drainStrength(1, true)], upgradedEffects: [damage(8, true), drainStrength(2, true)] }),
+  createReferenceCard({ id: 'oracle_stars_end', classId: 'oracle', sourceName: '星の終わり', name: '終業の流星礼', type: 'attack', glyph: '終', rarity: 'uncommon',
+    description: 'エセリアル。敵全体に9ダメージ。このターン、敵全体の筋力−9。',
+    upgradedDescription: 'エセリアル。敵全体に11ダメージ。このターン、敵全体の筋力−11。',
+    effects: [damage(9, true), drainStrength(9, true)], upgradedEffects: [damage(11, true), drainStrength(11, true)], options: { ethereal: true } }),
+  createReferenceCard({ id: 'oracle_buckler_deploy', classId: 'oracle', sourceName: '小盾の展開', name: '星盾の礼拝支度', type: 'skill', glyph: '盾', rarity: 'common',
+    description: '9ブロック。活力2（次の攻撃カードの各ヒットに＋2ダメージ）。',
+    upgradedDescription: '11ブロック。活力3（次の攻撃カードの各ヒットに＋3ダメージ）。',
+    effects: [{ type: 'block', amount: 9 }, { type: 'vigor', amount: 2 }],
+    upgradedEffects: [{ type: 'block', amount: 11 }, { type: 'vigor', amount: 3 }] }),
+  createReferenceCard({ id: 'oracle_terraform', classId: 'oracle', sourceName: 'テラフォーミング', name: '祭壇の地ならし', type: 'skill', glyph: '拓', rarity: 'uncommon',
+    description: '活力6（次の攻撃カードの各ヒットに＋6ダメージ）。',
+    upgradedDescription: '活力8（次の攻撃カードの各ヒットに＋8ダメージ）。',
+    effects: [{ type: 'vigor', amount: 6 }], upgradedEffects: [{ type: 'vigor', amount: 8 }] }),
+  createReferenceCard({ id: 'oracle_embodied_authority', classId: 'oracle', sourceName: '権威の体現', name: '教祖の懐札', type: 'skill', glyph: '威', rarity: 'uncommon',
+    description: '7ブロック。ランダムな無色カード1枚を手札に加える。',
+    upgradedDescription: '8ブロック。ランダムな強化済み無色カード1枚を手札に加える。',
+    effects: [{ type: 'block', amount: 7 }, { type: 'generateRandom', pool: 'colorless', amount: 1, destination: 'hand' }],
+    upgradedEffects: [{ type: 'block', amount: 8 }, { type: 'generateRandom', pool: 'colorless', amount: 1, destination: 'hand', upgraded: true }] }),
+  createReferenceCard({ id: 'oracle_unexpected_gift', classId: 'oracle', sourceName: '思いがけぬ贈り物', name: '石包みの差し入れ', type: 'skill', glyph: '包', rarity: 'rare',
+    description: 'ランダムな無色カード3枚を手札に加える。廃棄。',
+    upgradedDescription: 'ランダムな無色カード4枚を手札に加える。廃棄。',
+    effects: [{ type: 'generateRandom', pool: 'colorless', amount: 3, destination: 'hand' }],
+    upgradedEffects: [{ type: 'generateRandom', pool: 'colorless', amount: 4, destination: 'hand' }], options: { exhaust: true } }),
+  createReferenceCard({ id: 'necromancer_exhausting_hand', classId: 'necromancer', sourceName: '虚脱の魔手', name: '黄泉からの肩もみ', type: 'skill', glyph: '掌', rarity: 'common',
+    description: 'エセリアル。このターン、敵の筋力−8。', upgradedDescription: 'エセリアル。このターン、敵の筋力−11。',
+    effects: [drainStrength(8)], upgradedEffects: [drainStrength(11)], options: { ethereal: true } }),
+  createReferenceCard({ id: 'necromancer_friendship', classId: 'necromancer', sourceName: 'フレンドシップ', name: '腕組み相互扶助', type: 'power', glyph: '友', rarity: 'uncommon',
+    description: '筋力−2。次の自分のターンから、開始時にエナジー＋1。',
+    upgradedDescription: '筋力−1。次の自分のターンから、開始時にエナジー＋1。',
+    effects: [{ type: 'status', target: 'player', status: 'strength', amount: -2, allowNegative: true }, { type: 'power', power: 'energyOnTurn', amount: 1 }],
+    upgradedEffects: [{ type: 'status', target: 'player', status: 'strength', amount: -1, allowNegative: true }, { type: 'power', power: 'energyOnTurn', amount: 1 }] }),
+  createReferenceCard({ id: 'necromancer_strength_absorption', classId: 'necromancer', sourceName: '力の吸収', name: '墓石の力うつし', type: 'attack', glyph: '写', rarity: 'uncommon',
+    description: '10ダメージ。捨て札のランダムな未強化カード2枚を、この戦闘中だけ強化する。',
+    upgradedDescription: '12ダメージ。捨て札のランダムな未強化カード3枚を、この戦闘中だけ強化する。',
+    effects: [damage(10), { type: 'upgradeRandom', from: 'discardPile', amount: 2 }],
+    upgradedEffects: [damage(12), { type: 'upgradeRandom', from: 'discardPile', amount: 3 }] }),
+  createReferenceCard({ id: 'necromancer_purification', classId: 'necromancer', sourceName: '浄化', name: '黄泉路の片づけ', type: 'skill', glyph: '浄', rarity: 'common',
+    description: '召喚3。山札から1枚選んで廃棄する。', upgradedDescription: '召喚5。山札から1枚選んで廃棄する。',
+    effects: [{ type: 'summon', amount: 3 }, { type: 'exhaustChoice', from: 'drawPile', amount: 1 }],
+    upgradedEffects: [{ type: 'summon', amount: 5 }, { type: 'exhaustChoice', from: 'drawPile', amount: 1 }] }),
+  createReferenceCard({ id: 'necromancer_no_escape', classId: 'necromancer', sourceName: '逃げ場なし', name: '黄泉路の通行止め', type: 'skill', glyph: '塞', rarity: 'uncommon',
+    description: '破滅10を付与。使用前に対象に蓄積した破滅10につき、追加で破滅5。',
+    upgradedDescription: '破滅15を付与。使用前に対象に蓄積した破滅10につき、追加で破滅5。',
+    effects: [{ type: 'doom', amount: 10, bonusPer: { value: 'enemyDoom', multiplier: 5, divisor: 10 } }],
+    upgradedEffects: [{ type: 'doom', amount: 15, bonusPer: { value: 'enemyDoom', multiplier: 5, divisor: 10 } }] }),
+  createReferenceCard({ id: 'necromancer_spirit_extraction', classId: 'necromancer', sourceName: '霊魂抽出', name: '彼岸の魂くみ', type: 'skill', glyph: '汲', rarity: 'uncommon',
+    description: '敵のHPを3失わせる（ブロック・攻撃補正を無視）。魂札3枚を山札に加える。',
+    upgradedDescription: '敵のHPを4失わせる（ブロック・攻撃補正を無視）。魂札4枚を山札に加える。',
+    effects: [{ type: 'loseEnemyHp', amount: 3 }, { type: 'soul', amount: 3, destination: 'drawPile' }],
+    upgradedEffects: [{ type: 'loseEnemyHp', amount: 4 }, { type: 'soul', amount: 4, destination: 'drawPile' }] }),
+];
+
+export const CONTINUATION_MYSTIC_CARD_IDS = CONTINUATION_MYSTIC_CARDS.map((card) => card.id);

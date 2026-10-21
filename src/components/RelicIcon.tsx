@@ -10,7 +10,7 @@ export type RelicMotif = 'blood' | 'ring' | 'crown' | 'soul' | 'core' | 'flame' 
   | 'tile' | 'tail' | 'bread' | 'ticket' | 'pillow' | 'fish' | 'hat' | 'egg'
   | 'mirror' | 'waffle' | 'scissors' | 'steam' | 'box' | 'claw' | 'whistle'
   | 'hammer' | 'mushroom' | 'cheese' | 'amulet' | 'rod' | 'twins' | 'skull'
-  | 'gorget' | 'kusarigama';
+  | 'gorget' | 'kusarigama' | 'origami' | 'triangle' | 'pyramid';
 
 const MOTIFS: Record<RelicMotif, ReactNode> = {
   blood: <><path d="M24 9c-2 8-11 12-11 20a11 11 0 0 0 22 0c0-8-9-12-11-20Z" /><path d="M19 27c-2 5 1 8 5 8m-8-17-4-3m20 3 4-3" /></>,
@@ -76,6 +76,29 @@ const MOTIFS: Record<RelicMotif, ReactNode> = {
   skull: <><path d="M24 7C6 7 5 29 14 31v9h20v-9C43 29 42 7 24 7Z" /><path d="m13 21 7 2-2 6-5-2Zm22 0-7 2 2 6 5-2ZM24 26l-3 7h6M20 40v-5m8 5v-5" /></>,
   gorget: <><path d="M15 9c1 10 17 10 18 0l4 15 6 4-5 11-14 4-14-4-5-11 6-4Z" /><path d="M15 9c4-4 14-4 18 0M12 24c5 12 19 12 24 0M10 30l8 5m20-5-8 5M20 20v9m8-9v9" /><circle cx="24" cy="35" r="2" /></>,
   kusarigama: <><path d="M29 8c12-3 15 10 9 17-1-7-5-8-11-6M29 8l-9 26 5 2 7-22M17 33l11 4" /><path d="M22 37c0 5-5 7-8 4" /><ellipse cx="12" cy="38" rx="3" ry="5" transform="rotate(-28 12 38)" /><ellipse cx="8" cy="30" rx="3" ry="5" transform="rotate(-28 8 30)" /><path d="m5 22 4-4 6 4-4 5Z" /></>,
+  origami: <><path d="m5 13 19 8L40 8l-6 17 9 10-19-5-17 8 8-15Z" /><path d="m5 13 18 13 17-18M7 38l16-12 20 9M24 21l-1 5 1 4m10-5-11 1" /><path d="m13 18 3-6 6 8m9-5 3-6" /></>,
+  triangle: <><path d="m24 8 17 29H8l12-21" /><path d="m23 14 13 19H16M24 3v5m-4-3h8M10 42h28" /><path d="m32 22 11-9m-3-2 5 5M4 24l4 2m33 16 3 2" /></>,
+  pyramid: <><path d="m24 6 18 31-18 7-18-7ZM24 6v38M6 37l18-8 18 8M12 27l12-5 12 5m-19-9 7-3 7 3" /><path d="m27 31 5 2-3 3m-12-6-3 4 6 3M24 1v2M4 13l3 2m34-2-3 2" /></>,
+};
+
+/** Explicit assignments avoid accidental matches in unrelated words and preserve legacy motifs. */
+const RELIC_MOTIF_OVERRIDES: Readonly<Partial<Record<string, RelicMotif>>> = {
+  ref_red_skull: 'skull',
+  ref_pen_nib: 'feather',
+  ref_reptile_trinket: 'amulet',
+  ref_paper_frog: 'origami',
+  ref_pocket_watch: 'hourglass',
+  ref_paper_crane: 'origami',
+  ref_chemical_x: 'vial',
+  ref_resonant_triangle: 'triangle',
+  ref_roaring_conch: 'horn',
+  ref_glowing_pearl: 'pearl',
+  ref_pael_tears: 'blood',
+  ref_warm_gloves: 'fist',
+  ref_diamond_tiara: 'crown',
+  ref_velvet_choker: 'gorget',
+  ref_runic_pyramid: 'pyramid',
+  ref_strike_dummy_imitation: 'fist',
 };
 
 const motifRules: [RegExp, RelicMotif][] = [
@@ -120,6 +143,8 @@ function idHash(id: string) {
 export function getRelicMotif(relic: RelicDefinition): RelicMotif {
   const iconKey = (relic as RelicDefinition & { iconKey?: string }).iconKey;
   if (iconKey && Object.hasOwn(MOTIFS, iconKey)) return iconKey as RelicMotif;
+  const assigned = RELIC_MOTIF_OVERRIDES[relic.id];
+  if (assigned) return assigned;
   const matched = motifRules.find(([pattern]) => pattern.test(`${relic.name} ${relic.id}`));
   if (matched) return matched[1];
   const kind = relic.effect?.kind;

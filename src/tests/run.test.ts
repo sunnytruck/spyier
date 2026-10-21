@@ -9,6 +9,7 @@ import {
 import type { RunAction, RunState } from '../types/run';
 import { simulateRun } from './helpers/runDriver';
 import { BOSS_ENEMY_IDS } from '../data/enemies';
+import { chooseClassRunAction } from './helpers/classDriver';
 
 function room(screen: 'shop' | 'rest' | 'event' | 'reward' | 'relic' | 'upgrade'): RunState {
   return { ...createRun('room-fixture'), screen };
@@ -175,7 +176,11 @@ describe('run resources and legal screen transitions', () => {
     expect(after).toEqual(reduceRun(state, { type: 'eventChoice', index: 0 }));
     expect(after.screen).toBe('eventResult');
     expect(reduceRun(after, { type: 'eventChoice', index: 0 })).toBe(after);
-    expect(reduceRun(after, { type: 'continueEvent' }).screen).toBe('map');
+    let continued = reduceRun(after, { type: 'continueEvent' });
+    // An acquired relic can require its own saved selection before leaving the room.
+    for (let step = 0; continued.screen === 'relicAcquisition' && step < 10; step++)
+      continued = reduceRun(continued, chooseClassRunAction(continued));
+    expect(continued.screen).toBe('map');
   });
 
   it('rejects paid upgrades when funds or unupgraded cards are missing', () => {

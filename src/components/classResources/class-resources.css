@@ -133,3 +133,14 @@
   .app .class-resource-detail-copy { font-size: 14px; }
   .app .class-resource-detail-copy dl > div { grid-template-columns: 90px minmax(0, 1fr); }
 }
+
+/* Large capacitor builds stay in one bounded row; all indexed slots remain inspectable. */
+.app .class-orb-slots--extended {
+  inset: 0 0 auto; display: flex; flex-wrap: nowrap; justify-content: flex-start;
+  max-width: 100%; height: 108px; gap: 8px; padding: 6px 8px 10px;
+  overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  scrollbar-width: thin; scrollbar-color: #8ab8b4 #142a26;
+  pointer-events: auto; touch-action: pan-x;
+}
+.app .class-orb-slots--extended .class-orb-slot { position: relative; inset: auto; flex: 0 0 62px; width: 62px; }
+.app .class-orb-slots--extended:focus-visible { outline: 2px solid #b5deeb; outline-offset: 2px; }

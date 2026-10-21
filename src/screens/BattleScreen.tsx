@@ -10,6 +10,8 @@ import { Modal } from '../components/Modal';
 import { RockDeity, StoneSentinel } from '../components/CharacterArt';
 import { ENEMY_DEFINITIONS } from '../data/enemies';
 import { getActDefinition } from '../data/acts';
+import { effectivePlayerStrength } from '../engine/combat/relics';
+import { getRelicEnemyWeakMultiplier, getRelicVulnerableMultiplier } from '../engine/combat/relicModifiers';
 import { getDisplayedEnemyIntent } from '../engine/combat/enemyAI';
 import { BattleEffects } from '../components/BattleEffects';
 import { CardFlights } from '../components/CardFlights';
@@ -102,7 +104,7 @@ function intentExtras(intent: EnemyIntent): string {
   ].filter(Boolean).join(' / ');
 }
 
-function StatusChips({ actor, stillness = 0, intangible = 0, dexterity = 0, vigor = 0, plate = 0 }: { actor: Actor; stillness?: number; intangible?: number; dexterity?: number; vigor?: number; plate?: number }) {
+function StatusChips({ actor, stillness = 0, intangible = 0, dexterity = 0, vigor = 0, plate = 0, weakMultiplier = 0.75, vulnerableMultiplier = 1.5 }: { actor: Actor; weakMultiplier?: number; vulnerableMultiplier?: number; stillness?: number; intangible?: number; dexterity?: number; vigor?: number; plate?: number }) {
   const statuses = [
     {
       value: actor.strength,
@@ -115,14 +117,14 @@ function StatusChips({ actor, stillness = 0, intangible = 0, dexterity = 0, vigo
       value: actor.weak,
       symbol: '↘',
       label: '弱体',
-      detail: '攻撃ダメージが0.75倍。対象のターン終了時に1減少。',
+      detail: `攻撃ダメージが${weakMultiplier}倍。対象のターン終了時に1減少。`,
       color: 'weak',
     },
     {
       value: actor.vulnerable,
       symbol: '◇',
       label: '脆弱',
-      detail: '受ける攻撃ダメージが1.5倍。対象のターン終了時に1減少。',
+      detail: `受ける攻撃ダメージが${vulnerableMultiplier}倍。対象のターン終了時に1減少。`,
       color: 'vulnerable',
     },
     {
@@ -337,7 +339,7 @@ export function BattleScreen({
         </div>
         <div className="combatant combatant--player">
           <div className="actor-status">
-            <StatusChips actor={state.player} stillness={state.stillness} intangible={state.intangible ?? 0} dexterity={state.dexterity ?? 0} vigor={state.vigor ?? 0} plate={state.plate ?? 0} />
+            <StatusChips actor={{ ...state.player, strength: effectivePlayerStrength(state) }} stillness={state.stillness} intangible={state.intangible ?? 0} dexterity={state.dexterity ?? 0} vigor={state.vigor ?? 0} plate={state.plate ?? 0} />
             {divine && (
               <span className="divine-tag">
                 <Icon name="sun" size={13} />
@@ -433,7 +435,7 @@ export function BattleScreen({
                     </div>
                   </div>
                   <div className="actor-status enemy-status">
-                    <StatusChips actor={actor} />
+                    <StatusChips actor={actor} weakMultiplier={getRelicEnemyWeakMultiplier(state)} vulnerableMultiplier={getRelicVulnerableMultiplier(state)} />
                   </div>
                   <button
                     className={`character-stage enemy-target ${selected ? 'is-targeted' : ''}`}
@@ -486,7 +488,7 @@ export function BattleScreen({
               </div>
             </div>
             <div className="actor-status enemy-status">
-              <StatusChips actor={enemy} />
+              <StatusChips actor={enemy} weakMultiplier={getRelicEnemyWeakMultiplier(state)} vulnerableMultiplier={getRelicVulnerableMultiplier(state)} />
             </div>
             <button
               className={`character-stage enemy-target ${selectedId === getEnemyKey(enemy) ? 'is-targeted' : ''}`}

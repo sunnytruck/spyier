@@ -286,14 +286,14 @@ function chooseBlessingRelic(seed: string, relicId: string, classId: ClassId = '
 
 /** A finite deterministic seed search avoids coupling storage tests to pool length. */
 function findOpeningRelic(prefix: string, relicId: string, classId: ClassId): RunState {
-  for (let index = 0; index < 1000; index++) {
+  for (let index = 0; index < 5000; index++) {
     const seed = `${prefix}-${index}`;
     const candidate = createBlessedRun(seed, classId);
     if (candidate.blessing!.options.some((option) => option.rewards.some((reward) =>
       reward.kind === 'relic' && reward.relicId === relicId)))
       return chooseBlessingRelic(seed, relicId, classId);
   }
-  throw new Error(`No opening ${relicId} among 1000 deterministic ${classId} seeds`);
+  throw new Error(`No opening ${relicId} among 5000 deterministic ${classId} seeds`);
 }
 
 describe('post-blessing relic selection is a separately saved, exactly-once run transaction', () => {
@@ -303,7 +303,7 @@ describe('post-blessing relic selection is a separately saved, exactly-once run 
     ['relic-acquisition-legal-53', 'ref_claw', 'transform'],
     ['relic-acquisition-legal-94', 'ref_tasty_cookie', 'upgrade'],
   ] as const)('%s saves the uncommitted %s choice and its exact result', (seed, relicId, kind) => {
-    let state = chooseBlessingRelic(seed, relicId);
+    let state = findOpeningRelic(seed, relicId, 'machinist');
     expect(state.relicAcquisition!.stage).toBe('select');
     expect(state.relicAcquisition!.kind).toBe(kind);
     const before = structuredClone(state);
@@ -358,11 +358,11 @@ describe('post-blessing relic selection is a separately saved, exactly-once run 
     expect(reduceRun(complete, { type: 'continueRelicAcquisition' })).toBe(complete);
     expect(reduceRun(complete, { type: 'confirmRelicAcquisition' })).toBe(complete);
     expect(deserializeRun(serializeRun(complete))).toEqual(complete);
-    expect(before).toEqual(chooseBlessingRelic(seed, relicId));
+    expect(before).toEqual(chooseBlessingRelic(before.seed, relicId));
   });
 
   it('Orobas replaces the initial core before combat and restores only the upgraded effect', () => {
-    const pending = chooseBlessingRelic('relic-acquisition-legal-41', 'ref_orobas_fingertip');
+    const pending = findOpeningRelic('relic-acquisition-legal', 'ref_orobas_fingertip', 'machinist');
     expect(pending.relicAcquisition!.stage).toBe('result');
     expect(pending.relicIds).not.toContain(STARTER_RELIC_IDS.machinist);
     expect(pending.relicIds).toContain(STARTER_UPGRADE_IDS.machinist);
@@ -377,15 +377,25 @@ describe('post-blessing relic selection is a separately saved, exactly-once run 
   });
 
   it('a legally purchased Dolly mirror saves a pending copy, charges once and returns to the same shop', () => {
-    const seed = 'relic-mirror-legal-20';
-    let state = createBlessedRun(seed, 'berserker');
-    const decide = createRoguelikeDriver('safe', seed);
-    for (let step = 0; step < 200 && state.screen !== 'defeat'; step++) {
-      if (state.screen === 'shop' && state.shop?.relicId === 'ref_dolly_mirror') break;
-      const next = reduceRun(state, decide(state));
-      expect(next).not.toBe(state);
-      state = next;
+    // Adding legal inventory changes shop rolls. Find an actual affordable shop
+    // through public play instead of tying this save/transaction contract to one run.
+    let found: RunState | undefined;
+    for (let index = 0; index < 150 && !found; index++) {
+      const seed = `relic-mirror-legal-${index}`;
+      let candidate = createBlessedRun(seed, 'berserker');
+      const decide = createRoguelikeDriver('safe', seed);
+      for (let step = 0; step < 160 && !['victory', 'defeat'].includes(candidate.screen); step++) {
+        if (candidate.screen === 'shop') {
+          if (candidate.shop?.relicId === 'ref_dolly_mirror' && candidate.gold >= getShopRelicPrice(candidate)) found = candidate;
+          break;
+        }
+        const next = reduceRun(candidate, decide(candidate));
+        expect(next).not.toBe(candidate);
+        candidate = next;
+      }
     }
+    expect(found, 'no affordable Dolly shop after 150 deterministic, publicly played runs').toBeDefined();
+    const state = found!;
     expect(state.screen).toBe('shop');
     expect(state.shop!.relicId).toBe('ref_dolly_mirror');
     const price = getShopRelicPrice(state);
@@ -417,7 +427,7 @@ describe('post-blessing relic selection is a separately saved, exactly-once run 
     expect(complete.deck).toHaveLength(state.deck.length + 1);
     expect(reduceRun(complete, { type: 'buyRelic' })).toBe(complete);
     expect(deserializeRun(serializeRun(complete))).toEqual(complete);
-  });
+  }, 30000);
 
   it('potion-belt capacity survives acquisition, combat creation, a turn and repeated loading', () => {
     let state = findOpeningRelic('relic-storage-legal', 'ref_potion_belt', 'berserker');

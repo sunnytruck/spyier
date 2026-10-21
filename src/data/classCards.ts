@@ -1,4 +1,7 @@
 import type { CardDefinition, Effect } from '../types/game';
+import { CONTINUATION_MARTIAL_CARDS } from './continuationMartialCards';
+import { CONTINUATION_MYSTIC_CARDS } from './continuationMysticCards';
+import { CONTINUATION_ARCANE_CARDS } from './continuationArcaneCards';
 import { createReferenceCard as card } from './referenceCard';
 import { EXPANDED_MARTIAL_CARDS } from './expandedMartialCards';
 import { EXPANDED_MYSTIC_CARDS } from './expandedMysticCards';
@@ -114,7 +117,7 @@ const tokenCards: CardDefinition[] = [
 ];
 
 export const CLASS_CARD_DEFINITIONS: Record<string, CardDefinition> = Object.fromEntries(
-  [...basicCards, ...adaptedCards, ...tokenCards, ...EXPANDED_MARTIAL_CARDS, ...EXPANDED_MYSTIC_CARDS, ...Object.values(BLESSING_CARD_DEFINITIONS)].map((entry) => [entry.id, entry]),
+  [...basicCards, ...adaptedCards, ...tokenCards, ...EXPANDED_MARTIAL_CARDS, ...EXPANDED_MYSTIC_CARDS, ...Object.values(BLESSING_CARD_DEFINITIONS), ...CONTINUATION_MARTIAL_CARDS, ...CONTINUATION_MYSTIC_CARDS, ...CONTINUATION_ARCANE_CARDS].map((entry) => [entry.id, entry]),
 );
 export const GENERATED_CARD_IDS = tokenCards.map((entry) => entry.id);
 export const PLAYABLE_SOURCE_CARD_IDS = [...new Set(

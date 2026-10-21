@@ -138,7 +138,7 @@ export function fetchGeneratedCard(state: CombatState, cardId: string): void {
   generateCards(state, cardId, 1, 'hand');
 }
 
-function triggerOrb(state: CombatState, orb: OrbType, evoke: boolean, index: number): void {
+function triggerOrb(state: CombatState, orb: OrbType, evoke: boolean, index: number, targetId?: string): void {
   const amount = orbEffectValue(orb, evoke ? 'evoke' : 'passive', resources(state).focus);
   const context = {
     sourceId: `orb-${index}`,
@@ -158,9 +158,13 @@ function triggerOrb(state: CombatState, orb: OrbType, evoke: boolean, index: num
   }
   const enemies = getEnemies(state).filter((enemy) => enemy.hp > 0);
   if (enemies.length === 0) return;
-  const random = nextRandom(state.rngState);
-  state.rngState = random.state;
-  const enemy = enemies[Math.floor(random.value * enemies.length)];
+  let enemy = targetId ? findEnemy(state, targetId) : undefined;
+  if (targetId && !enemy) return;
+  if (!enemy) {
+    const random = nextRandom(state.rngState);
+    state.rngState = random.state;
+    enemy = enemies[Math.floor(random.value * enemies.length)];
+  }
   emitActivation();
   withCombatTraceContext(state, context, () => dealDamage(state, 'enemy', amount, false, enemy));
 }
@@ -193,11 +197,12 @@ export function channelOrbs(state: CombatState, orb: OrbType, amount: number): v
   appendLog(state, `${orb === 'lightning' ? '雷' : '氷'}オーブを${amount}個生成。`);
 }
 
-export function triggerPassiveOrbs(state: CombatState): void {
+export function triggerPassiveOrbs(state: CombatState, options: { orb?: OrbType; targetId?: string } = {}): void {
   for (const [index, orb] of (state.classResources?.orbs ?? []).entries()) {
     if (state.phase !== 'player') break;
-    triggerOrb(state, orb, false, index);
-    if (index === (state.classResources?.orbs.length ?? 0) - 1) for (let count = 0; count < relicPassiveAmount(state, 'rightmostOrbExtraPassive') && state.phase === 'player'; count++) triggerOrb(state, orb, false, index);
+    if (options.orb && orb !== options.orb) continue;
+    triggerOrb(state, orb, false, index, options.targetId);
+    if (index === (state.classResources?.orbs.length ?? 0) - 1) for (let count = 0; count < relicPassiveAmount(state, 'rightmostOrbExtraPassive') && state.phase === 'player'; count++) triggerOrb(state, orb, false, index, options.targetId);
   }
 }
 

@@ -74,7 +74,7 @@ function enemy(value: unknown): boolean {
 
 const CLASS_IDS = ['berserker', 'assassin', 'oracle', 'necromancer', 'machinist'] as const;
 const POWER_KEYS = ['stillness', 'thorns', 'strengthOnTurn', 'poisonAura', 'drawOnTurn',
-  'blockOnAttack', 'knifeDamage', 'knivesOnTurn', 'focusOnTurn', 'energyOnTurn'];
+  'blockOnAttack', 'knifeDamage', 'knivesOnTurn', 'focusOnTurn', 'energyOnTurn', 'blockPerOrbTypeOnTurn'];
 
 /** Only authored effect lists can be restored; saved JSON cannot inject new opcodes. */
 function authoredLists(effects: Effect[]): Effect[][] {
@@ -98,9 +98,10 @@ function temporaryMechanics(value: Record<string, unknown>, enemyKeys: string[])
   if (value.turnModifiers !== undefined) {
     if (!Array.isArray(value.turnModifiers) || value.turnModifiers.length > 1000) return false;
     if (!value.turnModifiers.every((entry) => record(entry) && integer(entry.amount, -1_000_000) && (
-      entry.kind === 'power' ? oneOf(entry.power, POWER_KEYS)
+      entry.kind === 'dexterity' || (entry.kind === 'power' ? oneOf(entry.power, POWER_KEYS)
         : entry.kind === 'status' && oneOf(entry.status, ['strength', 'weak', 'vulnerable', 'poison']) &&
-          (entry.targetId === 'player' || enemyKeys.includes(String(entry.targetId)))
+          (entry.expireAt === undefined || entry.expireAt === 'playerEnd') &&
+          (entry.targetId === 'player' || enemyKeys.includes(String(entry.targetId))))
     ))) return false;
   }
   return true;
@@ -159,7 +160,7 @@ function pendingChoice(value: Record<string, unknown>, enemyKeys: string[]): boo
   return authoredLists(effects).some((list) => list.some((effect, index) => {
     const mode = effect.type === 'discard' ? 'discard' : effect.type === 'exhaustChoice' ? 'exhaust'
       : effect.type === 'moveChoice' ? effect.to === 'hand' ? 'retrieve' : 'topdeck' : null;
-    const zone = effect.type === 'moveChoice' ? effect.from : 'hand';
+    const zone = effect.type === 'moveChoice' ? effect.from : effect.type === 'exhaustChoice' ? effect.from ?? 'hand' : 'hand';
     return (
       mode === pending.mode && zone === sourceZone &&
       'amount' in effect &&
@@ -200,7 +201,7 @@ export function isValidCombatState(value: unknown): value is CombatState {
   if (value.intangible !== undefined && !integer(value.intangible)) return false;
   if (value.encounterType !== undefined && !oneOf(value.encounterType, ['battle', 'elite', 'boss', 'event'])) return false;
   if (value.dexterity !== undefined && !integer(value.dexterity, -1_000_000)) return false;
-  if (['plate', 'vigor', 'orbSlotBonus'].some((key) => value[key] !== undefined && !integer(value[key], 0, key === 'orbSlotBonus' ? 20 : 1_000_000))) return false;
+  if (['plate', 'vigor', 'orbSlotBonus'].some((key) => value[key] !== undefined && !integer(value[key], 0, key === 'orbSlotBonus' ? 1000 : 1_000_000))) return false;
   if (value.relicState !== undefined && (!record(value.relicState) ||
     !Object.entries(value.relicState).every(([key, count]) => text(key, 200) && integer(count)))) return false;
   if (value.cardDamageBonuses !== undefined && (!record(value.cardDamageBonuses) ||
@@ -237,7 +238,7 @@ export function isValidCombatState(value: unknown): value is CombatState {
     (!record(value.powerStacks) ||
       !Object.entries(value.powerStacks).every(
         ([key, amount]) =>
-          oneOf(key, POWER_KEYS) && integer(amount),
+          oneOf(key, POWER_KEYS) && integer(amount, key === 'focusOnTurn' ? -1_000_000 : 0),
       ))
   )
     return false;

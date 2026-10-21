@@ -20,6 +20,37 @@ export function relicPassiveAmount(state: CombatState, key: keyof RelicPassives)
 export function hasRelicPassive(state: CombatState, key: keyof RelicPassives): boolean {
   return getActiveRelics(state).some((relic) => Boolean(relic.passive?.[key]));
 }
+/** Read-time HP bonuses disappear as soon as HP rises above the threshold. */
+export function effectivePlayerStrength(state: CombatState): number {
+  return state.player.strength + getActiveRelics(state).reduce((sum, relic) => {
+    const threshold = relic.passive?.hpThresholdStrength;
+    return sum + (threshold && state.player.hp * 100 <= state.player.maxHp * threshold.percent ? threshold.amount : 0);
+  }, 0);
+}
+
+/** Call once after a legal card play is committed, before any of its hits resolve. */
+export function beforeCardRelics(state: CombatState, card: CardInstance): void {
+  if (CARD_DEFINITIONS[card.cardId]?.type !== 'attack') return;
+  if (!getActiveRelics(state).some((relic) => relic.passive?.attackEveryMultiplier)) return;
+  const counters = state.relicCounters ??= {};
+  const run = state.relicState ??= {};
+  let multiplier = 1;
+  for (const relic of getActiveRelics(state)) {
+    const passive = relic.passive?.attackEveryMultiplier;
+    if (!passive) continue;
+    const serialKey = `attack-serial:${relic.id}`;
+    // Re-entering the same committed play cannot advance a persistent counter twice.
+    if (counters[serialKey] === state.stats.cardsPlayed) continue;
+    counters[serialKey] = state.stats.cardsPlayed;
+    const countKey = `attacks:${relic.id}`;
+    run[countKey] = (run[countKey] ?? 0) + 1;
+    if (run[countKey] % passive.every === 0) {
+      multiplier *= passive.multiplier;
+      emitRelicActivation(state, relic);
+    }
+  }
+  if (multiplier !== 1) counters[`attack-multiplier:${card.uid}`] = multiplier;
+}
 /** Shared by runtime previews and the resolver; only committed resolution consumes the first-block bonus. */
 export function cardBlockWithRelics(state: CombatState, base: number, consume = false, includeDexterity = true): number {
   let amount = Math.max(0, Math.floor(base + (includeDexterity ? state.dexterity ?? 0 : 0)));
@@ -45,6 +76,8 @@ function matchesCondition(state: CombatState, effect: RelicEffect, context: Reli
   if (effect.noAttack && (state.relicCounters?.[`attacks-turn:${state.turn}`] ?? 0) > 0) return false;
   if (effect.handEmpty && state.hand.length > 0) return false;
   if (effect.energyAtLeast !== undefined && state.energy < effect.energyAtLeast) return false;
+  if (effect.energyExactly !== undefined && state.energy !== effect.energyExactly) return false;
+  if (effect.previousTurnCardsAtMost !== undefined && (state.relicCounters?.['previous-turn-cards'] ?? Infinity) > effect.previousTurnCardsAtMost) return false;
   const baseIds = getEnemies(state).map((enemy) => enemy.id.replace(/^act[23]_/, ''));
   if (effect.bossOnly && !(state.encounterType ? state.encounterType === 'boss' : baseIds.some((id) => BOSS_ENEMY_IDS.includes(id)))) return false;
   if (effect.eliteOnly && !(state.encounterType ? state.encounterType === 'elite' : baseIds.some((id) => ELITE_ENEMY_IDS.includes(id)))) return false;
@@ -113,6 +146,11 @@ function resolveRelicEffect(state: CombatState, effect: RelicEffect): void {
   switch (kind) {
     case 'block': gainBlock(state, 'player', amount); break;
     case 'strength': state.player.strength += amount; emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'strength', amount }); break;
+    case 'temporaryStrength':
+      state.player.strength += amount;
+      (state.turnModifiers ??= []).push({ kind: 'status', targetId: 'player', status: 'strength', amount, expireAt: 'playerEnd' });
+      emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'strength', amount });
+      break;
     case 'dexterity': state.dexterity = (state.dexterity ?? 0) + amount; emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'dexterity', amount }); break;
     case 'draw': drawInto(state, amount); break;
     case 'energy': { const before = state.energy; state.energy = Math.max(0, state.energy + amount); emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'energy', amount: state.energy - before }); break; }
@@ -129,6 +167,16 @@ function resolveRelicEffect(state: CombatState, effect: RelicEffect): void {
     case 'cleansePoison': { const removed = Math.min(state.player.poison, amount); state.player.poison -= removed; if (removed) emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'poison', amount: -removed }); break; }
     case 'knife': generateCards(state, 'token_knife', amount, 'hand'); break;
     case 'soul': generateCards(state, 'token_soul', amount, 'drawPile'); break;
+    case 'generateCard': if (effect.generatedCardId && CARD_DEFINITIONS[effect.generatedCardId]) generateCards(state, effect.generatedCardId, amount, 'hand'); break;
+    case 'exhaustDrawTop': {
+      const cards = state.drawPile.splice(Math.max(0, state.drawPile.length - Math.max(0, Math.floor(amount)))).reverse();
+      state.exhaustPile.push(...cards);
+      if (cards.length) {
+        emitCombatCue(state, { kind: 'exhaust', sourceId: 'player', cards, fromZone: 'drawPile', toZone: 'exhaustPile' });
+        for (const card of cards) triggerRelics(state, 'cardExhausted', { card });
+      }
+      break;
+    }
     case 'stars': { const current = resources(state); current.stars += amount; current.starsGainedThisTurn += amount; emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'stars', amount, resourceAction: 'gain' }); break; }
     case 'summon': { const wasActive = (state.classResources?.ostyHp ?? 0) > 0; resources(state).ostyHp += amount; emitCombatCue(state, { kind: 'resource', targetId: 'osty', resource: 'ostyHp', amount, resourceAction: wasActive ? 'grow' : 'summon' }); break; }
     case 'frost': case 'lightning': channelOrbs(state, kind, amount); break;

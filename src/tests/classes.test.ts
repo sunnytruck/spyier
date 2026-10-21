@@ -145,6 +145,10 @@ describe('implemented card provenance and effect execution', () => {
         intangible: combat.intangible ?? 0,
         cardDamageBonuses: combat.cardDamageBonuses ?? {},
         temporaryUpgrades: combat.temporaryUpgrades ?? [],
+        dexterity: combat.dexterity ?? 0,
+        plate: combat.plate ?? 0,
+        vigor: combat.vigor ?? 0,
+        orbSlotBonus: combat.orbSlotBonus ?? 0,
       });
       const onlyPayment = { ...before, energy: expectedEnergyAfterPayment };
       expect(actualEffect(after)).not.toEqual(actualEffect(onlyPayment));

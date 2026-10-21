@@ -1,8 +1,9 @@
 import { CARD_DEFINITIONS } from '../data/cards';
 import { getCardCost } from '../engine';
-import { calculateDamage } from '../engine/combat/damage';
+import { calculatePlayerAttackDamage } from '../engine/combat/damage';
 import { reactToPlayerCard } from '../engine/combat/enemyAI';
-import { cardBlockWithRelics, relicPassiveAmount, triggerRelics } from '../engine/combat/relics';
+import { beforeCardRelics, cardBlockWithRelics, getActiveRelics, relicPassiveAmount, triggerRelics } from '../engine/combat/relics';
+import { getRelicStrengthBonus, getRelicXBonus } from '../engine/combat/relicModifiers';
 import { attackCardBase, attackHitCount, nextOrbEvokeIndex, orbEffectValue, orbSlotCount } from '../engine/combat/resources';
 import { gainBlock } from '../engine/combat/state';
 import { findEnemy, getEnemies, normalizeInto } from '../engine/combat/targets';
@@ -33,11 +34,11 @@ const orbOutcome = (orb: OrbType, amount: number) => orb === 'lightning'
 function relevant(effect: Effect, knife: boolean, damageRamp = false): boolean {
   if (effect.type === 'damage') return damageRamp || knife || !!effect.fromBlock || !!effect.fromForge || !!effect.bonusPer || !!effect.hitsPer || !!effect.hitsIf || !!effect.xHits || !!effect.all || !!effect.randomTarget || !!effect.doomFromDamage || (effect.hits ?? 1) > 1;
   if (effect.type === 'block') return !!effect.bonusPer;
-  if (effect.type === 'power') return effect.power === 'knifeDamage' || effect.power === 'energyOnTurn';
+  if (effect.type === 'power') return ['knifeDamage', 'energyOnTurn', 'focusOnTurn', 'blockPerOrbTypeOnTurn'].includes(effect.power);
   if (effect.type === 'status') return (effect.status === 'poison' && effect.target !== 'player') || effect.amount < 0;
   if (effect.type === 'generate') return effect.cardId === 'token_knife';
   if (effect.type === 'fetchGenerated') return effect.cardId === 'token_sword';
-  return ['loseHp', 'gainStars', 'starBurst', 'forge', 'summon', 'summonDamage', 'channel', 'evoke', 'focus', 'xChannel', 'multiplyPoison', 'doom', 'nextTurnEnergy', 'conditional', 'nextTurn', 'temporaryStatus', 'temporaryPower', 'multiply', 'drawTo', 'redraw', 'moveChoice', 'moveRandom', 'cardDamageBonus', 'loseMaxHp', 'upgradeAll', 'stun', 'intangible', 'exhaustChoice', 'exhaustRandom', 'discard'].includes(effect.type)
+  return ['loseHp', 'loseEnemyHp', 'gainStars', 'starBurst', 'forge', 'summon', 'summonDamage', 'channel', 'evoke', 'focus', 'xChannel', 'multiplyPoison', 'doom', 'nextTurnEnergy', 'conditional', 'nextTurn', 'temporaryStatus', 'temporaryPower', 'multiply', 'drawTo', 'redraw', 'moveChoice', 'moveRandom', 'cardDamageBonus', 'loseMaxHp', 'upgradeAll', 'upgradeRandom', 'generateRandom', 'stun', 'intangible', 'exhaustChoice', 'exhaustRandom', 'discard', 'dexterity', 'plate', 'vigor', 'orbSlots', 'passiveOrbs'].includes(effect.type)
     || (effect.type === 'draw' && !!effect.perOrbType);
 }
 
@@ -52,6 +53,7 @@ const powerLabels: Record<PowerKey, string> = {
   stillness: '不動', thorns: '反撃', strengthOnTurn: 'ターン開始筋力', poisonAura: 'ターン開始毒',
   drawOnTurn: 'ターン開始ドロー', blockOnAttack: '攻撃時ブロック', knifeDamage: '石刃の研磨',
   knivesOnTurn: 'ターン開始石刃', focusOnTurn: 'ターン開始集中力', energyOnTurn: 'ターン開始エナジー',
+  blockPerOrbTypeOnTurn: 'ターン開始オーブ種類ブロック',
 };
 
 /** Describe delayed definitions, never guess a future HP/status/target or resolve them early. */
@@ -67,14 +69,16 @@ function scheduledSummary(effects: Effect[]): string {
       case 'focus': return `集中力${effect.amount >= 0 ? '＋' : ''}${effect.amount}${effect.bonusPer ? `＋発動時の${valueLabels[effect.bonusPer.value]}×${effect.bonusPer.multiplier}` : ''}`;
       case 'status': return `${statusLabels[effect.status]}${effect.amount >= 0 ? '＋' : ''}${effect.amount}`;
       case 'conditional': return `発動時の条件成立時：${scheduledSummary(effect.effects)}`;
+      case 'channel': return `${orbName(effect.orb)}オーブ${effect.amount}個生成`;
+      case 'nextTurn': return `さらに次のターン：${scheduledSummary(effect.effects)}`;
       default: return '定義された追加効果（発動時に解決）';
     }
   }).join(' ／ ');
 }
 
-function attackSummary(state: CombatState, base: number, all: boolean, hits = 1): string {
-  const targets = all ? getEnemies(state).filter((enemy) => enemy.hp > 0) : [findEnemy(state)].filter((enemy) => enemy !== undefined);
-  return targets.map((enemy) => `${enemy.name} ${calculateDamage(base, state.player, enemy)}${hits > 1 ? `×${hits}回` : ''}`).join(' ／ ');
+function attackSummary(state: CombatState, base: number, all: boolean, card: CardInstance, hits = 1, targetId?: string): string {
+  const targets = all ? getEnemies(state).filter((enemy) => enemy.hp > 0) : [findEnemy(state, targetId)].filter((enemy) => enemy !== undefined);
+  return targets.map((enemy) => `${enemy.name} ${calculatePlayerAttackDamage(state, base, enemy, 'card', card)}${hits > 1 ? `×${hits}回` : ''}`).join(' ／ ');
 }
 
 /**
@@ -88,7 +92,9 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
   if (!state || !definition || definition.unplayable || state.phase !== 'player') return null;
   const effects = card.upgraded ? definition.upgradedEffects : definition.effects;
   const knife = !!definition.tags?.includes('knife');
-  const damageRamp = Boolean(state.vigor || relicPassiveAmount(state, 'strikeBonus') || relicPassiveAmount(state, 'upgradedAttackBonus')) || !!state.cardDamageBonuses?.[card.cardId] || effects.some((effect) => effect.type === 'cardDamageBonus');
+  const damageRamp = Boolean(state.vigor || relicPassiveAmount(state, 'strikeBonus') || relicPassiveAmount(state, 'upgradedAttackBonus') || getRelicStrengthBonus(state)) ||
+    getActiveRelics(state).some((relic) => relic.passive?.attackEveryMultiplier || relic.passive?.vulnerableEnemyMultiplier) ||
+    !!state.cardDamageBonuses?.[card.cardId] || effects.some((effect) => effect.type === 'cardDamageBonus');
   const blockRelic = Boolean(state.dexterity || relicPassiveAmount(state, 'firstCardBlockMultiplier'));
   if (!effects.some((effect) => relevant(effect, knife, damageRamp) || effect.type === 'block' && blockRelic)) return null;
 
@@ -97,6 +103,8 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
   // The projection must never pass the caller's live card into that resolver.
   const projectedCard = { ...card };
   normalizeInto(projected);
+  // A killed selected target must not redirect later effects to a different enemy.
+  const targetId = projected.selectedEnemyId;
   // An upgrade preview may supply a hypothetical upgraded instance while the
   // saved zones still contain its normal version. Keep this isolated inventory
   // coherent so upgradeAll does not count the played preview a second time.
@@ -106,10 +114,17 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
   // Inspection can include a card in another pile or its upgrade preview.
   projected.hand = projected.hand.filter((held) => held.uid !== card.uid);
   const paidEnergy = getCardCost(card, state);
+  const xEnergy = paidEnergy + (definition.xCost ? getRelicXBonus(state) : 0);
   projected.energy = Math.max(0, projected.energy - paidEnergy);
   projected.cardsPlayedThisTurn += 1;
   projected.stats.cardsPlayed += 1;
+  beforeCardRelics(projected, projectedCard);
   reactToPlayerCard(projected, definition.type);
+  if (definition.type === 'attack' && projected.relicIds?.length) {
+    projected.relicCounters ??= {};
+    const key = `attacks-turn:${projected.turn}`;
+    projected.relicCounters[key] = (projected.relicCounters[key] ?? 0) + 1;
+  }
   triggerRelics(projected, 'cardPlayed', { card: projectedCard, amount: paidEnergy });
   if (definition.type === 'attack') {
     triggerRelics(projected, 'firstAttack');
@@ -128,7 +143,7 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
       facts.push({ key: `${index}${suffix ? `.${suffix}` : ''}:${effect.type}`, ...fact });
     };
     if (effect.type === 'conditional') {
-      const active = meetsEffectCondition(projected, effect.condition, findEnemy(projected));
+      const active = meetsEffectCondition(projected, effect.condition, findEnemy(projected, targetId));
       push({ summary: active ? '条件成立・追加効果が発動' : '条件未達・追加効果は発動しない',
         detail: 'このカードの先行効果と、カード使用時の処理を反映した時点で条件を判定します。', warning: !active });
       if (active) queue.unshift(...effect.effects.map((part, child) => ({ effect: part, index: `${index}.${child}`, inConditional: true })));
@@ -139,8 +154,8 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
         if (!relevant(effect, knife, damageRamp)) break;
         if (effect.randomTarget) {
           const targets = getEnemies(projected).filter((enemy) => enemy.hp > 0);
-          const amounts = targets.map((enemy) => calculateDamage(attackCardBase(projected, effect, card, enemy), projected.player, enemy));
-          const hits = attackHitCount(projected, effect, paidEnergy);
+          const amounts = targets.map((enemy) => calculatePlayerAttackDamage(projected, attackCardBase(projected, effect, projectedCard, enemy), enemy, 'card', projectedCard));
+          const hits = attackHitCount(projected, effect, xEnergy);
           const low = amounts.length ? Math.min(...amounts) : 0;
           const high = amounts.length ? Math.max(...amounts) : 0;
           push({ summary: `ランダムな生存敵に${low === high ? low : `${low}〜${high}`}×${hits}回`,
@@ -148,25 +163,25 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
             ...(low === high ? { amount: low } : {}) });
           break;
         }
-        const target = findEnemy(projected);
-        const base = attackCardBase(projected, effect, card, target);
-        const hits = attackHitCount(projected, effect, paidEnergy, target);
+        const target = findEnemy(projected, targetId);
+        const base = attackCardBase(projected, effect, projectedCard, target);
+        const hits = attackHitCount(projected, effect, xEnergy, target);
         const source = effect.fromForge ? `鍛造${current?.forge ?? 0}`
           : effect.fromBlock ? `ブロック${projected.player.block}`
           : effect.bonusPer ? `${valueLabels[effect.bonusPer.value]}${combatValue(projected, effect.bonusPer.value, target)}`
-          : effect.xHits ? `X＝${paidEnergy}`
+          : effect.xHits ? `X＝${xEnergy}`
           : effect.hitsPer ? `${valueLabels[effect.hitsPer]}${combatValue(projected, effect.hitsPer, target)}`
           : knife ? `石刃の研磨＋${projected.powerStacks?.knifeDamage ?? 0}`
           : damageRamp ? `同名カードの威力＋${projected.cardDamageBonuses?.[card.cardId] ?? 0}` : `${hits}回の連続攻撃`;
         const targets = effect.all ? getEnemies(projected).filter((enemy) => enemy.hp > 0) : target ? [target] : [];
         const summary = targets.map((enemy) => {
-          const eachHits = attackHitCount(projected, effect, paidEnergy, enemy);
-          const eachDamage = calculateDamage(attackCardBase(projected, effect, card, enemy), projected.player, enemy);
+          const eachHits = attackHitCount(projected, effect, xEnergy, enemy);
+          const eachDamage = calculatePlayerAttackDamage(projected, attackCardBase(projected, effect, projectedCard, enemy), enemy, 'card', projectedCard);
           return `${enemy.name} ${eachHits === 0 ? '攻撃0回' : `${eachDamage}${eachHits > 1 ? `×${eachHits}回` : ''}`}`;
         }).join(' ／ ');
         push({ summary: `${source} → ${summary}`,
           detail: `筋力・弱体・脆弱を各ヒットに適用した、敵ブロックで軽減する前の値。敵が倒れれば残りのヒットは止まります。${effect.doomFromDamage ? '実際に減らしたHPと同じ破滅を、生き残った敵に加えます。' : ''}`,
-          amount: target && hits > 0 ? calculateDamage(base, projected.player, target) : 0 });
+          amount: target && hits > 0 ? calculatePlayerAttackDamage(projected, base, target, 'card', projectedCard) : 0 });
         break;
       }
       case 'block': {
@@ -179,11 +194,19 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
       case 'loseHp': {
         const loss = Math.max(0, effect.amount - relicPassiveAmount(projected, 'hpLossReduction'));
         const checkpoint = structuredClone(projected);
-        resolveEffects(checkpoint, [effect], definition, { sourceCard: projectedCard, xEnergy: paidEnergy });
+        resolveEffects(checkpoint, [effect], definition, { targetId, sourceCard: projectedCard, xEnergy });
         const defeated = checkpoint.phase === 'defeat';
         push({ summary: `HP ${projected.player.hp} → ${checkpoint.player.hp}${defeated ? '・使用すると敗北' : ''}`,
           detail: `HPを${loss}直接消費します${loss !== effect.amount ? '（レリックの軽減後）' : ''}。ブロック・岩霊の護衛では防げません。復活レリックがあれば、その発動も反映します。敗北すると後続の効果は発動しません。`,
           amount: Math.min(projected.player.hp, loss), warning: defeated });
+        break;
+      }
+      case 'loseEnemyHp': {
+        const target = findEnemy(projected, targetId);
+        if (!target) break;
+        const amount = Math.min(target.hp, Math.max(0, Math.floor(effect.amount)));
+        push({ summary: `${target.name} HP ${target.hp} → ${target.hp - amount}`,
+          detail: '敵のHPを直接失わせます。敵ブロック、筋力、弱体、脆弱、攻撃ダメージ倍率は適用しません。', amount });
         break;
       }
       case 'loseMaxHp': {
@@ -206,8 +229,18 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
           detail: '手札・山札・捨て札・廃棄札・使用中のカードが対象です。強化済み・強化不可のカードは変更しません。戦闘終了で、この効果による一時強化だけ元に戻ります。じっとゲージの神格化とは別の効果です。', amount: count });
         break;
       }
+      case 'upgradeRandom': {
+        const amount = Math.min(projected[effect.from].filter(canUpgradeCard).length, Math.max(0, Math.floor(effect.amount)));
+        push({ summary: `${effect.from === 'hand' ? '他の手札' : effect.from === 'drawPile' ? '山札' : '捨て札'}からランダムに${amount}枚をこの戦闘中だけ強化`,
+          detail: '対象は使用時にシード付きで抽選します。強化済み・強化不可のカードは除き、同じカードを重複して抽選しません。戦闘終了で一時強化は元に戻ります。', amount });
+        break;
+      }
+      case 'generateRandom':
+        push({ summary: `ランダムな無色カード${effect.upgraded ? '（強化済み）' : ''}を${effect.amount}枚生成`,
+          detail: `取得可能な通常の無色カードだけを使用時に抽選し、${effect.destination === 'hand' ? '手札' : effect.destination === 'drawPile' ? '山札' : '捨て札'}に加えます。祝福限定・生成専用カードは含みません。手札上限を超えた分は捨て札に入ります。`, amount: effect.amount });
+        break;
       case 'stun': {
-        const enemy = findEnemy(projected);
+        const enemy = findEnemy(projected, targetId);
         if (!enemy) break;
         const after = (enemy.stun ?? 0) + Math.max(0, Math.floor(effect.amount));
         push({ summary: `${enemy.name} スタン${enemy.stun ?? 0} → ${after}`,
@@ -227,9 +260,9 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
       case 'starBurst': {
         const gained = current?.starsGainedThisTurn ?? 0;
         const base = attackCardBase(projected, { type: 'damage', amount: gained * effect.amount }, projectedCard);
-        push({ summary: gained > 0 ? `今ターン✦${gained}×${effect.amount} → ${attackSummary(projected, base, !!effect.all)}` : '今ターンの星獲得0・攻撃は不発',
+        push({ summary: gained > 0 ? `今ターン✦${gained}×${effect.amount} → ${attackSummary(projected, base, !!effect.all, projectedCard, 1, targetId)}` : '今ターンの星獲得0・攻撃は不発',
           detail: '参照するのは星の累計ではなく、このターンの獲得数です。攻撃補正後・敵ブロック軽減前。星は消費しません。',
-          amount: gained > 0 && findEnemy(projected) ? calculateDamage(base, projected.player, findEnemy(projected)!) : 0 });
+          amount: gained > 0 && findEnemy(projected, targetId) ? calculatePlayerAttackDamage(projected, base, findEnemy(projected, targetId)!, 'card', projectedCard) : 0 });
         break;
       }
       case 'forge': {
@@ -263,11 +296,28 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
       }
       case 'channel':
       case 'xChannel': {
-        const amount = Math.max(0, Math.floor(effect.type === 'channel' ? scaledEffectAmount(projected, effect) : paidEnergy + effect.bonus));
+        const amount = Math.max(0, Math.floor(effect.type === 'channel' ? scaledEffectAmount(projected, effect) : xEnergy + effect.bonus));
         const focus = current?.focus ?? 0;
         push({ summary: `${orbName(effect.orb)}オーブ${amount}個 ／ 自動${orbEffectValue(effect.orb, 'passive', focus)}・解放${orbEffectValue(effect.orb, 'evoke', focus)}`,
-          detail: `集中力${focus}を適用済み。${orbOutcome(effect.orb, orbEffectValue(effect.orb, 'passive', focus))}。最大${orbSlotCount(state)}スロット。満杯なら右端を解放し、戦闘が続いていれば生成します。${effect.type === 'xChannel' ? `X＝消費エナジー${paidEnergy}。` : ''}`,
+          detail: `集中力${focus}を適用済み。${orbOutcome(effect.orb, orbEffectValue(effect.orb, 'passive', focus))}。最大${orbSlotCount(projected)}スロット。満杯なら右端を解放し、戦闘が続いていれば生成します。${effect.type === 'xChannel' ? `X＝消費エナジー${paidEnergy}${xEnergy !== paidEnergy ? `＋レリック補正${xEnergy - paidEnergy}` : ''}。` : ''}`,
           amount });
+        break;
+      }
+      case 'orbSlots':
+        push({ summary: `オーブスロット ${orbSlotCount(projected)} → ${orbSlotCount(projected) + effect.amount}`,
+          detail: 'この戦闘中の最大スロット数を増やします。保持中のオーブの種類・順番は変えず、増設だけでは解放しません。', amount: orbSlotCount(projected) + effect.amount });
+        break;
+      case 'passiveOrbs': {
+        const held = current?.orbs ?? [];
+        const selected = findEnemy(projected, targetId);
+        for (const type of ['lightning', 'frost'] as const) {
+          if (effect.orb && effect.orb !== type) continue;
+          const count = held.filter((orb) => orb === type).length;
+          const amount = orbEffectValue(type, 'passive', current?.focus ?? 0);
+          const target = type === 'frost' ? '自分にブロック' : effect.target === 'selected' ? selected ? `${selected.name}にダメージ` : '対象不在・不発' : 'ランダムな生存敵にダメージ';
+          push({ summary: `${orbName(type)}オーブ${count}個 × 自動${amount} → ${target}`,
+            detail: '現在の集中力を反映した自動効果です。オーブを解放・消費せず、順番も変えません。雷の自動効果に教祖の攻撃補正は適用しません。対象を倒しても別の敵には変更しません。', amount: type === 'lightning' && effect.target === 'selected' && !selected ? 0 : count * amount });
+        }
         break;
       }
       case 'evoke': {
@@ -275,12 +325,12 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
         const nextIndex = nextOrbEvokeIndex(orbs);
         const orb = nextIndex === null ? undefined : orbs[nextIndex];
         const value = orb ? orbEffectValue(orb, 'evoke', current?.focus ?? 0) : 0;
-        const times = Math.max(0, effect.times + (effect.fromEnergy ? paidEnergy : 0));
+        const times = Math.max(0, effect.times + (effect.fromEnergy ? xEnergy : 0));
         const order = effect.all ? [...orbs].reverse() : orb ? [orb] : [];
         push({ summary: orb ? effect.all
           ? `右端から全${orbs.length}個：${order.map((type) => `${orbName(type)}${orbEffectValue(type, 'evoke', current?.focus ?? 0)}×${times}回`).join(' → ')}`
           : `右端の${orbName(orb)}：${value}×${times}回解放` : 'オーブがないため解放しない',
-          detail: orb ? `${orbOutcome(orb, value)}を${times}回。毎回同じ右端のオーブを発動してから1個取り除きます。雷は発動ごとに対象を抽選します。${effect.fromEnergy ? `消費エナジーX＝${paidEnergy}。` : ''}${times === 0 ? '0回でもオーブは取り除きます。' : ''}${effect.all ? '途中で戦闘が終われば後続の解放は止まります。' : ''}` : '空スロットには解放効果がありません。', amount: times > 0 ? value : 0 });
+          detail: orb ? `${orbOutcome(orb, value)}を${times}回。毎回同じ右端のオーブを発動してから1個取り除きます。雷は発動ごとに対象を抽選します。${effect.fromEnergy ? `消費エナジー${paidEnergy}${xEnergy !== paidEnergy ? `＋レリック補正${xEnergy - paidEnergy}` : ''}。` : ''}${times === 0 ? '0回でもオーブは取り除きます。' : ''}${effect.all ? '途中で戦闘が終われば後続の解放は止まります。' : ''}` : '空スロットには解放効果がありません。', amount: times > 0 ? value : 0 });
         break;
       }
       case 'focus': {
@@ -303,13 +353,39 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
           detail: 'この戦闘中、石刃の攻撃の基礎威力に加算します。通常カードの攻撃は強化しません。', amount: (projected.powerStacks?.knifeDamage ?? 0) + effect.amount });
         else if (effect.power === 'energyOnTurn') push({ summary: `毎ターン開始エナジー ＋${projected.powerStacks?.energyOnTurn ?? 0} → ＋${(projected.powerStacks?.energyOnTurn ?? 0) + effect.amount}`,
           detail: '取得直後にはエナジーを得ません。次の自分のターンから、基本エナジー回復後に毎回加算します。', amount: (projected.powerStacks?.energyOnTurn ?? 0) + effect.amount });
+        else if (effect.power === 'focusOnTurn') push({ summary: `毎ターン開始の集中力変化 ${projected.powerStacks?.focusOnTurn ?? 0} → ${(projected.powerStacks?.focusOnTurn ?? 0) + effect.amount}`,
+          detail: '次の自分のターンから毎回、集中力をこの値だけ増減します。集中力は0未満にもなり、オーブ効果の最低値は0です。', amount: (projected.powerStacks?.focusOnTurn ?? 0) + effect.amount });
+        else if (effect.power === 'blockPerOrbTypeOnTurn') {
+          const perType = (projected.powerStacks?.blockPerOrbTypeOnTurn ?? 0) + effect.amount;
+          const types = new Set(current?.orbs ?? []).size;
+          push({ summary: `毎ターン開始：オーブ${types}種類 × ${perType} → 現在なら${types * perType}ブロック`,
+            detail: '取得直後にはブロックを得ません。各ターン開始時に保持しているオーブの種類数を改めて数えます。同じ種類を複数保持しても1種類です。', amount: types * perType });
+        }
         break;
+      case 'dexterity': {
+        const amount = (projected.dexterity ?? 0) + effect.amount;
+        push({ summary: `敏捷性 ${projected.dexterity ?? 0} → ${amount}${effect.temporary ? '（このターン）' : ''}`,
+          detail: 'カードのブロック獲得量を増減します。オーブの自動効果、プレート、既存ブロックを倍にする効果には加算しません。', amount });
+        break;
+      }
+      case 'vigor': {
+        const amount = (projected.vigor ?? 0) + effect.amount;
+        push({ summary: `活力 ${projected.vigor ?? 0} → ${amount}`,
+          detail: '次のアタックカードの各ヒットの基礎威力に加算し、そのカードの解決後に消費します。', amount });
+        break;
+      }
+      case 'plate': {
+        const amount = (projected.plate ?? 0) + effect.amount;
+        push({ summary: `プレート ${projected.plate ?? 0} → ${amount}`,
+          detail: 'ターン終了時に残りのプレートと同じブロックを得ます。敵の攻撃でHPを失うたび1減り、毒やHP消費では減りません。', amount });
+        break;
+      }
       case 'status':
       case 'temporaryStatus':
       case 'multiplyPoison': {
         const targets = effect.type !== 'multiplyPoison' && effect.target === 'player' ? [projected.player]
           : effect.type !== 'multiplyPoison' && effect.target === 'allEnemies'
-            ? getEnemies(projected).filter((enemy) => enemy.hp > 0) : [findEnemy(projected)].filter((enemy) => enemy !== undefined);
+            ? getEnemies(projected).filter((enemy) => enemy.hp > 0) : [findEnemy(projected, targetId)].filter((enemy) => enemy !== undefined);
         for (const enemy of targets) {
           const status = effect.type === 'multiplyPoison' ? 'poison' : effect.status;
           const before = enemy[status];
@@ -323,7 +399,7 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
         break;
       }
       case 'doom': {
-        const targets = effect.all ? getEnemies(projected).filter((enemy) => enemy.hp > 0) : [findEnemy(projected)].filter((enemy) => enemy !== undefined);
+        const targets = effect.all ? getEnemies(projected).filter((enemy) => enemy.hp > 0) : [findEnemy(projected, targetId)].filter((enemy) => enemy !== undefined);
         for (const enemy of targets) {
           const amount = Math.max(0, Math.floor(scaledEffectAmount(projected, effect, enemy)));
           const after = (enemy.doom ?? 0) + amount;
@@ -371,7 +447,7 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
       case 'discard':
       case 'exhaustChoice':
       case 'moveChoice': {
-        const source = effect.type === 'moveChoice' ? effect.from : 'hand';
+        const source = effect.type === 'moveChoice' ? effect.from : effect.type === 'exhaustChoice' ? effect.from ?? 'hand' : 'hand';
         const amount = Math.min(projected[source].length, Math.max(0, Math.floor(effect.amount)), effect.type === 'moveChoice' && effect.to === 'hand' ? Math.max(0, 50 - projected.hand.length) : Infinity);
         const destination = effect.type === 'moveChoice' ? effect.to === 'hand' ? '手札に戻す' : '山札の一番上に置く' : effect.type === 'discard' ? '捨てる' : '廃棄する';
         push({ summary: `${source === 'hand' ? '他の手札' : source === 'drawPile' ? '山札' : '捨て札'}から${amount}枚を${destination}`,
@@ -392,11 +468,11 @@ export function getCardRuntimeInfo(card: CardInstance, state?: CombatState): Car
         break;
     }
     const previousRng = projected.rngState;
-    resolveEffects(projected, [effect], definition, { sourceCard: projectedCard, xEnergy: paidEnergy });
+    resolveEffects(projected, [effect], definition, { targetId, sourceCard: projectedCard, xEnergy });
     if (projected.pendingChoice) {
       facts.push({ key: `${index}:pendingChoice`, summary: 'カード選択後の効果は確定後に解決',
         detail: '選択によって変わる後続の数値はここでは確定しません。プレビューではカードを移動・廃棄しません。' });
-    } else if (projected.rngState !== previousRng && queue.length && ['damage', 'channel', 'evoke', 'xChannel', 'exhaustRandom', 'moveRandom'].includes(effect.type)) {
+    } else if (projected.rngState !== previousRng && queue.length && ['damage', 'channel', 'evoke', 'xChannel', 'passiveOrbs', 'exhaustRandom', 'moveRandom', 'upgradeRandom', 'generateRandom'].includes(effect.type)) {
       facts.push({ key: `${index}:randomContinuation`, summary: '抽選後の追加効果は使用時に確定',
         detail: '敵やカードの抽選結果を固定の予測として見せないため、抽選に続く効果の数値は表示していません。' });
       break;

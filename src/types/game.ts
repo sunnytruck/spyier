@@ -13,6 +13,7 @@ export type PowerKey =
   | 'knifeDamage'
   | 'knivesOnTurn'
   | 'focusOnTurn'
+  | 'blockPerOrbTypeOnTurn'
   | 'energyOnTurn';
 
 /** Read-only combat quantities shared by reusable effect handlers and their previews. */
@@ -23,7 +24,12 @@ export type EffectCondition =
   | { type: 'targetStatus'; status: 'poison' | 'weak' | 'vulnerable'; min?: number }
   | { type: 'targetAttacking' }
   | { type: 'cardsPlayedAtMost'; amount: number };
-export interface EffectScaling { value: CombatValue; multiplier: number }
+export interface EffectScaling {
+  value: CombatValue;
+  multiplier: number;
+  /** Count complete groups before multiplying; omitted preserves legacy scaling. */
+  divisor?: number;
+}
 
 export type Effect =
   | {
@@ -47,6 +53,10 @@ export type Effect =
   | { type: 'draw'; amount: number; perOrbType?: boolean }
   | { type: 'energy'; amount: number }
   | { type: 'heal'; amount: number }
+  | { type: 'dexterity'; amount: number; temporary?: boolean }
+  | { type: 'plate'; amount: number }
+  | { type: 'vigor'; amount: number }
+  | { type: 'orbSlots'; amount: number }
   | {
       type: 'status';
       target: Target | 'allEnemies';
@@ -58,13 +68,16 @@ export type Effect =
   | { type: 'multiplyPoison'; amount: number }
   | { type: 'loseHp'; amount: number }
   | { type: 'discard'; amount: number }
-  | { type: 'exhaustChoice'; amount: number }
+  | { type: 'exhaustChoice'; amount: number; from?: 'hand' | 'drawPile' | 'discardPile' }
   | { type: 'exhaustRandom'; amount: number }
   | { type: 'moveChoice'; from: 'hand' | 'discardPile' | 'drawPile'; to: 'drawPile' | 'hand'; amount: number }
   | { type: 'moveRandom'; from: 'discardPile' | 'drawPile'; to: 'hand'; amount: number }
   | { type: 'cardDamageBonus'; amount: number }
   | { type: 'loseMaxHp'; amount: number }
   | { type: 'upgradeAll' }
+  | { type: 'upgradeRandom'; from: 'hand' | 'drawPile' | 'discardPile'; amount: number }
+  | { type: 'generateRandom'; pool: 'colorless'; amount: number; destination: CardDestination; upgraded?: boolean }
+  | { type: 'loseEnemyHp'; amount: number }
   | { type: 'stun'; amount: number }
   | { type: 'intangible'; amount: number }
   | { type: 'drawTo'; amount: number }
@@ -85,6 +98,7 @@ export type Effect =
   | { type: 'doom'; amount: number; all?: boolean; bonusPer?: EffectScaling }
   | { type: 'soul'; amount: number; upgraded?: boolean; destination?: CardDestination }
   | { type: 'channel'; orb: OrbType; amount: number; bonusPer?: EffectScaling }
+  | { type: 'passiveOrbs'; orb?: OrbType; target?: 'selected' }
   | { type: 'evoke'; times: number; fromEnergy?: boolean; all?: boolean }
   | { type: 'focus'; amount: number; temporary?: boolean; bonusPer?: EffectScaling }
   | { type: 'nextTurnEnergy'; amount: number }
@@ -211,7 +225,8 @@ export interface PendingCardChoice {
 }
 
 export type TurnModifier =
-  | { kind: 'status'; targetId: string; status: 'strength' | 'weak' | 'vulnerable' | 'poison'; amount: number }
+  | { kind: 'status'; targetId: string; status: 'strength' | 'weak' | 'vulnerable' | 'poison'; amount: number; expireAt?: 'playerEnd' }
+  | { kind: 'dexterity'; amount: number }
   | { kind: 'power'; power: PowerKey; amount: number };
 
 export interface BattleLog {

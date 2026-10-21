@@ -13,7 +13,8 @@ export function combatValue(state: CombatState, value: CombatValue, target?: Ene
     case 'enemyWeak': return enemy?.weak ?? 0;
     case 'enemyVulnerable': return enemy?.vulnerable ?? 0;
     case 'enemyDoom': return enemy?.doom ?? 0;
-    case 'enemyDebuffs': return enemy ? [enemy.weak, enemy.vulnerable, enemy.poison, enemy.doom ?? 0].filter((amount) => amount > 0).length : 0;
+    case 'enemyDebuffs': return enemy ? [enemy.weak, enemy.vulnerable, enemy.poison, enemy.doom ?? 0, enemy.stun ?? 0,
+      Math.max(0, -enemy.strength)].filter((amount) => amount > 0).length : 0;
     case 'totalEnemyPoison': return getEnemies(state).filter((actor) => actor.hp > 0).reduce((sum, actor) => sum + actor.poison, 0);
     case 'orbCount': return state.classResources?.orbs.length ?? 0;
     case 'distinctOrbCount': return new Set(state.classResources?.orbs ?? []).size;
@@ -32,5 +33,8 @@ export function meetsEffectCondition(state: CombatState, condition: EffectCondit
 
 /** Raw amount before the effect-specific nonnegative clamp/floor or attack modifiers. */
 export function scaledEffectAmount(state: CombatState, effect: { amount: number; bonusPer?: EffectScaling }, target?: EnemyState): number {
-  return effect.amount + (effect.bonusPer ? combatValue(state, effect.bonusPer.value, target) * effect.bonusPer.multiplier : 0);
+  if (!effect.bonusPer) return effect.amount;
+  const raw = combatValue(state, effect.bonusPer.value, target);
+  const groups = effect.bonusPer.divisor === undefined ? raw : Math.floor(raw / effect.bonusPer.divisor);
+  return effect.amount + groups * effect.bonusPer.multiplier;
 }

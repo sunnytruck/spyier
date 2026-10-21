@@ -3,16 +3,17 @@ import type { RelicRunEffect } from '../types/relics';
 import { STARTER_RELIC_DEFINITIONS } from './starterRelics';
 import { REFERENCE_RELIC_DEFINITIONS } from './referenceRelics';
 import { ACQUISITION_RELIC_DEFINITIONS } from './acquisitionRelics';
+import { CONTINUATION_RELIC_DEFINITIONS } from './continuationRelics';
 
 export type RelicTrigger = 'combatStart' | 'firstHand' | 'turnStart' | 'turnEnd' | 'firstAttack' | 'cardPlayed' | 'enemyKilled' | 'victory'
-  | 'hpLost' | 'cardExhausted' | 'cardDiscarded' | 'cardGenerated' | 'ostyAttack' | 'shuffle' | 'acquire';
+  | 'hpLost' | 'cardExhausted' | 'cardDiscarded' | 'cardGenerated' | 'ostyAttack' | 'shuffle' | 'acquire' | 'potionUsed';
 export type RelicEffectKind =
   | 'block' | 'strength' | 'draw' | 'energy' | 'heal' | 'gauge'
   | 'enemyWeak' | 'enemyVulnerable' | 'enemyPoison' | 'cleansePoison'
   | 'knife' | 'stars' | 'summon' | 'frost' | 'lightning' | 'forge' | 'focus' | 'dexterity'
   | 'damageAll' | 'damageRandom' | 'damageAllTurn' | 'enemyStrength' | 'thorns' | 'plate'
   | 'soul' | 'upgradeHand' | 'upgradeDrawPile' | 'nextTurnBlock' | 'nextTurnEnergy' | 'blockPerHand'
-  | 'energyDraw' | 'loseHp' | 'vigor' | 'orbSlots' | 'run';
+  | 'energyDraw' | 'loseHp' | 'vigor' | 'orbSlots' | 'run' | 'temporaryStrength' | 'generateCard' | 'exhaustDrawTop';
 export interface RelicEffect {
   trigger: RelicTrigger;
   kind: RelicEffectKind;
@@ -35,6 +36,10 @@ export interface RelicEffect {
   eliteOnly?: boolean;
   handEmpty?: boolean;
   energyAtLeast?: number;
+  energyExactly?: number;
+  previousTurnCardsAtMost?: number;
+  /** The stable, already executable card to create during combat. */
+  generatedCardId?: string;
 }
 export interface RelicPassives {
   initialDrawAdjustment?: number;
@@ -47,6 +52,14 @@ export interface RelicPassives {
   firstCardBlockMultiplier?: number;
   rightmostOrbExtraPassive?: number;
   hpThresholdStrength?: { percent: number; amount: number };
+  xEffectBonus?: number;
+  vulnerableEnemyMultiplier?: number;
+  weakEnemyMultiplier?: number;
+  retainHand?: boolean;
+  retainHandThroughTurn?: number;
+  cardsPerTurnLimit?: number;
+  enemyDamageMultiplierWhenCardsAtMost?: { cards: number; multiplier: number };
+  attackEveryMultiplier?: { every: number; multiplier: number };
   reviveHpPercent?: number;
 }
 export type RelicRarity = 'starter' | 'common' | 'uncommon' | 'rare' | 'shop' | 'ancient' | 'event';
@@ -75,6 +88,7 @@ export const RELIC_DEFINITIONS: Record<string, RelicDefinition> = {
   ...STARTER_RELIC_DEFINITIONS,
   ...REFERENCE_RELIC_DEFINITIONS,
   ...ACQUISITION_RELIC_DEFINITIONS,
+  ...CONTINUATION_RELIC_DEFINITIONS,
   warm_pebble: {
     id: 'warm_pebble',
     name: '温石',

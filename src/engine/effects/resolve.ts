@@ -1,7 +1,7 @@
 import type { Actor, CardDefinition, CardInstance, CombatState, Effect, EnemyState } from '../../types/game';
 import { CARD_DEFINITIONS } from '../../data/cards';
 import { drawInto } from '../actions/draw';
-import { calculateDamage } from '../combat/damage';
+import { calculatePlayerAttackDamage } from '../combat/damage';
 import {
   appendLog,
   applyGauge,
@@ -12,10 +12,11 @@ import {
   finishIfNeeded,
 } from '../combat/state';
 import { findEnemy, getEnemies, getEnemyKey } from '../combat/targets';
-import { attackCardBase, attackHitCount, channelOrbs, evokeOrb, fetchGeneratedCard, generateCards, resources, summonAttack } from '../combat/resources';
+import { attackCardBase, attackHitCount, channelOrbs, evokeOrb, fetchGeneratedCard, generateCards, resources, summonAttack, triggerPassiveOrbs } from '../combat/resources';
 import { meetsEffectCondition, scaledEffectAmount } from '../combat/values';
-import { cardBlockWithRelics, relicPassiveAmount, triggerRelics } from '../combat/relics';
+import { cardBlockWithRelics, relicPassiveAmount, temporarilyUpgradeCards, triggerRelics } from '../combat/relics';
 import { nextRandom } from '../random';
+import { isNormalAcquisitionCard } from '../cardAcquisition';
 import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace';
 
 export interface EffectContext {
@@ -48,7 +49,7 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
         state.rngState = random.state;
         const enemy = enemies[Math.floor(random.value * enemies.length)];
         const base = attackCardBase(state, effect, context.sourceCard, enemy);
-        dealDamage(state, 'enemy', calculateDamage(base, state.player, enemy), false, enemy);
+        dealDamage(state, 'enemy', calculatePlayerAttackDamage(state, base, enemy, context.source, context.sourceCard), false, enemy);
       }
       return;
     }
@@ -56,8 +57,6 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
       effect.all || context.all
         ? getEnemies(state).filter((enemy) => enemy.hp > 0)
         : [findEnemy(state, context.targetId)].filter((enemy) => enemy !== undefined);
-    const attacker =
-      context.source === 'potion' ? { ...state.player, strength: 0, weak: 0 } : state.player;
     for (const enemy of targets) {
       const base = attackCardBase(state, effect, context.sourceCard, enemy);
       const hits = attackHitCount(state, effect, context.xEnergy, enemy);
@@ -66,7 +65,7 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
         hit < hits && state.phase === 'player' && enemy.hp > 0;
         hit += 1
       ) {
-        const damage = dealDamage(state, 'enemy', calculateDamage(base, attacker, enemy), false, enemy);
+        const damage = dealDamage(state, 'enemy', calculatePlayerAttackDamage(state, base, enemy, context.source, context.sourceCard), false, enemy);
         if (effect.doomFromDamage && enemy.hp > 0) {
           enemy.doom = (enemy.doom ?? 0) + damage;
           emitCombatCue(state, { kind: 'status', targetId: getEnemyKey(enemy), status: 'doom', amount: damage });
@@ -88,6 +87,34 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
     emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'energy', amount: state.energy - previous });
   },
   heal: (state, effect) => healPlayer(state, effect.amount),
+  dexterity: (state, effect) => {
+    const amount = Math.floor(effect.amount);
+    state.dexterity = (state.dexterity ?? 0) + amount;
+    if (effect.temporary && amount !== 0) {
+      state.turnModifiers ??= [];
+      state.turnModifiers.push({ kind: 'dexterity', amount });
+    }
+    appendLog(state, `敏捷 ${amount >= 0 ? '+' : ''}${amount}${effect.temporary ? '（このターン）' : ''}。`);
+    emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'dexterity', amount, label: '敏捷' });
+  },
+  plate: (state, effect) => {
+    const before = state.plate ?? 0;
+    state.plate = Math.max(0, before + Math.floor(effect.amount));
+    appendLog(state, `プレート ${state.plate - before >= 0 ? '+' : ''}${state.plate - before}。`);
+    emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'plate', amount: state.plate - before, label: 'プレート' });
+  },
+  vigor: (state, effect) => {
+    const before = state.vigor ?? 0;
+    state.vigor = Math.max(0, before + Math.floor(effect.amount));
+    appendLog(state, `活力 ${state.vigor - before >= 0 ? '+' : ''}${state.vigor - before}。`);
+    emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'vigor', amount: state.vigor - before, label: '活力' });
+  },
+  orbSlots: (state, effect) => {
+    const before = state.orbSlotBonus ?? 0;
+    state.orbSlotBonus = Math.max(0, before + Math.floor(effect.amount));
+    appendLog(state, `オーブスロット +${state.orbSlotBonus - before}。`);
+    emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'orbSlots', amount: state.orbSlotBonus - before, label: 'オーブスロット' });
+  },
   status: (state, effect, _card, context) => {
     const targets: Actor[] =
       effect.target === 'player'
@@ -122,6 +149,7 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
       knifeDamage: '影刃の研磨',
       knivesOnTurn: '無尽の影刃',
       focusOnTurn: '集中回路',
+      blockPerOrbTypeOnTurn: 'オーブの結界',
       energyOnTurn: '不滅の火種',
     };
     appendLog(state, `${labels[effect.power]} +${effect.amount}。${context.temporary ? '次の自分のターンまで。' : '戦闘中持続。'}`);
@@ -179,6 +207,31 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
       appendLog(state, `${upgraded.size}枚をこの戦闘中だけ強化した。`);
       emitCombatCue(state, { kind: 'power', targetId: 'player', resource: 'temporaryUpgrades', amount: upgraded.size, label: '全札・戦闘中強化' });
     }
+  },
+  upgradeRandom: (state, effect) => {
+    const eligible = state[effect.from].filter((held) => !held.upgraded && !CARD_DEFINITIONS[held.cardId]?.unupgradable);
+    const chosen: CardInstance[] = [];
+    for (let count = 0; count < Math.max(0, Math.floor(effect.amount)) && eligible.length; count++) {
+      const roll = nextRandom(state.rngState);
+      state.rngState = roll.state;
+      chosen.push(...eligible.splice(Math.floor(roll.value * eligible.length), 1));
+    }
+    temporarilyUpgradeCards(state, chosen);
+  },
+  generateRandom: (state, effect) => {
+    const pool = Object.values(CARD_DEFINITIONS).filter((definition) =>
+      definition.classId === effect.pool && isNormalAcquisitionCard(definition));
+    if (!pool.length) return;
+    for (let count = 0; count < Math.max(0, Math.floor(effect.amount)) && state.phase === 'player'; count++) {
+      const roll = nextRandom(state.rngState);
+      state.rngState = roll.state;
+      generateCards(state, pool[Math.floor(roll.value * pool.length)].id, 1, effect.destination, effect.upgraded);
+    }
+  },
+  loseEnemyHp: (state, effect, _card, context) => {
+    const enemy = findEnemy(state, context.targetId);
+    if (!enemy) return;
+    dealDamage(state, 'enemy', Math.max(0, Math.floor(effect.amount)), true, enemy);
   },
   stun: (state, effect, _card, context) => {
     const enemy = findEnemy(state, context.targetId);
@@ -266,7 +319,7 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
     const enemies = effect.all ? getEnemies(state).filter((enemy) => enemy.hp > 0) : [findEnemy(state, context.targetId)].filter((enemy) => enemy !== undefined);
     for (const enemy of enemies) {
       if (state.phase !== 'player') break;
-      dealDamage(state, 'enemy', calculateDamage(amount, state.player, enemy), false, enemy);
+      dealDamage(state, 'enemy', calculatePlayerAttackDamage(state, amount, enemy, context.source, context.sourceCard), false, enemy);
     }
   },
   forge: (state, effect) => {
@@ -292,6 +345,10 @@ const resolvers: { [Type in Effect['type']]: Resolver<Type> } = {
   },
   soul: (state, effect) => generateCards(state, 'token_soul', effect.amount, effect.destination ?? 'drawPile', effect.upgraded),
   channel: (state, effect) => channelOrbs(state, effect.orb, scaledEffectAmount(state, effect)),
+  passiveOrbs: (state, effect, _card, context) => triggerPassiveOrbs(state, {
+    ...(effect.orb ? { orb: effect.orb } : {}),
+    ...(effect.target === 'selected' ? { targetId: context.targetId ?? (findEnemy(state) ? getEnemyKey(findEnemy(state)!) : undefined) } : {}),
+  }),
   evoke: (state, effect, _card, context) => {
     const count = effect.all ? state.classResources?.orbs.length ?? 0 : 1;
     for (let index = 0; index < count && state.phase === 'player'; index++) evokeOrb(state, effect.times + (effect.fromEnergy ? context.xEnergy ?? 0 : 0));
@@ -328,7 +385,7 @@ export function resolveEffects(
       return;
     }
     if (effect.type === 'discard' || effect.type === 'exhaustChoice' || effect.type === 'moveChoice') {
-      const sourceZone = effect.type === 'moveChoice' ? effect.from : 'hand';
+      const sourceZone = effect.type === 'moveChoice' ? effect.from : effect.type === 'exhaustChoice' ? effect.from ?? 'hand' : 'hand';
       const mode = effect.type === 'moveChoice' ? effect.to === 'hand' ? 'retrieve' : 'topdeck' : effect.type === 'discard' ? 'discard' : 'exhaust';
       const toZone = mode === 'retrieve' ? 'hand' : mode === 'topdeck' ? 'drawPile' : mode === 'discard' ? 'discardPile' : 'exhaustPile';
       if (sourceZone === toZone) continue;

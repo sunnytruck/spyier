@@ -391,3 +391,20 @@
   .app .compact-battle .battle-hand .card-art { height: 8px; }
   .app .compact-battle .battle-hand .card-runtime { max-height: 22px; }
 }
+
+/* More than six slots scroll within the actor area instead of growing into the cards. */
+.app .battle-screen.compact-battle .class-orb-slots--extended {
+  inset: 4px 0 auto; height: 92px; flex-wrap: nowrap; justify-content: flex-start;
+  gap: 6px; padding: 4px 8px 8px;
+}
+.app .battle-screen.compact-battle .class-orb-slots--extended .class-orb-slot { flex: 0 0 52px; width: 52px; }
+.app .battle-screen.compact-battle[data-player-class='machinist']:has(.class-orb-slots.class-orb-slots--extended) .combatant--player .actor-motion > .character-art { max-height: calc(100% - 96px); }
+@media (max-width: 700px) {
+  .app .battle-screen.compact-battle .class-orb-slots--extended { height: 80px; gap: 4px; padding-inline: 6px; }
+  .app .battle-screen.compact-battle .class-orb-slots--extended .class-orb-slot { flex-basis: 48px; width: 48px; }
+  .app .battle-screen.compact-battle[data-player-class='machinist']:has(.class-orb-slots.class-orb-slots--extended) .combatant--player .actor-motion > .character-art { max-height: calc(100% - 84px); }
+}
+@media (max-width: 700px) and (min-height: 620px) and (max-height: 740px) {
+  .app .battle-screen.compact-battle .class-orb-slots--extended { height: 70px; }
+  .app .battle-screen.compact-battle[data-player-class='machinist']:has(.class-orb-slots.class-orb-slots--extended) .combatant--player .actor-motion > .character-art { max-height: calc(100% - 74px); }
+}

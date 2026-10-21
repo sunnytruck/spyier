@@ -1,6 +1,6 @@
 import { CARD_DEFINITIONS } from '../../data/cards';
 import type { CardInstance, CombatState, Effect, EnemyState, OrbType } from '../../types/game';
-import { calculateDamage } from './damage';
+import { calculatePlayerAttackDamage } from './damage';
 import { attackCardBase, nextOrbEvokeIndex, orbEffectValue, orbSlotCount } from './resources';
 import { findEnemy } from './targets';
 import { getActiveRelics, relicPassiveAmount } from './relics';
@@ -48,7 +48,7 @@ function cardName(card: CardInstance): string {
 function attackDamage(state: CombatState, base: number): number {
   const enemy = findEnemy(state);
   // With no target, show the player's damage modifiers against a neutral defender.
-  return calculateDamage(base, state.player, enemy ?? { ...state.player, vulnerable: 0 });
+  return calculatePlayerAttackDamage(state, base, enemy ?? { ...state.player, vulnerable: 0 });
 }
 
 export function getSummonView(state: CombatState) {

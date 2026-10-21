@@ -9,6 +9,7 @@ export const RELIC_EVENT_DEFINITIONS: Record<string, EventDefinition> = {
       { label: '小さなイカリを買う', description: '30ゴールドを払い「イカリ？」を得る。戦闘開始時、4ブロック。', goldCost: 30, effects: [{ type: 'relic', relicId: 'ref_anchor_imitation' }] },
       { label: '薄い金属板を買う', description: '35ゴールドを払い「オリハルコン？」を得る。ブロックなしでターン終了時、3ブロック。', goldCost: 35, effects: [{ type: 'relic', relicId: 'ref_orichalcum_imitation' }] },
       { label: '遅咲きの花を買う', description: '40ゴールドを払い「ハッピーフラワー？」を得る。5ターンごとにエナジー1。', goldCost: 40, effects: [{ type: 'relic', relicId: 'ref_happy_flower_imitation' }] },
+      { label: '小さな練習人形を買う', description: '35ゴールドを払い「ストライクダミー？」を得る。名前に「ストライク」を含むカードのダメージ+1。', goldCost: 35, effects: [{ type: 'relic', relicId: 'ref_strike_dummy_imitation' }] },
       { label: '見るだけにする', description: '何も買わずに先へ進む。', effects: [] },
     ],
   },

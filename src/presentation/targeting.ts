@@ -23,7 +23,11 @@ function effectTargetMode(effect: Effect): CardTargetMode {
     }
     case 'multiplyPoison':
     case 'summonDamage':
+    case 'loseEnemyHp':
+    case 'stun':
       return 'enemy';
+    case 'passiveOrbs':
+      return effect.target === 'selected' ? 'enemy' : 'self';
     default:
       // Orb strikes select targets within the combat engine, so they are self casts.
       return 'self';

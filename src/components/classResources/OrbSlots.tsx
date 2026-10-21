@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CombatState } from '../../types/game';
 import { getOrbView } from '../../engine/combat/resourceView';
 import { ResourceDetails } from './ResourceDetails';
@@ -6,11 +6,25 @@ import { ResourceDetails } from './ResourceDetails';
 /** Array indexes and the rightmost release marker follow the engine's slot order. */
 export function OrbSlots({ state }: { state: CombatState }) {
   const view = getOrbView(state);
+  const extended = view.capacity > 6;
+  const strip = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const close = useCallback(() => setSelected(null), []);
   const slot = selected === null ? null : view.slots[selected];
+  useEffect(() => {
+    if (!extended || !strip.current || view.nextEvokeIndex === null) return;
+    const container = strip.current;
+    const marker = container.querySelector<HTMLElement>('[data-next-evoke="true"]');
+    if (!marker) return;
+    // Move only this strip, never the page, to keep the next release visible.
+    const left = marker.offsetLeft;
+    const right = left + marker.offsetWidth;
+    if (left < container.scrollLeft || right > container.scrollLeft + container.clientWidth)
+      container.scrollLeft = Math.max(0, right - container.clientWidth + 8);
+  }, [extended, view.nextEvokeIndex, view.capacity]);
   return <>
-    <div className="class-orb-slots" role="group" aria-label={`オーブ ${view.count}/${view.capacity}、右端から解放`}>
+    <div ref={strip} className={`class-orb-slots${extended ? ' class-orb-slots--extended' : ''}`} data-orb-capacity={view.capacity}
+      role="group" tabIndex={extended ? 0 : undefined} aria-label={`オーブ ${view.count}/${view.capacity}、右端から解放${extended ? '。左右にスクロールして全スロットを確認' : ''}`}>
       {view.slots.map((orb) => {
         const name = orb.type === 'lightning' ? '雷' : orb.type === 'frost' ? '霜' : '空き';
         const detail = orb.type ? `自動${orb.passive}、解放${orb.evoke}。${orb.isNextEvoke ? '次に解放。' : ''}` : 'オーブ生成時に埋まります。';

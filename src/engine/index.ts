@@ -7,7 +7,8 @@ import { getPendingChoiceCards } from './actions/choices';
 import { appendLog, applyGauge, gainBlock } from './combat/state';
 import { resolveEndTurn } from './combat/turn';
 import { findEnemy, getEnemies, getEnemyKey, normalizeInto } from './combat/targets';
-import { relicPassiveAmount, triggerRelics } from './combat/relics';
+import { beforeCardRelics, relicPassiveAmount, triggerRelics } from './combat/relics';
+import { getRelicCardPlayLimit, getRelicXBonus } from './combat/relicModifiers';
 import { resolveEffects } from './effects/resolve';
 import { createClassResources } from './combat/resources';
 import { reactToPlayerCard } from './combat/enemyAI';
@@ -132,6 +133,7 @@ export function getCardCost(card: CardInstance, state?: CombatState): number {
 export function canPlayCard(state: CombatState, cardUid: string, targetId?: string): boolean {
   if (
     state.phase !== 'player' ||
+    state.cardsPlayedThisTurn >= getRelicCardPlayLimit(state) ||
     state.pendingChoice ||
     (targetId !== undefined && !findEnemy(state, targetId))
   )
@@ -142,6 +144,7 @@ export function canPlayCard(state: CombatState, cardUid: string, targetId?: stri
 }
 
 function settlePlayedCard(state: CombatState, card: CardInstance): void {
+  if (state.relicCounters) delete state.relicCounters[`attack-multiplier:${card.uid}`];
   const definition = CARD_DEFINITIONS[card.cardId];
   if (definition.type === 'attack' && state.vigor) { state.vigor = 0; emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'vigor', amount: 0, label: '活力を消費' }); }
   let toZone: 'powers' | 'exhaustPile' | 'discardPile';
@@ -260,6 +263,7 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
     );
     if (before === potionRelevantState(next)) return state;
     next.potions![action.slot] = null;
+    triggerRelics(next, 'potionUsed');
     appendLog(next, `ポーション「${definition.name}」を使用。`);
     if (next.phase === 'victory') triggerRelics(next, 'victory');
     normalizeInto(next);
@@ -274,6 +278,7 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
   next.energy -= paidEnergy;
   next.cardsPlayedThisTurn += 1;
   next.stats.cardsPlayed += 1;
+  beforeCardRelics(next, card);
   appendLog(next, `「${definition.name}${card.upgraded ? '+' : ''}」を使用。`);
   emitCombatCue(next, { kind: 'cardPlay', sourceId: 'player', targetId, card, fromZone: 'hand', toZone: 'played', label: definition.name });
   withCombatTraceContext(next, { sourceId: 'player', card }, () => {
@@ -288,7 +293,7 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
       next,
       card.upgraded ? definition.upgradedEffects : definition.effects,
       definition,
-      { targetId, sourceCard: card, xEnergy: paidEnergy },
+      { targetId, sourceCard: card, xEnergy: paidEnergy + (definition.xCost ? getRelicXBonus(next) : 0) },
     );
   });
   if (!next.pendingChoice) settlePlayedCard(next, card);

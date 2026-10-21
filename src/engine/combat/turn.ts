@@ -1,7 +1,8 @@
 import type { Actor, CombatState, EnemyState } from '../../types/game';
 import { getEnemyDefinition } from '../../data/enemies';
+import { RELIC_DEFINITIONS } from '../../data/relics';
 import { drawInto } from '../actions/draw';
-import { calculateDamage } from './damage';
+import { calculateEnemyAttackDamage } from './damage';
 import { appendLog, capEnemyAttackDamage, dealDamage, finishIfNeeded, gainBlock } from './state';
 import { findEnemy, getEnemies, getEnemyKey } from './targets';
 import { hasRelicPassive, relicPassiveAmount, triggerRelics } from './relics';
@@ -10,6 +11,7 @@ import { CARD_DEFINITIONS } from '../../data/cards';
 import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace';
 import { advanceEnemyIntent, enemySurvivesTurnStart, predictedEnemyAttackContext } from './enemyAI';
 import { resolveEffects } from '../effects/resolve';
+import { shouldRelicRetainHand } from './relicModifiers';
 
 function expireStatuses(actor: Actor): void {
   actor.weak = Math.max(0, actor.weak - 1);
@@ -27,6 +29,7 @@ function tickPoison(state: CombatState, target: 'player' | 'enemy', enemy?: Enem
 function startPlayerPowers(state: CombatState): void {
   if (state.stillness > 0) gainBlock(state, 'player', state.stillness);
   const stacks = state.powerStacks ?? {};
+  if (stacks.blockPerOrbTypeOnTurn) gainBlock(state, 'player', stacks.blockPerOrbTypeOnTurn * new Set(state.classResources?.orbs ?? []).size);
   if (stacks.strengthOnTurn) {
     state.player.strength += stacks.strengthOnTurn;
     appendLog(state, `岩の成長：筋力 +${stacks.strengthOnTurn}。`);
@@ -51,15 +54,19 @@ function startPlayerPowers(state: CombatState): void {
   }
 }
 
-function expireTurnModifiers(state: CombatState): void {
-  const modifiers = state.turnModifiers;
+function expireTurnModifiers(state: CombatState, timing: 'playerEnd' | 'nextTurn' = 'nextTurn'): void {
+  const modifiers = state.turnModifiers?.filter((modifier) => (modifier.kind === 'status' && modifier.expireAt === 'playerEnd') === (timing === 'playerEnd'));
   if (!modifiers) return;
-  delete state.turnModifiers;
+  state.turnModifiers = state.turnModifiers!.filter((modifier) => !modifiers.includes(modifier));
+  if (!state.turnModifiers.length) delete state.turnModifiers;
   for (const modifier of modifiers) {
     if (modifier.kind === 'power') {
       if (state.powerStacks) state.powerStacks[modifier.power] = Math.max(0, (state.powerStacks[modifier.power] ?? 0) - modifier.amount);
       if (modifier.power === 'stillness') state.stillness = Math.max(0, state.stillness - modifier.amount);
       emitCombatCue(state, { kind: 'power', targetId: 'player', status: modifier.power, amount: -modifier.amount, label: '一時効果が終了' });
+    } else if (modifier.kind === 'dexterity') {
+      state.dexterity = (state.dexterity ?? 0) - modifier.amount;
+      emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'dexterity', amount: -modifier.amount, label: '一時敏捷が終了' });
     } else {
       const actor = modifier.targetId === 'player' ? state.player : getEnemies(state).find((enemy) => getEnemyKey(enemy) === modifier.targetId);
       if (!actor) continue;
@@ -77,6 +84,7 @@ export function resolveEndTurn(state: CombatState): void {
   }
   appendLog(state, `ターン${state.turn}を終了。`);
   triggerRelics(state, 'turnEnd');
+  expireTurnModifiers(state, 'playerEnd');
   if (state.plate) gainBlock(state, 'player', state.plate);
   if (finishIfNeeded(state)) return;
   emitCombatCue(state, { kind: 'turn', label: '敵のターン', sourceId: 'player' });
@@ -89,7 +97,7 @@ export function resolveEndTurn(state: CombatState): void {
       state.exhaustPile.push(card);
       exhausted.push(card);
     }
-    else if (card.upgraded ? definition?.upgradedRetain ?? definition?.retain : definition?.retain) retained.push(card);
+    else if (shouldRelicRetainHand(state) || (card.upgraded ? definition?.upgradedRetain ?? definition?.retain : definition?.retain)) retained.push(card);
     else {
       state.discardPile.push(card);
       discarded.push(card);
@@ -160,7 +168,7 @@ export function resolveEndTurn(state: CombatState): void {
           hit < (intent.hits ?? 1) && state.phase === 'player' && enemy.hp > 0;
           hit += 1
         ) {
-          const damage = calculateDamage(intent.damage, enemy, state.player);
+          const damage = calculateEnemyAttackDamage(state, intent.damage, enemy);
           if (intent.allTargets && (state.classResources?.ostyHp ?? 0) > 0) {
             const summonDamage = Math.min(state.classResources!.ostyHp, damage);
             state.classResources!.ostyHp -= summonDamage;
@@ -209,6 +217,10 @@ export function resolveEndTurn(state: CombatState): void {
     state.classResources.nextTurnEnergy = 0;
     state.classResources.starsGainedThisTurn = 0;
   }
+  if (state.relicIds?.some((id) => { const relic = RELIC_DEFINITIONS[id]; return relic && (relic.effects ?? [relic.effect]).some((effect) => effect.previousTurnCardsAtMost !== undefined); })) {
+    state.relicCounters ??= {};
+    state.relicCounters['previous-turn-cards'] = state.cardsPlayedThisTurn;
+  }
   state.cardsPlayedThisTurn = 0;
   appendLog(state, `ターン${state.turn}。朝活しよ。エナジーを回復し、5枚引く。`);
   emitCombatCue(state, { kind: 'turn', sourceId: 'player', targetId: 'player', amount: state.turn, label: 'あなたのターン' });
@@ -236,5 +248,5 @@ export function predictEnemyDamage(state: CombatState, enemyId?: string): number
   const intent = enemy.intent;
   if (intent.damage === undefined || !enemySurvivesTurnStart(enemy) || (enemy.stun ?? 0) > 0) return 0;
   const { attacker, defender } = predictedEnemyAttackContext(state, enemy);
-  return capEnemyAttackDamage(state, calculateDamage(intent.damage, attacker, defender));
+  return capEnemyAttackDamage(state, calculateEnemyAttackDamage(state, intent.damage, attacker, defender));
 }
