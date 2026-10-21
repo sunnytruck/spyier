@@ -1,0 +1,201 @@
+/* Only the blessing confirmation uses this stone relief and altar silhouette.
+   Modal keeps its existing focus, Escape and backdrop dismissal behaviour. */
+.app .ritual-blessing > .modal-backdrop {
+  background: radial-gradient(ellipse at 50% 26%, #6b643332, transparent 65%), #06100df2;
+  backdrop-filter: blur(5px);
+  padding: 12px 22px;
+}
+.app .modal.ritual-confirm-modal {
+  width: min(1090px, 96vw);
+  max-width: 1090px;
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  border: 0;
+  outline: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-color: #807449 #15221b;
+  scrollbar-width: thin;
+  isolation: isolate;
+}
+.app .ritual-confirm-modal > .modal-header {
+  position: sticky;
+  top: 0;
+  height: 0;
+  min-height: 0;
+  z-index: 6;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  display: block;
+}
+.app .ritual-confirm-modal > .modal-header > div {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.app .ritual-confirm-modal > .modal-header .icon-button {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: #14231edc;
+  color: #e5d6ad;
+  border-radius: 50%;
+}
+.app .modal.ritual-confirm-modal .ritual-altar-confirm {
+  position: relative;
+  isolation: isolate;
+  margin: 0;
+  padding: 9px clamp(24px, 6vw, 78px) 20px;
+  border: 0;
+  border-radius: 0;
+  background: radial-gradient(ellipse at 50% 17%, #c9bb7726, transparent 42%);
+}
+.ritual-altar-slab {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  inset: 95px 0 0;
+  width: 100%;
+  height: calc(100% - 95px);
+  filter: drop-shadow(0 15px 20px #0009);
+}
+.app .ritual-confirm-modal .ritual-altar-confirm > .ritual-altar-heading { text-align: center; position: relative; }
+.ritual-altar-face { display: block; width: 190px; height: 133px; margin: 0 auto -1px; color: #d4b56c; filter: drop-shadow(0 0 24px #d7ba5f1a); }
+.ritual-altar-eyes { filter: drop-shadow(0 0 4px #ffdf82); }
+.app .ritual-altar-heading .ritual-altar-host { font: 12px/1.7 var(--sans); color: #b8b68d; letter-spacing: .12em; margin: 3px 0 9px; }
+.app .ritual-confirm-modal .ritual-altar-confirm > .ritual-altar-heading > h2 {
+  font: 500 clamp(25px, 2.6vw, 34px)/1.5 var(--serif);
+  letter-spacing: .06em;
+  color: #f0e0ad;
+  margin: 0 0 6px;
+  text-wrap: balance;
+}
+.app .ritual-confirm-modal .ritual-altar-confirm > .ritual-altar-heading > p:last-child { margin: 0; font: 13px/1.7 var(--sans); color: #bbc5ab; }
+.app .ritual-confirm-modal .ritual-altar-confirm .ritual-offering-balance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px minmax(0, 1fr);
+  gap: 20px;
+  padding: 19px 0 17px;
+  margin: 0 auto 11px;
+  border: 0;
+  width: min(100%, 790px);
+}
+.ritual-offering { min-width: 0; }
+.app .ritual-offering-balance .ritual-offering h3 { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 0 0 7px; font: 500 15px/1.7 var(--sans); color: #d8d8b3; }
+.ritual-offering-mark { display: inline-flex; align-items: center; color: #d5c17d; }
+.ritual-offering-mark .blessing-votive-sigil, .ritual-offering-mark .ritual-price-sigil { width: 38px; height: 38px; margin: 0; }
+.app .ritual-offering-balance .ritual-offering ul { margin: 0; padding: 0; list-style: none; font: 500 16px/1.8 var(--sans); color: #ece5c9; }
+.app .ritual-offering-balance .ritual-offering li, .app .ritual-offering-balance .ritual-offering > p { display: flex; align-items: flex-start; justify-content: center; gap: 10px; padding: 4px 0; overflow-wrap: anywhere; }
+.app .ritual-offering-balance .ritual-offering li + li { margin-top: 4px; }
+.ritual-effect-mark { display: inline-flex; flex: 0 0 25px; width: 25px; color: #b6c494; margin-top: 3px; }
+.ritual-effect-mark .blessing-votive-sigil, .ritual-effect-mark .ritual-price-sigil { width: 25px; height: 25px; margin: 0; filter: none; }
+.app .ritual-offering-balance .ritual-offering-cost.has-sacrifice :is(h3,ul,.ritual-effect-mark,.ritual-offering-mark) { color: #efb291; }
+.app .ritual-offering-balance .ritual-offering-cost.is-free > p { margin: 0; color: #bccb9e; font: 15px/1.8 var(--sans); }
+.ritual-balance-seal { align-self: center; display: flex; flex-direction: column; align-items: center; color: #b9a36a; font: 15px/1.5 var(--serif); opacity: .7; }
+.ritual-balance-seal i { width: 1px; height: 29px; margin: 5px 0; background: linear-gradient(transparent,#c0ad70,transparent); }
+.app .ritual-confirm-modal .ritual-altar-confirm .blessing-reward-previews { margin: 9px 0 15px; gap: 18px; }
+.app .ritual-confirm-modal .ritual-altar-confirm .blessing-reward-previews:empty { display: none; }
+.app .ritual-confirm-modal .ritual-altar-confirm .blessing-card-preview { max-width: 260px; }
+.app .ritual-confirm-modal .ritual-altar-confirm .game-card.inspect-card { min-height: 250px; }
+.app .ritual-confirm-modal .ritual-altar-confirm .stone-cut-card .card-description { color: #25372d; min-height: 0; }
+.app .ritual-confirm-modal .ritual-altar-confirm .stone-cut-card .card-heading h3 { color: #e8e8d6; }
+.app .ritual-confirm-modal .ritual-altar-confirm .blessing-relic-preview { background: none; border: 0; border-radius: 0; padding: 9px 0; }
+.app .ritual-confirm-modal .ritual-altar-confirm .blessing-curse-detail { border-color: #c49b633b; margin: 10px 0; }
+.app .ritual-confirm-modal .ritual-altar-confirm .blessing-targets { margin-top: 17px; }
+.app .ritual-confirm-modal .ritual-altar-confirm .blessing-target-grid { gap: 13px; grid-template-columns: repeat(auto-fit,minmax(min(100%,190px),1fr)); }
+.app .ritual-confirm-modal .ritual-altar-confirm .blessing-target-card { padding: 5px; }
+.app .ritual-confirm-modal .ritual-altar-confirm .blessing-target-card > .blessing-card-preview { max-width: none; }
+.app .ritual-confirm-modal .ritual-altar-confirm .blessing-selected-previews { margin-top: 17px; padding-top: 17px; }
+.app .ritual-confirm-modal .ritual-altar-confirm .ritual-altar-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 8px;
+  position: sticky;
+  bottom: -1px;
+  z-index: 4;
+  isolation: isolate;
+  border: 0;
+  padding: 15px 0 9px;
+  margin: 13px -12px 0;
+  background: linear-gradient(transparent,#121e18 22%,#121e18 88%,transparent);
+}
+.ritual-altar-pedestal { position: absolute; inset: 26px 0 16px; width: 100%; height: calc(100% - 42px); z-index: -1; opacity: .82; pointer-events: none; }
+.app .ritual-altar-actions > p { margin: 0; text-align: center; font: 13px/1.6 var(--sans); color: #c4c7a6; }
+.app .ritual-altar-actions .ritual-altar-confirm-button {
+  min-height: 51px;
+  padding: 12px 32px;
+  min-width: min(100%, 330px);
+  justify-content: center;
+  gap: 18px;
+  font: 600 16px/1.6 var(--sans);
+  color: #f8e9b6;
+  background: radial-gradient(ellipse at 50% 0,#b7a26444,transparent 74%),#263e2e;
+  border: 1px solid #d1b574a8;
+  border-radius: 0;
+  clip-path: polygon(13px 0,calc(100% - 13px) 0,100% 50%,calc(100% - 13px) 100%,13px 100%,0 50%);
+  box-shadow: inset 0 -3px 0 #101b15;
+}
+.app .ritual-altar-confirm-button:focus-visible { outline: 3px solid #f8e9b6; outline-offset: -5px; }
+.app .ritual-altar-actions .ritual-return-button { min-height: 37px; padding: 5px 22px; border: 0; background: none; color: #c6c9b4; font: 14px/1.7 var(--sans); text-decoration: underline; text-underline-offset: 4px; }
+.app .ritual-altar-actions .ritual-return-button:hover { color: #f2e4b6; }
+.ritual-altar-flare { position: fixed; inset: 0; z-index: 105; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse at 50% 55%,#efdfaa5c,transparent 63%); animation: altar-light-wash 620ms ease-out both; }
+.ritual-altar-flare > span, .ritual-altar-flare > i { position: absolute; top: 55%; left: 50%; width: min(70vw,720px); aspect-ratio: 1; border: 2px solid #f4df9d; border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 0 42px #e9ce7a44,inset 0 0 30px #e9ce7a33; animation: altar-light-ring 620ms ease-out both; }
+.ritual-altar-flare > i { width: min(55vw,580px); border-width: 1px; animation-delay: 40ms; }
+.app.speed-fast .ritual-altar-flare, .app.speed-fast .ritual-altar-flare > * { animation-duration: 340ms; }
+@keyframes altar-light-wash { 0% { opacity: 0; } 20% { opacity: .9; } 100% { opacity: 0; } }
+@keyframes altar-light-ring { from { opacity: .8; scale: .24; } to { opacity: 0; scale: 1.8; } }
+.app .altar-motion-reduced *, .app .ritual-blessing.motion-reduced .ritual-altar-flare { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+@media (min-width: 701px) and (max-height: 800px) {
+  .ritual-altar-face { width: 145px; height: 102px; }
+  .ritual-altar-slab { inset-block-start: 71px; height: calc(100% - 71px); }
+  .app .ritual-confirm-modal .ritual-altar-confirm > .ritual-altar-heading > h2 { font-size: 27px; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .ritual-offering-balance { padding-block: 12px 9px; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .game-card.inspect-card { min-height: 220px; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .game-card .card-art { height: 64px; min-height: 48px; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .game-card .card-description { padding-block: 8px; }
+}
+@media (max-width: 700px) {
+  .app .ritual-blessing > .modal-backdrop { padding: 6px; }
+  .app .modal.ritual-confirm-modal { width: 100%; max-width: none; max-height: calc(100dvh - 12px); }
+  .app .ritual-confirm-modal > .modal-header .icon-button { top: 9px; right: 10px; }
+  .app .modal.ritual-confirm-modal .ritual-altar-confirm { padding: 5px 22px 12px; }
+  .ritual-altar-face { width: 148px; height: 104px; }
+  .ritual-altar-slab { inset-block-start: 73px; height: calc(100% - 73px); }
+  .app .ritual-altar-heading .ritual-altar-host { font-size: 11px; letter-spacing: .04em; }
+  .app .ritual-confirm-modal .ritual-altar-confirm > .ritual-altar-heading > h2 { font-size: 25px; }
+  .app .ritual-confirm-modal .ritual-altar-confirm > .ritual-altar-heading > p:last-child { font-size: 12px; text-wrap: balance; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .ritual-offering-balance { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; padding-block: 16px 8px; }
+  .ritual-balance-seal { display: none; }
+  .app .ritual-offering-balance .ritual-offering h3 { gap: 5px; font-size: 13px; flex-wrap: wrap; }
+  .ritual-offering-mark .blessing-votive-sigil, .ritual-offering-mark .ritual-price-sigil { width: 32px; height: 32px; }
+  .app .ritual-offering-balance .ritual-offering ul { font-size: 14px; line-height: 1.8; }
+  .app .ritual-offering-balance .ritual-offering li, .app .ritual-offering-balance .ritual-offering > p { gap: 6px; justify-content: flex-start; }
+  .ritual-effect-mark { width: 20px; flex-basis: 20px; }
+  .ritual-effect-mark .blessing-votive-sigil, .ritual-effect-mark .ritual-price-sigil { width: 20px; height: 20px; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .blessing-card-preview { max-width: 245px; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .blessing-reward-previews { gap: 14px; margin-block: 8px; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .blessing-target-grid { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .blessing-target-card { width: min(100%,285px); margin-inline: auto; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .blessing-selected-previews > div { gap: 18px; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .blessing-transform-preview { flex-wrap: wrap; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .blessing-transform-arrow { rotate: 90deg; }
+  .app .ritual-confirm-modal .ritual-altar-confirm .ritual-altar-actions { margin-inline: -8px; gap: 6px; padding-block: 15px 4px; }
+  .app .ritual-altar-actions .ritual-altar-confirm-button { min-width: 0; width: 100%; padding-inline: 12px; font-size: 14px; gap: 9px; }
+  .app .ritual-altar-actions .ritual-return-button { width: auto; min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ritual-altar-flare { display: none; }
+  .ritual-confirm-modal *, .ritual-altar-flare * { animation: none !important; transition: none !important; }
+}

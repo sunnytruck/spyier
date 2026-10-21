@@ -133,7 +133,6 @@ export function MapScreen({ state, onAction }: { state: RunState; onAction: (act
                 <span className="run-node-label">{nodeLabels[node.type].name}{(selectable || current) && <small>{current ? '⌾ 現在地' : '● 選択可能'}</small>}</span>
               </div>;
             })}
-            <span className="run-map-start">旅のはじまり</span>
           </div>
         </div>
         <div className="run-map-panel-foot" aria-label="地点の状態"><span><i /> 選択可能</span><span>⌾ 現在地</span><span>✓ 踏破済み</span><span><i className="state-unreached" /> 未到達</span><span><LockIcon /> 移動不可能</span></div>

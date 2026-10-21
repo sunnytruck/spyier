@@ -9,6 +9,7 @@ import { getCardAcquisitionCategory } from '../engine/cardAcquisition';
 import { CardView } from '../components/CardView';
 import { CardUpgradePreview } from '../components/CardUpgradePreview';
 import { BlessingCharacterArt } from '../components/BlessingCharacterArt';
+import { BlessingAltarFace, BlessingAltarPedestal, BlessingAltarStone } from '../components/BlessingAltarArt';
 import { Icon } from '../components/Icon';
 import { Modal } from '../components/Modal';
 import { RockDeity } from '../components/CharacterArt';
@@ -16,6 +17,7 @@ import { WorldScene } from '../components/world/WorldScene';
 import { RelicIcon } from '../components/RelicIcon';
 import { getRelicAwareHpLoss } from '../engine/relicAcquisition';
 import '../styles/blessings.css';
+import '../styles/blessing-altar.css';
 
 type Encounter = NonNullable<RunState['blessing']>;
 type Option = Encounter['options'][number];
@@ -78,12 +80,19 @@ function RelicPreview({ relicId }: { relicId: string }) {
 }
 
 type SigilKind = 'life' | 'gold' | 'cards' | 'exclusive' | 'relic' | 'remove' | 'upgrade' | 'transform';
-function optionSigil(option: Option): SigilKind {
-  const reward = option.rewards[0];
+function rewardSigil(reward?: Reward): SigilKind {
   if (!reward) return 'cards';
   if (reward.kind === 'heal' || reward.kind === 'maxHp') return 'life';
   if (reward.kind === 'cards') return reward.cardIds.some((id) => getCardAcquisitionCategory(CARD_DEFINITIONS[id]) === 'blessingOnly') ? 'exclusive' : 'cards';
   return reward.kind;
+}
+const optionSigil = (option: Option) => rewardSigil(option.rewards[0]);
+function PriceSigil({ kind }: { kind: Cost['kind'] | 'none' }) {
+  const path = kind === 'gold' ? 'M48 14 76 30v35L48 82 20 65V30ZM48 27v43M36 38h23l-21 21h23M26 18l45 61'
+    : kind === 'curse' ? 'M30 15h37l13 23-10 35-22 12-23-12-9-35ZM33 36l9 9m13 0 9-9M35 62h25M48 16l-7 13 10 12-7 14 9 17'
+    : kind === 'none' ? 'M20 49 39 68l38-43M48 9a39 39 0 1 0 1 0'
+    : 'M47 29C29 8 9 29 22 46l25 27 28-27C88 27 66 9 47 29ZM50 27l-9 18 12 9-9 18';
+  return <svg className="ritual-price-sigil" viewBox="0 0 96 96" aria-hidden="true"><path d={path} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 function BlessingSigil({ kind }: { kind: SigilKind }) {
   const paths: Record<SigilKind, string> = {
@@ -113,7 +122,8 @@ export function BlessingScreen({ state, onAction, settings = { speed: 'normal', 
   const receiptHeading = useRef<HTMLHeadingElement>(null);
   const selected = blessing?.options.find((option) => option.id === blessing.selectedOptionId);
   const [confirmationOpen, setConfirmationOpen] = useState(Boolean(selected));
-  const closeConfirmation = useCallback(() => setConfirmationOpen(false), []);
+  const confirmationLock = useRef(false);
+  const closeConfirmation = useCallback(() => { confirmationLock.current = false; setConfirmationOpen(false); }, []);
   const result = blessing?.stage === 'result';
   const receipt = blessing?.receipt;
   const skip = useCallback(() => { setSkipReveal(true); setRevealing(false); }, []);
@@ -122,10 +132,11 @@ export function BlessingScreen({ state, onAction, settings = { speed: 'normal', 
     if (blessing?.stage === 'offer') window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [blessing?.id]);
   useEffect(() => {
+    confirmationLock.current = false;
     setConfirmationOpen(Boolean(selected) && !result);
     if (!selected || result) return;
     detailHeading.current?.focus({ preventScroll: true });
-    detailHeading.current?.scrollIntoView({ block: 'start', behavior: noMotion ? 'auto' : 'smooth' });
+    detailHeading.current?.closest('.ritual-confirm-modal')?.scrollTo({ top: 0, behavior: 'auto' });
   }, [selected?.id, result, noMotion]);
   useEffect(() => {
     if (!receipt || !result) return;
@@ -152,6 +163,11 @@ export function BlessingScreen({ state, onAction, settings = { speed: 'normal', 
       : selected.target.count === 1 ? [uid] : chosen.length < selected.target.count ? [...chosen, uid] : chosen;
     onAction({ type: 'selectBlessingTargets', cardUids: next });
   };
+  const confirmBlessing = () => {
+    if (confirmationLock.current || result || !available || !targetReady) return;
+    confirmationLock.current = true;
+    onAction({ type: 'confirmBlessing' });
+  };
 
   return <div className={`blessing-screen ritual-blessing blessing-theme-${blessing.characterId}${noMotion || skipReveal ? ' motion-reduced' : ''}${settings.speed === 'fast' ? ' blessing-fast' : ''}${result ? ' blessing-resolved' : ''}${revealing && !skipReveal ? ' is-revealing' : ''}`} data-blessing-stage={blessing.stage} data-blessing-character={blessing.characterId} data-blessing-background={character.backgroundTheme} data-blessing-effect={character.effectTheme}>
     <WorldScene variant="ritual" act={blessing.act} />
@@ -176,24 +192,30 @@ export function BlessingScreen({ state, onAction, settings = { speed: 'normal', 
           <div className="blessing-offer-benefit"><span>受け取る祝福</span><ul>{option.rewards.map((reward, number) => <li key={number}>{rewardText(reward)}</li>)}</ul></div>
           <div className={`blessing-offer-price${option.costs.length ? '' : ' is-free'}`}><span>代償</span>{option.costs.length ? <ul>{option.costs.map((cost, number) => <li key={number}>{costText(cost, state)}</li>)}</ul> : <p>なし</p>}</div>
           {reason && !result && <p className="blessing-disabled-reason">{reason}</p>}
-          <button type="button" className={chosen ? 'primary-button' : 'secondary-button'} disabled={!canChoose} aria-pressed={chosen} onClick={() => { setConfirmationOpen(true); if (chosen) { detailHeading.current?.focus({ preventScroll: true }); } else onAction({ type: 'chooseBlessing', optionId: option.id }); }}>{result ? chosen ? 'この祝福を受け取った' : '選ばなかった祝福' : chosen ? '選択中 · 内容を確認' : 'この祝福の内容を確認'}<Icon name={chosen ? 'sun' : 'chevron'} size={16} /></button>
+          <button type="button" className={chosen ? 'primary-button' : 'secondary-button'} disabled={!canChoose} aria-pressed={chosen} onClick={() => { confirmationLock.current = false; setConfirmationOpen(true); if (chosen) { detailHeading.current?.focus({ preventScroll: true }); } else onAction({ type: 'chooseBlessing', optionId: option.id }); }}>{result ? chosen ? 'この祝福を受け取った' : '選ばなかった祝福' : chosen ? '選択中 · 内容を確認' : 'この祝福の内容を確認'}<Icon name={chosen ? 'sun' : 'chevron'} size={16} /></button>
         </article>;
       })}
     </section>
     </div>
 
-    {!result && selected && confirmationOpen && <Modal title="祝福の内容を確認" subtitle="THE STONE REMEMBERS" wide onClose={closeConfirmation} className="ritual-confirm-modal"><section className="blessing-confirm-panel" aria-label="祝福の確認">
-      <header><p className="eyebrow">CONFIRM YOUR BLESSING</p><h2 ref={detailHeading} tabIndex={-1}>{selected.title}</h2><p>選んだ祝福と対象カードは保存されます。下の「祝福を確定して受け取る」を押すまで、代償も報酬も発生しません。</p></header>
-      <div className="blessing-confirm-summary"><div><h3>受け取るもの</h3><ul>{selected.rewards.map((reward, index) => <li key={index}>{rewardText(reward)}</li>)}</ul></div><div><h3>支払う代償</h3>{selected.costs.length ? <ul>{selected.costs.map((cost, index) => <li key={index}>{costText(cost, state)}</li>)}</ul> : <p>なし</p>}</div></div>
+    {!result && selected && confirmationOpen && <Modal title="祝福の内容を確認" wide onClose={closeConfirmation} className={`ritual-confirm-modal${noMotion ? ' altar-motion-reduced' : ''}`}><section className="blessing-confirm-panel ritual-altar-confirm" aria-label="祝福の確認">
+      <BlessingAltarStone />
+      <header className="ritual-altar-heading"><BlessingAltarFace /><p className="ritual-altar-host">ACT {blessing.act} · {character.name}の祭壇</p><h2 ref={detailHeading} tabIndex={-1}>{selected.title}</h2><p>確定するまで、祝福も代償も発生しません。</p></header>
+      <div className="blessing-confirm-summary ritual-offering-balance">
+        <section className="ritual-offering ritual-offering-benefit"><h3><span className="ritual-offering-mark"><BlessingSigil kind={optionSigil(selected)} /></span>受け取るもの</h3><ul>{selected.rewards.map((reward, index) => <li key={index}><span className="ritual-effect-mark"><BlessingSigil kind={rewardSigil(reward)} /></span><span>{rewardText(reward)}</span></li>)}</ul></section>
+        <div className="ritual-balance-seal" aria-hidden="true"><span>じ</span><i /><span>と</span></div>
+        <section className={`ritual-offering ritual-offering-cost${selected.costs.length ? ' has-sacrifice' : ' is-free'}`}><h3><span className="ritual-offering-mark"><PriceSigil kind={selected.costs[0]?.kind ?? 'none'} /></span>支払う代償</h3>{selected.costs.length ? <ul>{selected.costs.map((cost, index) => <li key={index}><span className="ritual-effect-mark"><PriceSigil kind={cost.kind} /></span><span>{costText(cost, state)}</span></li>)}</ul> : <p><span className="ritual-effect-mark"><PriceSigil kind="none" /></span>代償なし</p>}</section>
+      </div>
       <div className="blessing-reward-previews">{selected.rewards.flatMap((reward) => reward.kind === 'cards' ? reward.cardIds.map((cardId, index) => <BlessingCard key={`${cardId}-${index}`} card={{ uid: `blessing-preview-${cardId}-${index}`, cardId, upgraded: false }} />) : reward.kind === 'relic' ? [<RelicPreview key={reward.relicId} relicId={reward.relicId} />] : [])}</div>
       {selected.costs.filter((cost): cost is Extract<Cost, { kind: 'curse' }> => cost.kind === 'curse').map((cost, index) => <details className="blessing-curse-detail" key={index}><summary>代償の呪い「{cardName(cost.cardId)}」の効果を見る</summary><BlessingCard card={{ uid: `blessing-curse-${index}`, cardId: cost.cardId, upgraded: false }} /></details>)}
       {selected.target && <div className="blessing-targets"><div className="blessing-target-heading"><h3>{selected.target.kind === 'remove' ? 'デッキから削除するカード' : selected.target.kind === 'upgrade' ? '強化するカード' : '変化させるカード'}を選択</h3><b>選択 {blessing.selectedCardUids.length} / {selected.target.count}枚</b></div><p>{selected.target.kind === 'upgrade' ? '強化済みのカードは候補に含まれません。選択後に強化前後の効果を確認できます。' : selected.target.kind === 'transform' ? '変化先は今回の祝福で固定されています。表示を確認してから確定できます。' : '選んだカードだけをデッキから削除します。'}</p>
         <div className="blessing-target-grid">{candidates.map((card) => { const chosen = blessing.selectedCardUids.includes(card.uid); return <article key={card.uid} className={`blessing-target-card${chosen ? ' is-selected' : ''}`} data-blessing-target={card.uid}><BlessingCard card={card} /><button type="button" className="secondary-button" aria-pressed={chosen} disabled={!chosen && selected.target!.count > 1 && blessing.selectedCardUids.length >= selected.target!.count} onClick={() => chooseTarget(card.uid)}>{chosen ? '✓ 選択中 · 解除する' : 'このカードを対象にする'}</button></article>; })}</div>
         {selectedTargets.length > 0 && <div className="blessing-selected-previews"><h3>確定する内容</h3><div>{selectedTargets.map((card) => selected.target!.kind === 'upgrade' ? <CardUpgradePreview key={card.uid} card={card} /> : selected.target!.kind === 'transform' && selected.target!.replacements?.[card.uid] ? <div className="blessing-transform-preview" key={card.uid}><div><span>変化前</span><BlessingCard card={card} /></div><span className="blessing-transform-arrow" aria-hidden="true">→</span><div><span>変化後</span><BlessingCard card={{ ...card, cardId: selected.target!.replacements[card.uid], upgraded: false }} /></div></div> : <div key={card.uid}><p className="blessing-removal-note">このカードを削除します</p><BlessingCard card={card} /></div>)}</div></div>}
       </div>}
-      <div className="blessing-confirm-actions"><p>{disabledReason ?? (targetReady ? '内容を確認したら、祝福を受け取りましょう。' : `対象を${selected.target?.count}枚選んでください。`)}</p><button type="button" className="primary-button" disabled={!available || !targetReady} onClick={() => onAction({ type: 'confirmBlessing' })}>祝福を確定して受け取る<Icon name="sun" size={18} /></button></div>
+      <div className="blessing-confirm-actions ritual-altar-actions"><BlessingAltarPedestal /><p aria-live="polite">{disabledReason ?? (targetReady ? 'この教えを、旅の力に。' : `対象を${selected.target?.count}枚選んでください。`)}</p><button type="button" className="primary-button ritual-altar-confirm-button" disabled={!available || !targetReady} onClick={confirmBlessing}>祝福を確定して受け取る<Icon name="sun" size={18} /></button><button type="button" className="ritual-return-button" onClick={closeConfirmation}>選択へ戻る</button></div>
     </section></Modal>}
 
+    {result && revealing && !noMotion && !skipReveal && <div className="ritual-altar-flare" data-altar-flare aria-hidden="true"><span /><i /></div>}
     {result && receipt && <section className="blessing-receipt" aria-label="受け取った祝福" data-blessing-receipt={receipt.encounterId}>
       <div className="blessing-acquisition-light" aria-hidden="true" />
       <div className="blessing-type-effects" aria-hidden="true">{receiptEffects(receipt).map((kind) => <div className={`blessing-fx blessing-fx-${kind}`} data-blessing-fx={kind} key={kind}>{Array.from({ length: kind === 'gold' ? 9 : 6 }, (_, index) => <span key={index} className="blessing-fx-particle" style={{ '--particle-index': index, '--particle-x': `${(index - (kind === 'gold' ? 4 : 2.5)) * 30}px`, '--particle-turn': `${index * 61}deg` } as CSSProperties}>{effectGlyphs[kind]}</span>)}</div>)}</div>

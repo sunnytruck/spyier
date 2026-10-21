@@ -33,7 +33,6 @@
 .app .atlas-map.route-atlas .run-node-label small { font-size: 11px; }
 .app .atlas-map.route-atlas .is-current > .run-node-label, .app .atlas-map.route-atlas .is-available > .run-node-label { color: #f2dc9f; }
 .app .atlas-map.route-atlas .run-map-floor-number { position: absolute; left: 3%; transform: translateY(-50%); color: #c0c4a0; font: 12px/1.5 var(--sans); letter-spacing: .06em; pointer-events: none; }
-.app .atlas-map.route-atlas .run-map-start { left: 24px; bottom: 12px; font-size: 12px; }
 .app .atlas-map.route-atlas .run-map-panel-foot { min-height: 34px; padding: 7px 12px; gap: 5px 20px; flex-wrap: wrap; background: #0b1811cc; border-top: 1px solid #9d9c5a22; }
 .app .atlas-map.route-atlas .run-map-panel-foot > span { font: 12px/1.5 var(--sans); color: #c6c9ad; }
 .app .atlas-map.route-atlas .run-map-inspection { position: absolute; top: 12px; left: 20px; z-index: 6; width: min(380px,calc(100% - 40px)); min-height: 0; display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 0; border-left: 2px solid #c3b076; background: linear-gradient(100deg,#0b1914f5,#12271cf2); box-shadow: 0 6px 25px #0006; }
