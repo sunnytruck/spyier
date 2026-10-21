@@ -46,3 +46,20 @@ Chromium、1920×1080／1366×768／390×844で開発ビルド26ケース成功�
 戻る・閉じる・Escape・背景クリック・Tabのフォーカス管理、対象不足時の確定禁止、部分選択の復元、同一JSタスクでの二重確定、呪いの全文、normal／fast／reduced／instant／OS軽減も確認した。SVGの外形だけに装飾を適用し、本文・カード・操作を切り取らない。
 
 変更前後の画面を保存し、地図の幅と構図、欠けた石板・顔・左右の情報・台座の配置は目視でも確認した。実機Safari／Androidでの操作は未検証。
+
+
+最終確認：カード一覧の最終行を対象とする強化／削除／変化も1366・390幅の補助6ケースで成功。最新の本番ビルドをVite preview（5284）で起動し、途中マップ／安全な祝福／最終行の2枚強化を1366・390幅で操作する6ケースも成功、例外0。開発ビルド26＋最終行6＋本番6の計38ケースを実施した。
+
+機能コミット：地図 `f37dff7`、祭壇確認 `849f42e`。地図コミットは通常push・[Pages公開成功](https://github.com/sunnytruck/spyier/actions/runs/39571613577)を確認済み。残る変更と検証記録も通常pushし、最終SHAのActionsを確認する。
+
+## 検証の再実行
+
+`npm test`、`npm run build` 後、`npm run preview -- --port 5284` で本番成果物を起動する。検証環境のPython Playwrightと `/usr/bin/chromium` を利用して、別のターミナルから次を実行できる。
+
+```bash
+npx esbuild scripts/browser/two-screens-fixtures.ts --bundle --platform=node --format=esm --outfile=/tmp/two-screens-fixtures.mjs
+node /tmp/two-screens-fixtures.mjs /tmp/spyier-two-screens-fixtures.json
+IWASON_TWO_SCREENS_URL=http://127.0.0.1:5284/spyier/ python scripts/browser/check-two-screens.py
+```
+
+生成スクリプトは対象一覧の末尾からカードを選ぶため、スクロールした先の選択操作も再現できる。ゲーム側にデバッグ用の報酬・HP・マップ変更機能は追加しない。
