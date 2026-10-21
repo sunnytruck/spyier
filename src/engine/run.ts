@@ -397,7 +397,10 @@ function finishCombat(state: RunState): void {
     cardIds: cardChoices(state, 'combat'),
     relicId: node.type === 'elite' || state.eventCombat?.relicOnVictory ? availableRelic(state) : null,
     potionId: null,
-    ...(node.type === 'boss' ? { completesRun: true as const, rareOnly: true as const } : {}),
+    ...(node.type === 'boss' ? {
+      completesRun: true as const, rareOnly: true as const,
+      distinctRareCountAtRoll: Math.min(3, getCardPool(state.classId, 'combat').filter((id) => CARD_DEFINITIONS[id].rarity === 'rare').length),
+    } : {}),
   };
   // A bottle is credited at the same atomic transition as gold, never when clicking a reward.
   const potionRoll = random(state);

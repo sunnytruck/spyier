@@ -61,6 +61,8 @@ export interface RelicAcquisitionState {
   offeredCardIds: string[];
   /** Seeded results are frozen on acquisition, before target selection. */
   replacements: Record<string, string>;
+  /** Committed random rewards survive later additions to the card catalog. */
+  randomCardPlans?: Record<string, { cardIds: string[]; rngStateAfter: number }>;
   selectedCardUids: string[];
   selectedCardIds: string[];
   receipt: RelicAcquisitionReceipt | null;

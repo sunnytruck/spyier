@@ -37,6 +37,8 @@ export interface RunReward {
   completesRun?: true;
   /** New boss rolls only: saved older choices are not rerolled. */
   rareOnly?: true;
+  /** Freeze the number of distinct boss offers so later catalog growth cannot invalidate a save. */
+  distinctRareCountAtRoll?: number;
   /** Additional already-rolled relic rewards, after relicId. */
   relicIds?: string[];
 }

@@ -210,12 +210,18 @@ export function isValidRunState(value: unknown): value is RunState {
       value.reward.completesRun !== true || current?.type !== 'boss' || !value.classId ||
       value.reward.cardIds.length !== 3 || !value.reward.cardIds.every((id) =>
         CARD_DEFINITIONS[id].rarity === 'rare' && CARD_DEFINITIONS[id].classId === value.classId))) return false;
+    if (value.reward.distinctRareCountAtRoll !== undefined && (
+      value.reward.rareOnly !== true || !int(value.reward.distinctRareCountAtRoll, 1, 3)
+    )) return false;
     if (value.reward.rareOnly === true) {
       const rares = getCardPool(value.classId as RunState['classId'], 'combat')
         .filter((id) => CARD_DEFINITIONS[id].rarity === 'rare');
-      // Every slot remains rare even when this class currently has fewer than
-      // three implemented rare definitions. Duplicate only after covering them.
-      if (new Set(value.reward.cardIds).size !== Math.min(3, rares.length)) return false;
+      // Before the content expansion, the assassin had one rare. Preserve its
+      // three already-rolled identical offers, rather than rejecting or rerolling them.
+      const legacySingleRare = value.reward.distinctRareCountAtRoll === undefined && value.classId === 'assassin' &&
+        value.reward.cardIds.every((id) => id === 'assassin_oppress');
+      const distinctAtRoll = value.reward.distinctRareCountAtRoll ?? (legacySingleRare ? 1 : Math.min(3, rares.length));
+      if (new Set(value.reward.cardIds).size !== distinctAtRoll || Number(distinctAtRoll) > rares.length) return false;
     }
     if (value.reward.relicIds !== undefined && (
       !unique(value.reward.relicIds, (id) => known(id, RELIC_DEFINITIONS), RELIC_IDS.length) ||

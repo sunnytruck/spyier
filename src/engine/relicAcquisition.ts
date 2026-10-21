@@ -182,7 +182,7 @@ function prepare(state: RelicAcquisitionRun, relicId: string, source: RelicAcqui
   return acquisition;
 }
 
-function execute(state: RelicAcquisitionRun): void {
+function execute(state: RelicAcquisitionRun, legacyRandomCards?: Record<string, string[]>): void {
   const acquisition = state.relicAcquisition!;
   const basis = acquisition.basis;
   const selection = operations(acquisition.relicId).find((operation) => operation.type === 'select');
@@ -190,7 +190,7 @@ function execute(state: RelicAcquisitionRun): void {
   // Victory hooks outside this transaction intentionally keep using the normal run stream.
   const runRngState = state.rngState;
   state.rngState = seedToState(`${state.seed}:relic-acquisition:${acquisition.acquisitionKey}:${acquisition.relicId}:effects`);
-  for (const operation of operations(acquisition.relicId)) {
+  for (const [operationIndex, operation] of operations(acquisition.relicId).entries()) {
     if (operation.type === 'maxHp') state.maxHp += operation.amount;
     else if (operation.type === 'gold') gainRunGold(state, operation.amount);
     else if (operation.type === 'loseHp') loseRelicAwareHp(state, operation.amount);
@@ -203,8 +203,18 @@ function execute(state: RelicAcquisitionRun): void {
     else if (operation.type === 'upgradeStarter' && state.classId) state.relicIds = replaceStarterRelic(state.relicIds, state.classId) ?? state.relicIds;
     else if (operation.type === 'randomCards') {
       const pool = getCardPool(state.classId, 'combat').filter((id) => !operation.rarity || CARD_DEFINITIONS[id].rarity === operation.rarity);
-      const rolled = shuffle(pool, state.rngState); state.rngState = rolled.rngState;
-      for (let index = 0; index < operation.count; index++) if (rolled.values.length) addRelicAwareCard(state, rolled.values[index % rolled.values.length]);
+      const frozen = acquisition.randomCardPlans?.[operationIndex];
+      let cardIds: string[];
+      if (frozen) {
+        cardIds = frozen.cardIds;
+        state.rngState = frozen.rngStateAfter;
+      } else {
+        const rolled = shuffle(pool, state.rngState); state.rngState = rolled.rngState;
+        cardIds = legacyRandomCards?.[operationIndex] ?? Array.from({ length: operation.count }, (_, index) => rolled.values[index % rolled.values.length]).filter(Boolean);
+        // Legacy validation is observational: never rewrite an existing save to add a plan.
+        if (!legacyRandomCards) (acquisition.randomCardPlans ??= {})[operationIndex] = { cardIds: [...cardIds], rngStateAfter: state.rngState };
+      }
+      for (const id of cardIds) addRelicAwareCard(state, id);
     } else if (operation.type === 'select') {
       if (operation.kind === 'chooseCard') for (const id of acquisition.selectedCardIds) addRelicAwareCard(state, id);
       else for (const uid of acquisition.selectedCardUids) {
@@ -274,7 +284,69 @@ export function reduceRelicAcquisition<T extends RelicAcquisitionRun>(state: T, 
   return state;
 }
 
-/** Structural validation plus frozen candidate reconstruction; callers separately validate run cards. */
+const record = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+const same = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
+
+/** Validate stored offers as authored candidates, without repeating a now-expanded random roll. */
+function validFrozenCandidates(state: RelicAcquisitionRun, acquisition: RelicAcquisitionState): boolean {
+  const selection = operations(acquisition.relicId).find((operation) => operation.type === 'select');
+  const basisRun = { ...state, ...acquisition.basis };
+  const expectedEligible = acquisition.basis.deck.filter((card) => selection?.kind !== 'upgrade' || upgradeable(card)).map((card) => card.uid);
+  if (acquisition.kind !== selection?.kind || acquisition.count !== (selection?.count ?? 0) || acquisition.minCount !== (selection?.minCount ?? selection?.count ?? 0) || !same(acquisition.eligibleCardUids, expectedEligible)) return false;
+  if (!Array.isArray(acquisition.offeredCardIds) || new Set(acquisition.offeredCardIds).size !== acquisition.offeredCardIds.length || !record(acquisition.replacements)) return false;
+  if (selection?.kind === 'chooseCard') {
+    const pool = cardPoolForSelection(basisRun, selection);
+    if (acquisition.offeredCardIds.length !== Math.min(selection.offerCount ?? 3, pool.length) || acquisition.offeredCardIds.some((id) => !pool.includes(id))) return false;
+  } else if (acquisition.offeredCardIds.length) return false;
+  const transforms = selection?.kind === 'transform' || operations(acquisition.relicId).some((operation) => operation.type === 'transformBasics');
+  if (transforms) {
+    const pool = getCardPool(state.classId, 'combat');
+    if (Object.keys(acquisition.replacements).length !== acquisition.basis.deck.length) return false;
+    for (const card of acquisition.basis.deck) {
+      const replacement = acquisition.replacements[card.uid];
+      if (typeof replacement !== 'string' || (selection?.fixedCardId ? replacement !== selection.fixedCardId : replacement === card.cardId || !pool.includes(replacement))) return false;
+    }
+  } else if (Object.keys(acquisition.replacements).length) return false;
+  const plans = acquisition.randomCardPlans;
+  if (plans !== undefined) {
+    if (!record(plans)) return false;
+    const randomOperations = operations(acquisition.relicId).map((operation, index) => ({ operation, index })).filter(({ operation }) => operation.type === 'randomCards');
+    if (Object.keys(plans).length !== randomOperations.length) return false;
+    for (const { operation, index } of randomOperations) {
+      if (operation.type !== 'randomCards') return false;
+      const plan = plans[index];
+      if (!record(plan) || !Array.isArray(plan.cardIds) || plan.cardIds.length !== operation.count || !Number.isSafeInteger(plan.rngStateAfter) || plan.rngStateAfter < 0 || plan.rngStateAfter > 0xffffffff) return false;
+      const pool = getCardPool(state.classId, 'combat').filter((id) => !operation.rarity || CARD_DEFINITIONS[id].rarity === operation.rarity);
+      if (plan.cardIds.some((id) => typeof id !== 'string' || !pool.includes(id)) || (pool.length >= operation.count && new Set(plan.cardIds).size !== plan.cardIds.length)) return false;
+    }
+  }
+  return true;
+}
+
+/** Old result receipts already contain committed rewards. Extract only normal,
+ * class-correct, rarity-correct awards; the full execute replay still proves all
+ * UIDs, copies, upgrades, payments and resulting inventory against that receipt. */
+function legacyRandomCardPlan(state: RelicAcquisitionRun, acquisition: RelicAcquisitionState): Record<string, string[]> | null {
+  const added = acquisition.receipt?.addedCards;
+  if (!Array.isArray(added)) return null;
+  const copies = 1 + (effects({ ...state, ...acquisition.basis }).some(([, effect]) => effect?.addCardCopy) ? 1 : 0);
+  const plan: Record<string, string[]> = {};
+  let cursor = 0;
+  for (const [index, operation] of operations(acquisition.relicId).entries()) {
+    if (operation.type === 'randomCards') {
+      const pool = getCardPool(state.classId, 'combat').filter((id) => !operation.rarity || CARD_DEFINITIONS[id].rarity === operation.rarity);
+      const ids = Array.from({ length: operation.count }, (_, count) => added[cursor + count * copies]?.cardId);
+      if (ids.some((id) => typeof id !== 'string' || !pool.includes(id)) || (pool.length >= operation.count && new Set(ids).size !== ids.length)) return null;
+      plan[index] = ids;
+      cursor += operation.count * copies;
+    } else if (operation.type === 'addCards') cursor += operation.cardIds.length * copies;
+    else if (operation.type === 'select' && ['chooseCard', 'copy', 'transform'].includes(operation.kind)) cursor += (operation.kind === 'chooseCard' ? acquisition.selectedCardIds.length : acquisition.selectedCardUids.length) * copies;
+    else if (operation.type === 'transformBasics') cursor += acquisition.basis.deck.filter((card) => basicKind(card, 'strike') || basicKind(card, 'guard')).length * copies;
+  }
+  return cursor === added.length ? plan : null;
+}
+
+/** Structural validation plus replay of frozen candidates; callers separately validate run cards. */
 export function isValidRelicAcquisitionState(state: RelicAcquisitionRun): boolean {
   if (state.relicState !== undefined && (typeof state.relicState !== 'object' || state.relicState === null || Array.isArray(state.relicState) || Object.entries(state.relicState).some(([key, value]) => key.length > 200 || !Number.isSafeInteger(value) || value < 0))) return false;
   const acquisition = state.relicAcquisition;
@@ -282,9 +354,7 @@ export function isValidRelicAcquisitionState(state: RelicAcquisitionRun): boolea
   if (state.screen !== 'relicAcquisition' || acquisition.version !== 1 || !RELIC_DEFINITIONS[acquisition.relicId] || !['reward', 'shop', 'event', 'blessing'].includes(acquisition.source) || !isRelicAcquisitionSourceAllowed(acquisition.relicId, acquisition.source) || !validReturnScreen(acquisition.source, acquisition.returnScreen) || typeof acquisition.acquisitionKey !== 'string' || !acquisition.acquisitionKey || acquisition.acquisitionKey.length > 500 || !['select', 'result'].includes(acquisition.stage) || !state.relicIds.includes(acquisition.relicId) || state.relicState?.[`acquired:${acquisition.relicId}`] !== 1) return false;
   const basis = acquisition.basis;
   if (!basis || !Array.isArray(basis.deck) || !Array.isArray(basis.relicIds) || !basis.relicIds.includes(acquisition.relicId) || !Array.isArray(basis.potions) || !basis.relicState || ![basis.hp, basis.maxHp, basis.gold, basis.nextCardId, basis.rngState, basis.statsCardsAdded].every((value) => Number.isSafeInteger(value) && value >= 0) || basis.hp <= 0 || basis.hp > basis.maxHp || basis.deck.some((card) => !card || !CARD_DEFINITIONS[card.cardId] || typeof card.uid !== 'string' || typeof card.upgraded !== 'boolean')) return false;
-  const expected = prepare({ ...state, ...structuredClone(basis) }, acquisition.relicId, acquisition.source, acquisition.returnScreen, acquisition.acquisitionKey);
-  for (const key of ['kind', 'count', 'minCount', 'eligibleCardUids', 'offeredCardIds', 'replacements'] as const)
-    if (JSON.stringify(acquisition[key]) !== JSON.stringify(expected[key])) return false;
+  if (new Set(basis.deck.map((card) => card.uid)).size !== basis.deck.length || RELIC_DEFINITIONS[acquisition.relicId].classId && RELIC_DEFINITIONS[acquisition.relicId].classId !== state.classId || !validFrozenCandidates(state, acquisition)) return false;
   if (!Array.isArray(acquisition.selectedCardUids) || !Array.isArray(acquisition.selectedCardIds) || new Set(acquisition.selectedCardUids).size !== acquisition.selectedCardUids.length || new Set(acquisition.selectedCardIds).size !== acquisition.selectedCardIds.length || acquisition.selectedCardUids.some((uid) => !acquisition.eligibleCardUids.includes(uid)) || acquisition.selectedCardIds.some((id) => !acquisition.offeredCardIds.includes(id))) return false;
   const count = acquisition.kind === 'chooseCard' ? acquisition.selectedCardIds.length : acquisition.selectedCardUids.length;
   if (count > acquisition.count || (acquisition.kind === 'chooseCard' ? acquisition.selectedCardUids.length > 0 : acquisition.selectedCardIds.length > 0)) return false;
@@ -295,7 +365,9 @@ export function isValidRelicAcquisitionState(state: RelicAcquisitionRun): boolea
     stats: { ...state.stats, cardsAdded: basis.statsCardsAdded },
     relicAcquisition: { ...structuredClone(acquisition), receipt: null },
   };
-  try { execute(replay); } catch { return false; }
+  const legacyCards = acquisition.randomCardPlans === undefined ? legacyRandomCardPlan(state, acquisition) : undefined;
+  if (legacyCards === null) return false;
+  try { execute(replay, legacyCards); } catch { return false; }
   return JSON.stringify(replay.relicAcquisition?.receipt) === JSON.stringify(acquisition.receipt) &&
     (['hp', 'maxHp', 'gold', 'nextCardId', 'rngState'] as const).every((key) => replay[key] === state[key]) &&
     (['deck', 'relicIds', 'potions', 'relicState'] as const).every((key) => JSON.stringify(replay[key]) === JSON.stringify(state[key])) &&

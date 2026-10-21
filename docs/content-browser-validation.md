@@ -56,3 +56,25 @@ IWASON_CONTENT_URL=http://127.0.0.1:5284/spyier/ python scripts/browser/content-
 ## 検証範囲
 
 これは自動ブラウザ操作と上記4画像の目視確認。残りの新カード・レリックの全組み合わせ、全アニメーション速度、実機スマートフォン、職業別の長期的な勝率は今回のブラウザ検証に含めない。カード42枚・レリック16個の各効果全体は別の単体・回帰テストで検証する。fixtureのHP500・エナジー20・直接配備した新カード／レリックはUI検証専用で、ゲーム本体のバランスや取得率を変更していない。
+
+## 旧セーブのボス報酬互換性：追加2ケース
+
+互換性修正後の本番ビルド（`index-C25gwC5I.js`）で、旧コミット `22e43e8` の未変更エンジンによる公開アクションだけから生成した `src/tests/fixtures/pre-content-boss-reward.json` を読み込んだ。これは旧レア候補が1種類しかなく、`assassin_oppress` が3枠に重複する実際のボス報酬セーブ。現在のカードプール増加を理由に拒否・再抽選されないことを検証する。
+
+- 1366×768：旧3枠がすべて元のまま復元→カード取得を高速ダブルクリック→デッキ増加は1枚だけ→再読み込み→Act 2開始→祝福4択→再読み込み。
+- 390×844：旧3枠がすべて元のまま復元→スキップを高速ダブルクリック→デッキ枚数不変→再読み込み→Act 2開始をタップ→祝福4択→再読み込み。
+- 両ケースで全公開アクション後の保存データがエンジン出力と完全一致。所持レリック・レアカード報酬の二重取得はなく、ブラウザエラー0件。
+- **この旧セーブでは `reward.relicId` が `null`**。存在しないボスレリックを追加せず、旧セーブ本来の「カード報酬→Act 1クリア→Act 2祝福」を維持した。レリックありボス報酬の経路とは区別する。
+- 報酬カードと祝福説明に横方向のはみ出し・文章の切れがないことを自動検証。スマートフォンのAct 2祝福画像も開いて目視確認した。祝福画面では通常どおり縦スクロールして4候補を読める。
+
+追加検証は **2/2成功**、公開アクション4回。前節の21ケースと合わせて計23ケース、公開アクション64回。
+
+```bash
+npx esbuild scripts/browser/content-continuation.legacy-fixtures.ts --bundle --platform=node --format=esm --outfile=/tmp/spyier-content-legacy-fixtures.mjs
+node /tmp/spyier-content-legacy-fixtures.mjs /tmp/spyier-content-legacy-fixtures.json
+IWASON_CONTENT_URL=http://127.0.0.1:5284/spyier/ python scripts/browser/content-continuation.legacy-check.py
+```
+
+追加ケースの結果・画像は `/tmp/spyier-content-legacy-browser/` に出力する。
+
+追加互換修正後の最終本番ビルド（`index-BEItm2OA.js`）でも、通常21ケースと旧セーブ2ケースを再実行し、全23ケース・64操作成功、ブラウザエラー0を確認した。
