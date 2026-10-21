@@ -10,6 +10,7 @@ import type { CardInstance, CombatState, GameSettings } from '../types/game';
 import { CardView } from './CardView';
 import { Icon } from './Icon';
 import '../styles/battle-hand.css';
+import '../styles/art-cards.css';
 
 interface BattleHandProps {
   state: CombatState;
@@ -67,6 +68,7 @@ export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProp
   const previewCard = state.hand.find((card) => card.uid === preview?.uid);
   const markerId = `target-${useId().replace(/:/g, '')}`;
   const noMotion = settings?.reducedMotion || settings?.speed === 'instant';
+  const fanHand = viewport.width >= 1100 && state.hand.length > 1 && state.hand.length <= 8;
 
   function cancelPreviewClose() {
     if (previewTimer.current) clearTimeout(previewTimer.current);
@@ -350,7 +352,7 @@ export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProp
     };
   }, []);
 
-  return <section className="hand-section battle-hand" aria-label="手札" aria-busy={disabled} ref={root} data-motion={noMotion ? 'instant' : settings?.speed ?? 'normal'}>
+  return <section className="hand-section battle-hand" aria-label="手札" aria-busy={disabled} data-hand-fan={fanHand ? 'true' : 'false'} data-hand-size={state.hand.length} ref={root} data-motion={noMotion ? 'instant' : settings?.speed ?? 'normal'}>
     <div className="hand-heading">
       <div><h2>手札 <span>{state.hand.length}枚</span></h2></div>
       <p><span className="hand-pointer-instruction">{state.energy === 0 ? 'エナジー 0' : 'ドラッグ / クリックで使用'}</span><span className="hand-touch-instruction">タップで詳細・確認して使用</span>
@@ -387,7 +389,7 @@ export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProp
         onPointerLeave={schedulePreviewClose}
         onFocusCapture={(event) => { if (pointerType.current !== 'touch' && !(event.target as Element).closest('.battle-card-detail-button')) showPreview(card.uid, event.currentTarget); }}
         onBlurCapture={schedulePreviewClose}
-        style={{ '--fan-angle': `${Math.max(-2, Math.min(2, (index - (state.hand.length - 1) / 2) * .35))}deg`, '--fan-rise': '0px', '--draw-delay': `${Math.min(index * 24, 120)}ms` } as CSSProperties}>
+        style={{ '--fan-angle': `${fanHand ? (index - (state.hand.length - 1) / 2) / Math.max(1, (state.hand.length - 1) / 2) * 4 : 0}deg`, '--fan-rise': `${fanHand ? Math.pow((index - (state.hand.length - 1) / 2) / Math.max(1, (state.hand.length - 1) / 2), 2) * 7 : 0}px`, '--draw-delay': `${Math.min(index * 24, 120)}ms` } as CSSProperties}>
         <CardView card={card} state={state} onPlay={clickPlay} position={index} disabled={disabled || (!!draggingUid && draggingUid !== card.uid)} />
         <button className="battle-card-detail-button" type="button" aria-label={`${CARD_DEFINITIONS[card.cardId]?.name ?? 'カード'}の詳細を表示`}
           aria-haspopup="dialog" onClick={(event) => { event.stopPropagation(); showPreview(card.uid, event.currentTarget, true); }}><Icon name="book" size={12} /><span>詳細</span></button>

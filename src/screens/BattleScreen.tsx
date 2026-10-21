@@ -13,6 +13,8 @@ import { getActDefinition } from '../data/acts';
 import { effectivePlayerStrength } from '../engine/combat/relics';
 import { getRelicEnemyWeakMultiplier, getRelicVulnerableMultiplier } from '../engine/combat/relicModifiers';
 import { getDisplayedEnemyIntent } from '../engine/combat/enemyAI';
+import { WorldScene } from '../components/world/WorldScene';
+import '../styles/art-battle.css';
 import { BattleEffects } from '../components/BattleEffects';
 import { CardFlights } from '../components/CardFlights';
 import { getPendingChoiceCards, getPendingChoiceLabel } from '../engine/actions/choices';
@@ -291,7 +293,7 @@ export function BattleScreen({
       data-presentation-busy={presentation?.busy ? 'true' : 'false'}
       data-presentation-cue={presentation?.cue?.kind ?? 'idle'}
       data-player-class={state.classId ?? 'legacy'}
-      className={`battle-screen compact-battle cinematic-battle ${state.classId ? 'has-class-resources' : ''} ${presentation?.settings.reducedMotion || presentation?.settings.speed === 'instant' ? 'motion-reduced' : ''} ${presentation?.settings.speed === 'fast' ? 'presentation-fast' : ''} ${divine ? 'is-divine' : ''} ${resolving ? 'is-presenting' : ''} ${multiple ? 'multi-enemy' : ''} ${campaign ? 'campaign-battle' : ''}`}
+      className={`battle-screen compact-battle cinematic-battle art-directed-battle ${state.classId ? 'has-class-resources' : ''} ${presentation?.settings.reducedMotion || presentation?.settings.speed === 'instant' ? 'motion-reduced' : ''} ${presentation?.settings.speed === 'fast' ? 'presentation-fast' : ''} ${divine ? 'is-divine' : ''} ${resolving ? 'is-presenting' : ''} ${multiple ? 'multi-enemy' : ''} ${campaign ? 'campaign-battle' : ''}`}
     >
       {presentation && <CardFlights {...presentation} />}
       <section className="battle-heading">
@@ -319,6 +321,7 @@ export function BattleScreen({
       </section>
 
       <section className="battle-arena" aria-label="戦闘フィールド">
+        <WorldScene variant="battle" act={act} />
         <div className="arena-scenery" aria-hidden="true">
           <div className="temple-arch" />
           <div className="temple-column column-left" />

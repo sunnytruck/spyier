@@ -1,0 +1,55 @@
+/* Original scene illustrations are static SVG images, not expensive live
+   turbulence/filter trees. Only opacity and transforms animate above them. */
+.world-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: none;
+  user-select: none;
+  background: #081710;
+  contain: paint;
+}
+.world-scene-illustration { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
+.world-scene-atmosphere { position: absolute; inset: 0; background: radial-gradient(ellipse at 51% 38%, #718a6121, transparent 58%); mix-blend-mode: screen; }
+.world-scene-mist { position: absolute; width: 116%; left: -8%; height: 35%; opacity: .2; will-change: auto; border-radius: 50%; background: radial-gradient(ellipse, #a6bfaa24 0%, #9bb7a011 32%, transparent 68%); }
+.world-scene-mist--far { bottom: 19%; animation: world-mist-far 24s ease-in-out infinite alternate; }
+.world-scene-mist--near { bottom: -1%; opacity: .12; animation: world-mist-near 19s ease-in-out infinite alternate; }
+.world-scene-shade { position: absolute; inset: 0; box-shadow: inset 0 0 120px 15px #02080573; background: linear-gradient(0deg, #07100b85, transparent 30%, transparent 81%, #02080763); }
+.world-scene-motes { position: absolute; inset: 0; opacity: .65; }
+.world-scene-motes i { position: absolute; bottom: 29%; left: 23%; width: 2px; height: 2px; border-radius: 50%; background: #c3c995; box-shadow: 0 0 5px #d5cb8180; animation: world-mote-rise 12s ease-in-out infinite; }
+.world-scene-motes i:nth-child(2) { left: 34%; bottom: 40%; animation-delay: -6s; animation-duration: 14s; }
+.world-scene-motes i:nth-child(3) { left: 49%; bottom: 26%; animation-delay: -3s; animation-duration: 17s; }
+.world-scene-motes i:nth-child(4) { left: 58%; bottom: 36%; animation-delay: -9s; animation-duration: 13s; }
+.world-scene-motes i:nth-child(5) { left: 65%; bottom: 27%; animation-delay: -4s; }
+.world-scene-motes i:nth-child(6) { left: 74%; bottom: 38%; animation-delay: -7s; animation-duration: 16s; }
+.world-scene-motes i:nth-child(7) { left: 44%; bottom: 56%; animation-delay: -1s; animation-duration: 18s; }
+.world-scene-motes i:nth-child(8) { left: 82%; bottom: 43%; animation-delay: -5s; animation-duration: 15s; }
+.world-scene--battle .world-scene-illustration { opacity: .85; }
+.world-scene--battle .world-scene-shade { background: linear-gradient(0deg, #050e0b9e, transparent 28%, transparent 79%, #05100c40); }
+.world-scene--ritual .world-scene-motes { opacity: .9; }
+.world-scene--ritual .world-scene-motes i { background: #e0cd89; box-shadow: 0 0 8px #e6ca8a; }
+.world-scene--ritual .world-scene-mist--far { opacity: .36; }
+.world-scene--title .world-scene-shade { background: linear-gradient(90deg, #030d0bd9 0%, #030d0b9c 27%, transparent 65%), linear-gradient(0deg, #020907e6, transparent 24%); }
+.world-scene--map .world-scene-illustration { object-fit: fill; opacity: .85; }
+.world-scene--map :is(.world-scene-motes, .world-scene-mist, .world-scene-atmosphere) { display: none; }
+.world-scene--map .world-scene-shade { box-shadow: inset 0 0 40px #020805aa; background: none; }
+.world-scene[data-world-act='2']:not(.world-scene--map) .world-scene-atmosphere { background: radial-gradient(ellipse at 50% 44%, #80795526, transparent 64%); }
+.world-scene[data-world-act='3']:not(.world-scene--map) .world-scene-atmosphere { background: radial-gradient(ellipse at 50% 44%, #66578827, transparent 64%); }
+.temple-seal { display: inline-block; width: 48px; height: 53px; color: #b9ab72; flex-shrink: 0; }
+@keyframes world-mist-far { from { transform: translate3d(-2%, 0, 0); } to { transform: translate3d(3%, -5%, 0); } }
+@keyframes world-mist-near { from { transform: translate3d(3%, 0, 0); } to { transform: translate3d(-4%, -3%, 0); } }
+@keyframes world-mote-rise { 0%, 100% { opacity: 0; transform: translate3d(0, 4px, 0); } 18% { opacity: .65; } 75% { opacity: .25; } 90% { opacity: 0; transform: translate3d(9px, -55px, 0); } }
+@media (prefers-reduced-motion: reduce) {
+  .world-scene :is(.world-scene-mist, .world-scene-motes i) { animation: none; }
+  .world-scene-motes i { opacity: .3; }
+}
+/* The app already owns the settings preference; scene art follows it without
+   adding settings, animation state, game timers, or persistence fields. */
+.app.reduced-motion .world-scene :is(.world-scene-mist, .world-scene-motes i),
+.app.speed-instant .world-scene :is(.world-scene-mist, .world-scene-motes i),
+.app.effects-low .world-scene :is(.world-scene-mist, .world-scene-motes i),
+.app[data-reduced-motion='true'] .world-scene :is(.world-scene-mist, .world-scene-motes i),
+.app[data-effects-quality='low'] .world-scene :is(.world-scene-mist, .world-scene-motes i) { animation: none; }
+.app.effects-low .world-scene-motes, .app[data-effects-quality='low'] .world-scene-motes { display: none; }

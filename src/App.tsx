@@ -33,6 +33,9 @@ import './styles/class-system.css';
 import './styles/readability.css';
 import './styles/expansion.css';
 import './styles/battle-compact.css';
+import './styles/world-art.css';
+import './styles/art-cards.css';
+import './styles/art-battle.css';
 
 const CardLibrary = lazy(() => import('./components/CardLibrary').then((module) => ({ default: module.CardLibrary })));
 

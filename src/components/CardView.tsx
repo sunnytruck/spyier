@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { CardDefinition, CardInstance, CombatState } from '../types/game';
+import type { CardInstance, CombatState } from '../types/game';
 import { CARD_DEFINITIONS } from '../data/cards';
 import { canPlayCard, getCardCost } from '../engine';
 import { Icon } from './Icon';
@@ -8,54 +8,13 @@ import { diffCardText, getCardPresentation, getCardUpgradePreview } from '../pre
 import { CardUpgradeToggle } from './CardUpgradeToggle';
 import { getCardRuntimeInfo } from '../presentation/cardRuntime';
 import { getCardAcquisitionCategory } from '../engine/cardAcquisition';
+import { CardEtching } from './CardEtching';
+import '../styles/art-cards.css';
 import '../styles/card-upgrade.css';
 import '../styles/card-runtime.css';
 
 const typeLabels = { attack: '攻撃', skill: 'スキル', power: 'パワー' };
 
-function CardArt({ definition }: { definition: CardDefinition }) {
-  const isAttack = definition.type === 'attack';
-  const isPower = definition.type === 'power';
-  return (
-    <div className={`card-art card-art--${definition.type}`} aria-hidden="true">
-      <div className="card-art-halo" />
-      <svg viewBox="0 0 180 100" className="card-etching">
-        <path d="M10 90 37 60l16 10 29-53 36 62 24-31 29 42" fill="currentColor" opacity=".07" />
-        <path
-          d="M3 91h174M15 86l23-27 15 11 29-54 36 62 24-30 24 33"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth=".8"
-          opacity=".25"
-        />
-        {isAttack ? (
-          <g fill="none" stroke="currentColor" strokeLinejoin="round">
-            <path d="m69 17 14 7 30 47-12 8-31-47Z" strokeWidth="2" />
-            <path d="m91 72 23-14m-10 17 10 15m-1-54-40 44m-4-7 11 13" strokeWidth="3" />
-            <path d="m109 17 5 19-11-8Z" fill="currentColor" opacity=".4" />
-          </g>
-        ) : isPower ? (
-          <g fill="none" stroke="currentColor">
-            <circle cx="90" cy="49" r="25" strokeWidth="2" />
-            <circle cx="90" cy="49" r="32" strokeDasharray="2 7" />
-            <path
-              d="m90 12 0-9m0 91v-9M53 49H44m92 0h-9M65 24l-7-7m64 64-7-7m0-50 7-7M65 74l-7 7"
-              strokeWidth="2"
-            />
-            <path d="m90 29 15 25-15 16-15-16Z" fill="currentColor" opacity=".3" />
-          </g>
-        ) : (
-          <g fill="none" stroke="currentColor">
-            <path d="m90 16-31 12v20c0 22 17 31 31 37 14-6 31-15 31-37V28Z" strokeWidth="2" />
-            <path d="m90 27-21 8v14c0 14 11 23 21 28 10-5 21-14 21-28V35Z" strokeWidth=".8" />
-            <path d="m78 47 9 9 16-18" strokeWidth="3" />
-          </g>
-        )}
-        <path d="m15 15 4 4-4 4-4-4Zm145 56 3 3-3 3-3-3Z" fill="currentColor" opacity=".5" />
-      </svg>
-    </div>
-  );
-}
 
 export function CardView({
   card,
@@ -126,7 +85,7 @@ export function CardView({
           />
         </span>
       </div>
-      <CardArt definition={definition} />
+      <CardEtching definition={definition} />
       {blessingOnly && <span className="card-acquisition-badge" title="祝福からのみ取得できます。通常の戦闘報酬・ショップ・イベント・ランダム生成には出現しません。">✦ 祝福限定</span>}
       <div className="card-description">{renderDifference(text, comparison.description)}</div>
       {temporaryUpgrade && <span className="card-temporary-upgrade" title="この戦闘中だけの強化です。戦闘終了時に元の強化状態へ戻ります。">◇ この戦闘中のみ強化</span>}
@@ -170,13 +129,15 @@ export function CardView({
   );
   if (inspect)
     return (
-      <article className={`game-card game-card--${definition.type} inspect-card${canToggle && showAfter ? ' is-upgrade-preview' : ''}`} data-card-id={definition.id} data-upgraded={String(shownCard.upgraded)} data-acquisition={getCardAcquisitionCategory(definition)}>{inner}</article>
+      <article className={`game-card stone-cut-card game-card--${definition.type} inspect-card${canToggle && showAfter ? ' is-upgrade-preview' : ''}`} data-card-id={definition.id} data-upgraded={String(shownCard.upgraded)} data-acquisition={getCardAcquisitionCategory(definition)} data-card-class={definition.classId ?? 'legacy'} data-card-rarity={definition.rarity ?? 'common'}>{inner}</article>
     );
   return (
     <button
       data-card-uid={card.uid}
+      data-card-class={definition.classId ?? 'legacy'}
+      data-card-rarity={definition.rarity ?? 'common'}
       data-acquisition={getCardAcquisitionCategory(definition)}
-      className={`game-card game-card--${definition.type} ${playable ? 'is-playable' : 'is-unplayable'}`}
+      className={`game-card stone-cut-card game-card--${definition.type} ${playable ? 'is-playable' : 'is-unplayable'}`}
       onClick={() => onPlay?.(card.uid)}
       disabled={!playable}
       aria-label={`${label}、コスト${cost}。${blessingOnly ? '祝福限定。' : ''}${temporaryUpgrade ? 'この戦闘中だけ強化。' : ''}${text}${runtime ? ` 現在の効果：${runtime.facts.map((fact) => `${fact.summary}。${fact.detail}`).join(' ')}` : ''}${!playable ? '、使用できません' : ''}`}
