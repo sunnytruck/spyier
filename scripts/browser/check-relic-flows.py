@@ -26,7 +26,7 @@ def click(p,loc,width):
 def layout(p):
  global checks
  assert p.evaluate('document.documentElement.scrollWidth<=innerWidth'),('overflow',p.evaluate('[innerWidth,document.documentElement.scrollWidth]'))
- bad=p.locator('.card-description:not(.battle-hand .card-description),.relic-acquisition-altar p,.relic-acquisition-summary').evaluate_all('(ns)=>ns.filter(n=>n.clientHeight&& (n.scrollHeight>n.clientHeight+3||n.scrollWidth>n.clientWidth+3)).map(n=>({text:n.textContent,h:n.clientHeight,sh:n.scrollHeight,w:n.clientWidth,sw:n.scrollWidth}))')
+ bad=p.locator('.card-description:not(.battle-hand .card-description),.choice-card-description,.relic-acquisition-altar p,.relic-acquisition-summary').evaluate_all('(ns)=>ns.filter(n=>n.clientHeight&& (n.scrollHeight>n.clientHeight+3||n.scrollWidth>n.clientWidth+3)).map(n=>({text:n.textContent,h:n.clientHeight,sh:n.scrollHeight,w:n.clientWidth,sw:n.scrollWidth}))')
  assert not bad,('clipping',bad);checks+=1
 def load(p,raw):
  p.evaluate('(x)=>{localStorage.clear();localStorage.setItem(x.k,x.save);localStorage.setItem("iwason-spire:settings:v1",JSON.stringify({speed:"instant",reducedMotion:false,effectsQuality:"low"}));}',{'k':KEY,'save':raw});p.reload(wait_until='networkidle');assert saved(p)==raw;layout(p)
@@ -35,21 +35,21 @@ def dispatch(p,a,width):
  if t=='chooseBlessing':click(p,p.locator(f'[data-blessing-option="{a["optionId"]}"] button'),width)
  elif t=='selectBlessingTargets':
   diff=set(before['blessing']['selectedCardUids'])^set(a['cardUids']);assert len(diff)==1
-  click(p,p.locator(f'[data-blessing-target="{next(iter(diff))}"] button'),width)
+  click(p,p.locator(f'[data-blessing-target="{next(iter(diff))}"] .choice-card-pick'),width)
  elif t=='confirmBlessing':
   el=p.get_by_role('button',name='祝福を確定して受け取る',exact=True);el.scroll_into_view_if_needed();el.dblclick(delay=5)
  elif t=='continueBlessing':click(p,p.get_by_role('button',name='祝福を胸に、塔を登る',exact=True),width)
  elif t=='chooseNode':click(p,p.locator(f'[data-node-id="{a["nodeId"]}"]'),width)
  elif t=='selectRelicCards':
   acq=before['relicAcquisition'];is_offer=acq['kind']=='chooseCard';old=acq['selectedCardIds'if is_offer else'selectedCardUids'];desired=a.get('cardIds'if is_offer else'cardUids',[]);diff=set(old)^set(desired);assert len(diff)==1
-  click(p,p.locator(f'[data-relic-target="{next(iter(diff))}"] button'),width)
+  click(p,p.locator(f'[data-relic-target="{next(iter(diff))}"] .choice-card-pick'),width)
  elif t=='confirmRelicAcquisition':
   el=p.locator('.relic-acquisition-actions button.primary-button');el.scroll_into_view_if_needed();el.dblclick(delay=5)
  elif t=='continueRelicAcquisition':click(p,p.get_by_role('button',name='受け取った力とともに進む',exact=True),width)
  elif t=='ascendAct':click(p,p.get_by_role('button',name=f'Act {before["act"]+1}へ進む · 次の祝福',exact=True),width)
  elif t=='takeCard':
   if a['cardId'] is None:click(p,p.get_by_role('button',name='カードを受け取らずに進む',exact=False),width)
-  else:click(p,p.locator(f'.run-card-choice:has([data-card-id="{a["cardId"]}" ]) >button').first,width)
+  else:click(p,p.locator(f'.run-reward-cards [data-card-id="{a["cardId"]}"] .choice-card-pick').first,width)
  elif t=='takeRelic':click(p,p.get_by_role('button',name='祝福を受け取る',exact=False),width)
  elif t=='eventChoice':click(p,p.locator('.run-event-choice').nth(a['index']),width)
  elif t=='continueEvent':click(p,p.get_by_role('button',name='マップへ進む',exact=False),width)
@@ -77,13 +77,13 @@ with sync_playwright()as pw:
    print('BEGIN',width,case['name'],flush=True)
    if case['name'].startswith('start-'):
     initial=json.loads(case['save'])['run'];p.evaluate('localStorage.clear()');p.reload(wait_until='networkidle')
-    p.get_by_role('textbox',name='新しい探索のシード',exact=True).fill(initial['seed']);click(p,p.get_by_role('button',name='第1階層へ進む',exact=True),width)
+    p.locator('.sanctum-seed-drawer summary').click();p.get_by_role('textbox',name='新しい探索のシード',exact=True).fill(initial['seed']);click(p,p.get_by_role('button',name='第1階層へ進む',exact=True),width)
     click(p,p.get_by_role('button',name=NAMES[case['classId']],exact=False),width)
-    starter=DATA['relics'][initial['relicIds'][0]];assert starter['name'] in p.locator('.class-starting-relic').inner_text();assert starter['description'] in p.locator('.class-starting-relic').inner_text();layout(p)
+    starter=DATA['relics'][initial['relicIds'][0]];assert starter['name'] in p.locator('.cast-relic').inner_text();assert starter['description'] in p.locator('.cast-relic').inner_text();layout(p)
     click(p,p.get_by_role('button',name='この職業で探索を始める',exact=False),width);p.wait_for_selector('.blessing-screen');assert saved(p)==case['save'];assert p.locator('.blessing-offer').count()==4
    else:load(p,case['save'])
    if run(p)['screen']=='blessing':assert p.locator('.blessing-offer').count()==4
-   if case['name'].startswith('boss-') and run(p)['screen']=='reward':assert p.locator('.run-reward-cards .run-card-choice').count()==3;assert all(DATA['definitions'][i]['rarity']=='rare'for i in run(p)['reward']['cardIds'])
+   if case['name'].startswith('boss-') and run(p)['screen']=='reward':assert p.locator('.run-reward-cards .choice-card').count()==3;assert all(DATA['definitions'][i]['rarity']=='rare'for i in run(p)['reward']['cardIds'])
    check_steps(p,case,width)
    if case['name']=='boss-to-next-act':assert run(p)['act']==2;assert p.locator('.blessing-offer').count()==4
    if case['name']=='shop-membership-discount':

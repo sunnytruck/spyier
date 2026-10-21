@@ -174,7 +174,7 @@ def blessing_case(page, case, width, height):
     if case['targets']:
         assert confirm.is_disabled()
         for index, target in enumerate(case['targets']):
-            page.locator(f'[data-blessing-target="{target["uid"]}"]').get_by_role('button', name='このカードを対象にする', exact=False).click()
+            page.locator(f'[data-blessing-target="{target["uid"]}"]').locator('.choice-card-pick').click()
             exact_save(page, case['partial'][index])
             assert resource_basis(stored(page)) == resource_basis(case['offer'])
             if index == 0 and len(case['targets']) > 1:
