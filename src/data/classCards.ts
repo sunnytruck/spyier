@@ -3,6 +3,7 @@ import { CONTINUATION_MARTIAL_CARDS } from './continuationMartialCards';
 import { CONTINUATION_MYSTIC_CARDS } from './continuationMysticCards';
 import { CONTINUATION_ARCANE_CARDS } from './continuationArcaneCards';
 import { ART_EXPANSION_PHASE3_CARDS } from './artExpansionPhase3Cards';
+import { ART_EXPANSION_PHASE4_CARDS } from './artExpansionPhase4Cards';
 import { createReferenceCard as card } from './referenceCard';
 import { EXPANDED_MARTIAL_CARDS } from './expandedMartialCards';
 import { EXPANDED_MYSTIC_CARDS } from './expandedMysticCards';
@@ -118,7 +119,7 @@ const tokenCards: CardDefinition[] = [
 ];
 
 export const CLASS_CARD_DEFINITIONS: Record<string, CardDefinition> = Object.fromEntries(
-  [...basicCards, ...adaptedCards, ...tokenCards, ...EXPANDED_MARTIAL_CARDS, ...EXPANDED_MYSTIC_CARDS, ...Object.values(BLESSING_CARD_DEFINITIONS), ...CONTINUATION_MARTIAL_CARDS, ...CONTINUATION_MYSTIC_CARDS, ...CONTINUATION_ARCANE_CARDS, ...ART_EXPANSION_PHASE3_CARDS].map((entry) => [entry.id, entry]),
+  [...basicCards, ...adaptedCards, ...tokenCards, ...EXPANDED_MARTIAL_CARDS, ...EXPANDED_MYSTIC_CARDS, ...Object.values(BLESSING_CARD_DEFINITIONS), ...CONTINUATION_MARTIAL_CARDS, ...CONTINUATION_MYSTIC_CARDS, ...CONTINUATION_ARCANE_CARDS, ...ART_EXPANSION_PHASE3_CARDS, ...ART_EXPANSION_PHASE4_CARDS].map((entry) => [entry.id, entry]),
 );
 export const GENERATED_CARD_IDS = tokenCards.map((entry) => entry.id);
 export const PLAYABLE_SOURCE_CARD_IDS = [...new Set(
