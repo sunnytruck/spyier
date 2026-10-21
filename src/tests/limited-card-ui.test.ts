@@ -143,7 +143,7 @@ describe('limited choice and combat status UI', () => {
     expect(getPendingChoiceLabel(pending)).toBe('山札から1枚を手札に戻す');
     expect(markup).toContain('山札から1枚を手札に戻す');
     expect(markup).toContain('選んだ山札のカードを手札に加えます。山札の残りの順序は変えません。');
-    const choices = markup.slice(markup.indexOf('class="pending-choice-grid"'), markup.indexOf('class="pending-choice-confirm"'));
+    const choices = markup.match(/<div class="[^"]*\bpending-choice-grid\b[^"]*">([\s\S]*?)<div class="pending-choice-confirm"/)?.[1] ?? '';
     expect((choices.match(/data-card-id=/g) ?? []).length).toBe(state.drawPile.length);
     expect(getPendingChoiceCards(pending).map((card) => card.uid)).toEqual(state.drawPile.map((card) => card.uid));
     expect(markup).not.toContain('aria-label="閉じる"');

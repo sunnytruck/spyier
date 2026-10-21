@@ -21,6 +21,7 @@ const battleMarkup = (state: CombatState) => renderToStaticMarkup(createElement(
   onRestart: noop, onReplay: noop, onTitle: noop, onChooseCards: noop,
 }));
 const textOnly = (markup: string) => markup.replace(/<[^>]*>/g, '');
+const pendingCardsMarkup = (markup: string) => markup.match(/<div class="[^"]*\bpending-choice-grid\b[^"]*">([\s\S]*?)<div class="pending-choice-confirm"/)?.[1] ?? '';
 
 function choiceFixture(sourceId: string) {
   const source = card('source', sourceId);
@@ -46,7 +47,7 @@ describe('suspended card choices show the actual source pile', () => {
     expect(getPendingChoiceLabel(state)).toBe(title);
     expect(markup).toContain(title);
     expect(markup).toContain(explanation);
-    const choice = markup.slice(markup.indexOf('class="pending-choice-grid"'), markup.indexOf('class="pending-choice-confirm"'));
+    const choice = pendingCardsMarkup(markup);
     const shownIds = [...choice.matchAll(/data-card-id="([^"]+)"/g)].map((match) => match[1]);
     expect(shownIds).toEqual(expectedIds);
     expect(getPendingChoiceCards(state).map((entry) => entry.cardId)).toEqual(expectedIds);
@@ -64,10 +65,31 @@ describe('suspended card choices show the actual source pile', () => {
     const saved = JSON.stringify(state);
     const markup = battleMarkup(state);
     expect(markup).toContain('手札から1枚捨てる');
-    const choice = markup.slice(markup.indexOf('class="pending-choice-grid"'), markup.indexOf('class="pending-choice-confirm"'));
+    const choice = pendingCardsMarkup(markup);
     expect(choice).toContain('data-card-id="stone_strike"');
     expect(choice).not.toContain('data-card-id="still_guard"');
     expect(markup).not.toContain('aria-label="閉じる"');
+    expect(JSON.stringify(state)).toBe(saved);
+  });
+
+  it('lets an unplayable curse and an unaffordable power be discarded using readable whole-card controls', () => {
+    const state = createCombat('discard-unplayable-ui');
+    state.hand = [card('curse', 'stone_doubt'), card('power', 'berserker_barricade')];
+    state.energy = 0;
+    state.pendingChoice = { mode: 'discard', amount: 1, resume: { effects: [], defense: false } };
+    const saved = JSON.stringify(state);
+    const choices = pendingCardsMarkup(battleMarkup(state));
+    const picks = [...choices.matchAll(/<button[^>]*class="choice-card-pick"[^>]*>/g)];
+    expect(picks).toHaveLength(2);
+    expect(picks.every(([button]) => !button.includes('disabled'))).toBe(true);
+    expect(choices).toContain('石心の迷い');
+    expect(choices).toContain('使用不可');
+    expect(choices).toContain('強化後を表示');
+    expect(choices).not.toContain('このカードを選ぶ');
+    expect(choices).not.toContain('card-etching');
+    // The optional preview control is a sibling, never an invalid nested button.
+    const faces = [...choices.matchAll(/<button[^>]*class="choice-card-pick"[^>]*>([\s\S]*?)<\/button>/g)];
+    expect(faces.every((match) => !match[1].includes('<button'))).toBe(true);
     expect(JSON.stringify(state)).toBe(saved);
   });
 

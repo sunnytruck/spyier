@@ -159,7 +159,11 @@ describe('dedicated act-entry blessing screen', () => {
     const restored = deserializeRun(serializeRun(partial));
     expect(restored).not.toBeNull();
     const markup = render(restored!);
-    expect(markup).toContain(`class="blessing-target-card is-selected" data-blessing-target="${uid}"`);
+    const target = markup.match(new RegExp(`data-blessing-target="${uid}"([\\s\\S]*?)</article>`))?.[1];
+    expect(target).toBeDefined();
+    expect(target).toContain('choice-card');
+    expect(target).toContain('is-selected');
+    expect(target).toMatch(/class="choice-card-pick"[^>]*aria-pressed="true"/);
     expect(markup).toContain('選択 1 / 2枚');
     expect(markup).toContain('disabled="">祝福を確定して受け取る');
     expect(restored!.deck).toEqual(state.deck);

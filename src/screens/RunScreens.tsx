@@ -9,6 +9,7 @@ import { CLASS_DEFINITIONS } from '../data/classes';
 import { canAscendAct, canChooseEvent, getShopCardPrice, getShopRelicPrice, getShopPotionPrice, getShopRemovePrice } from '../engine/run';
 import { getActDefinition } from '../data/acts';
 import { CardView } from '../components/CardView';
+import { ChoiceCard } from '../components/ChoiceCard';
 import { CardUpgradePreview } from '../components/CardUpgradePreview';
 import { canUpgradeCard } from '../presentation/cardUpgrade';
 import { Icon } from '../components/Icon';
@@ -234,26 +235,9 @@ function RewardScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onAc
           </span>
         )}
       </div>
-      <div className="run-reward-cards">
-        {reward?.cardIds.map((cardId, index) => (
-          <div key={`${cardId}-${index}`} className="run-card-choice">
-            <CardView card={{ uid: `reward-${index}-${cardId}`, cardId, upgraded: false }} inspect />
-            <span className="run-card-rarity">
-              {CARD_DEFINITIONS[cardId]?.rarity === 'rare'
-                ? '希少な教え'
-                : CARD_DEFINITIONS[cardId]?.rarity === 'uncommon'
-                  ? '特別な教え'
-                  : '新たな教え'}
-            </span>
-            <button
-              className="secondary-button"
-              onClick={() => onAction({ type: 'takeCard', cardId })}
-            >
-              このカードを受け取る
-              <Icon name="arrow" size={15} />
-            </button>
-          </div>
-        ))}
+      <div className="run-reward-cards choice-card-grid">
+        {reward?.cardIds.map((cardId, index) => <ChoiceCard key={`${cardId}-${index}`} card={{ uid: `reward-${index}-${cardId}`, cardId, upgraded: false }}
+          selectionLabel="このカードを受け取る" onSelect={() => onAction({ type: 'takeCard', cardId })} />)}
       </div>
       <button
         className="run-skip-button text-button"
@@ -596,19 +580,10 @@ function UpgradeScreen({ state, onAction }: Pick<RunScreensProps, 'state' | 'onA
         </label>
         <p>{showUpgraded ? '一覧は強化後のプレビューです。デッキはまだ変更されていません。' : '一覧は現在の状態です。チェックするとすべての強化後を比較できます。'}</p>
       </div>
-      <div className="run-upgrade-grid">
+      <div className="run-upgrade-grid choice-card-grid">
         {cards.map((card) => (
-          <div key={card.uid} className="run-card-choice">
-            <CardView card={showUpgraded ? { ...card, upgraded: true } : card} inspect showUpgradePreview={false} />
-            <button
-              className="secondary-button"
-              onClick={() => setSelectedUid(card.uid)}
-              aria-label={`${CARD_DEFINITIONS[card.cardId]?.name}の強化内容を確認`}
-            >
-              <Icon name="flame" size={14} />
-              強化内容を確認
-            </button>
-          </div>
+          <ChoiceCard key={card.uid} card={showUpgraded ? { ...card, upgraded: true } : card} showUpgradePreview={false}
+            selectionLabel="強化内容を確認" onSelect={() => setSelectedUid(card.uid)} />
         ))}
       </div>
       {cards.length === 0 && (
@@ -780,19 +755,14 @@ export function RunScreens({ state, onAction, onNewRun, onReplay, onTitle, setti
         >
           <p className="modal-intro">
             {removing
-              ? '選んだカード1枚をデッキから取り除きます。この操作には60ゴールドを消費します。'
+              ? `選んだカード1枚をデッキから取り除きます。この操作には${getShopRemovePrice(state)}ゴールドを消費します。`
               : 'これまでの旅で身につけた教え。強化済みのカードには「＋」が付きます。'}
           </p>
-          <div className="run-deck-grid">
+          <div className="run-deck-grid choice-card-grid">
             {state.deck.map((card) => (
-              <div className="run-card-choice" key={card.uid}>
-                <CardView card={card} inspect />
-                {removing && (
-                  <button className="secondary-button danger-text" disabled={state.deck.length <= 5 || state.gold < getShopRemovePrice(state) || !!state.shop?.removed} onClick={() => remove(card)}>
-                    このカードを取り除く
-                  </button>
-                )}
-              </div>
+              <ChoiceCard key={card.uid} card={card}
+                disabled={removing && (state.deck.length <= 5 || state.gold < getShopRemovePrice(state) || !!state.shop?.removed)}
+                selectionLabel="このカードを取り除く" onSelect={removing ? () => remove(card) : undefined} />
             ))}
           </div>
         </Modal>

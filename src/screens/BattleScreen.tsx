@@ -4,7 +4,7 @@ import type { Actor, CombatState, EnemyIntent, EnemyState, GameSettings } from '
 import type { CombatCue } from '../presentation/types';
 import { getEnemies, getEnemyKey, predictEnemyDamage } from '../engine';
 import { Icon } from '../components/Icon';
-import { CardView } from '../components/CardView';
+import { ChoiceCard } from '../components/ChoiceCard';
 import { BattleHand } from '../components/BattleHand';
 import { Modal } from '../components/Modal';
 import { RockDeity, StoneSentinel } from '../components/CharacterArt';
@@ -718,15 +718,15 @@ export function BattleScreen({
         <button className="secondary-button" onClick={() => setInspectedEnemyId(null)}>戦闘に戻る</button>
       </Modal>}
 
-      {state.pendingChoice && !presentation?.busy && <Modal title={getPendingChoiceLabel(state)} subtitle="CHOOSE YOUR CARDS" onClose={keepChoiceOpen} dismissible={false} wide>
+      {state.pendingChoice && !presentation?.busy && <Modal title={getPendingChoiceLabel(state)} subtitle="CHOOSE YOUR CARDS" onClose={keepChoiceOpen} dismissible={false} wide className="card-choice-modal">
         <p className="modal-intro">カードを選び、確定すると効果の続きを解決します。{state.pendingChoice.mode === 'exhaust' ? '廃棄したカードは、この戦闘では山札に戻りません。' : state.pendingChoice.mode === 'topdeck' ? '選んだカードを山札の一番上へ戻します。次のドローで先に引きます。' : state.pendingChoice.mode === 'retrieve' ? state.pendingChoice.sourceZone === 'drawPile' ? '選んだ山札のカードを手札に加えます。山札の残りの順序は変えません。' : '選んだ捨て札を手札に戻します。' : '捨てたカードは捨て札に移ります。'}</p>
-        <div className="pending-choice-grid">
+        <div className="pending-choice-grid choice-card-grid">
           {getPendingChoiceCards(state).map((card) => {
             const selected = chosenCards.includes(card.uid);
-            return <div className={`pending-card-choice ${selected ? 'is-selected' : ''}`} key={card.uid}>
-              <CardView card={card} inspect />
-              <button className="secondary-button" aria-pressed={selected} disabled={!selected && chosenCards.length >= state.pendingChoice!.amount} onClick={() => setChosenCards((current) => selected ? current.filter((id) => id !== card.uid) : [...current, card.uid])}>{selected ? '✓ 選択中・解除する' : 'このカードを選ぶ'}</button>
-            </div>;
+            return <ChoiceCard key={card.uid} className="pending-card-choice" card={card} selected={selected}
+              disabled={!selected && chosenCards.length >= state.pendingChoice!.amount}
+              selectionLabel={state.pendingChoice!.mode === 'discard' ? '捨てる対象' : state.pendingChoice!.mode === 'exhaust' ? '廃棄する対象' : state.pendingChoice!.mode === 'topdeck' ? '山札に戻す対象' : '手札に加える対象'}
+              onSelect={() => setChosenCards((current) => selected ? current.filter((id) => id !== card.uid) : [...current, card.uid])} />;
           })}
         </div>
         <div className="pending-choice-confirm"><span>選択 {chosenCards.length} / {state.pendingChoice.amount}枚</span><button className="primary-button" disabled={chosenCards.length !== state.pendingChoice.amount} onClick={() => onChooseCards?.(chosenCards)}>選択を確定して続ける <Icon name="arrow" size={16} /></button></div>

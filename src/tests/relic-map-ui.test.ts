@@ -137,7 +137,11 @@ describe('saved relic acquisition screens', () => {
     const state = acquireRelic(original, relic.id, 'blessing', 'map');
     const saved = JSON.stringify(state);
     const view = markup(RelicAcquisitionScreen, { state, onAction: () => {} });
-    for (const cardId of state.relicAcquisition!.offeredCardIds) expect(view).toContain(`data-card-id="${cardId}" data-upgraded="true"`);
+    for (const cardId of state.relicAcquisition!.offeredCardIds) {
+      const face = view.match(new RegExp(`<article[^>]*data-card-id="${cardId}"[^>]*>`))?.[0];
+      expect(face).toBeDefined();
+      expect(face).toContain('data-upgraded="true"');
+    }
     expect(JSON.stringify(state)).toBe(saved);
     expect(state.relicAcquisition!.selectedCardIds).toEqual([]);
   });

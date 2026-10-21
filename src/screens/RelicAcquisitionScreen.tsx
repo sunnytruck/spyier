@@ -3,7 +3,7 @@ import type { CardInstance, GameSettings } from '../types/game';
 import type { RunAction, RunState } from '../types/run';
 import { RELIC_DEFINITIONS } from '../data/relics';
 import { reduceRelicAcquisition } from '../engine/relicAcquisition';
-import { CardView } from '../components/CardView';
+import { ChoiceCard } from '../components/ChoiceCard';
 import { CardUpgradePreview } from '../components/CardUpgradePreview';
 import { RelicIcon } from '../components/RelicIcon';
 import { Icon } from '../components/Icon';
@@ -13,7 +13,7 @@ const sourceLabels = { reward: '塔の宝物', shop: '岩の商人', event: '塔
 const kindLabels = { remove: '削除する', upgrade: '強化する', transform: '変化させる', copy: '複製する', chooseCard: '受け取る' };
 
 function CardFace({ card }: { card: CardInstance }) {
-  return <CardView card={card} inspect showUpgradePreview={false} />;
+  return <ChoiceCard card={card} showUpgradePreview={false} />;
 }
 
 /** All offers, targets, results and partial selection come from the saved reducer state. */
@@ -70,12 +70,12 @@ export function RelicAcquisitionScreen({ state, onAction, settings = { speed: 'n
 
     {!result && acquisition.kind && <section className="relic-acquisition-selection" aria-label="レリックの対象選択">
       <header><div><h2>{kindLabels[acquisition.kind]}カードを選択</h2><p>{acquisition.minCount === acquisition.count ? `${acquisition.count}枚選択してください。` : `${acquisition.minCount}〜${acquisition.count}枚選択できます。`}{acquisition.kind === 'transform' ? ' 変化先は獲得時に決定済みです。' : acquisition.kind === 'upgrade' ? ' 強化済みカードは候補から除外しています。' : ''}</p></div><b aria-live="polite">選択 {selected.length} / {acquisition.count}枚</b></header>
-      <div className="relic-acquisition-card-grid">{candidates.map((card) => {
+      <div className="relic-acquisition-card-grid choice-card-grid">{candidates.map((card) => {
         const chosen = selected.includes(isOffer ? card.cardId : card.uid);
-        return <article className={`relic-acquisition-card${chosen ? ' is-selected' : ''}`} key={card.uid} data-relic-target={isOffer ? card.cardId : card.uid}>
-          <CardFace card={offerPreview(card)} />
-          <button type="button" className="secondary-button" aria-pressed={chosen} disabled={!chosen && acquisition.count > 1 && selected.length >= acquisition.count} onClick={() => choose(card)}>{chosen ? '選択中 · 解除する' : 'このカードを選ぶ'}<Icon name={chosen ? 'sun' : 'chevron'} size={15} /></button>
-        </article>;
+        return <div className="relic-choice-option" key={card.uid} data-relic-target={isOffer ? card.cardId : card.uid}>
+          <ChoiceCard card={offerPreview(card)} selected={chosen} disabled={!chosen && acquisition.count > 1 && selected.length >= acquisition.count}
+            selectionLabel={`${kindLabels[acquisition.kind!]}対象`} onSelect={() => choose(card)} />
+        </div>;
       })}</div>
       {selectedCards.length > 0 && <div className="relic-acquisition-confirm-preview"><h3>確定する内容</h3><div>{selectedCards.map((card) => {
         if (acquisition.kind === 'upgrade') return <CardUpgradePreview key={card.uid} card={card} />;

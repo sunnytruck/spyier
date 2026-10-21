@@ -19,7 +19,7 @@ import {
 import { CLASS_IDS } from './data/classes';
 import { ClassSelectionScreen } from './screens/ClassSelectionScreen';
 import { Icon } from './components/Icon';
-import { CardView } from './components/CardView';
+import { ChoiceCard } from './components/ChoiceCard';
 import { Modal } from './components/Modal';
 import { TitleScreen } from './screens/TitleScreen';
 import { BattleScreen } from './screens/BattleScreen';
@@ -484,9 +484,9 @@ export default function App() {
           <p className="modal-intro">
             ＋は強化済み。探索の報酬や商人で増やし、休憩所で強化できます。
           </p>
-          <div className="pile-grid">
+          <div className="pile-grid choice-card-grid">
             {(run?.deck ?? practice?.deck ?? []).map((card) => (
-              <CardView card={card} key={card.uid} state={shownCombat?.phase === 'player' ? shownCombat : undefined} inspect />
+              <ChoiceCard card={card} key={card.uid} state={shownCombat?.phase === 'player' ? shownCombat : undefined} />
             ))}
           </div>
         </Modal>
@@ -534,11 +534,11 @@ export default function App() {
                   : 'この戦闘では、もう山札に戻りません。'}
           </p>
           {pileCards.length ? (
-            <div className="pile-grid">
+            <div className="pile-grid choice-card-grid">
               {[...pileCards]
                 .sort((a, b) => a.cardId.localeCompare(b.cardId))
                 .map((card) => (
-                  <CardView key={card.uid} card={card} state={shownCombat ?? undefined} inspect />
+                  <ChoiceCard key={card.uid} card={card} state={shownCombat ?? undefined} />
                 ))}
             </div>
           ) : (
