@@ -1,8 +1,7 @@
 /* IWASON's cut-stone cards: carved dark crowns, mineral wash and a different
    silhouette for each function. Text stays real, selectable Japanese text. */
 .app .game-card.stone-cut-card,
-.battle-card-inspector .game-card.stone-cut-card,
-.battle-card-ghost .game-card.stone-cut-card {
+:is(.battle-card-inspector, .battle-card-ghost) .game-card.stone-cut-card {
   --card-accent: #b4b89b;
   --etch-light: #cbd1b2;
   --etch-dark: #36483d;
@@ -18,13 +17,13 @@
   font-family: var(--sans, 'Yu Gothic', Meiryo, sans-serif);
   text-align: left;
 }
-.app .stone-cut-card[data-card-class='berserker'], .battle-card-inspector .stone-cut-card[data-card-class='berserker'] { --card-accent: #c99975; --etch-light: #dfc3a0; --etch-dark: #645046; --etch-glow: #c88f5a; }
-.app .stone-cut-card[data-card-class='assassin'], .battle-card-inspector .stone-cut-card[data-card-class='assassin'] { --card-accent: #a4b68f; --etch-light: #d2d7b8; --etch-dark: #3c5445; --etch-glow: #8cbd78; }
-.app .stone-cut-card[data-card-class='oracle'], .battle-card-inspector .stone-cut-card[data-card-class='oracle'] { --card-accent: #d9c181; --etch-light: #f1db9b; --etch-dark: #716748; --etch-glow: #e1bd55; }
-.app .stone-cut-card[data-card-class='necromancer'], .battle-card-inspector .stone-cut-card[data-card-class='necromancer'] { --card-accent: #b0afc7; --etch-light: #d7d4df; --etch-dark: #525570; --etch-glow: #9597ca; }
-.app .stone-cut-card[data-card-class='machinist'], .battle-card-inspector .stone-cut-card[data-card-class='machinist'] { --card-accent: #91b7bc; --etch-light: #c5e0db; --etch-dark: #41616a; --etch-glow: #81b9c5; }
-.app .stone-cut-card[data-card-class='colorless'], .battle-card-inspector .stone-cut-card[data-card-class='colorless'] { --card-accent: #c1bca7; --etch-light: #e0dac4; --etch-dark: #5c6255; --etch-glow: #bdb493; }
-.app .game-card.stone-cut-card::before, .battle-card-inspector .game-card.stone-cut-card::before {
+.app .stone-cut-card[data-card-class='berserker'], :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card[data-card-class='berserker'] { --card-accent: #c99975; --etch-light: #dfc3a0; --etch-dark: #645046; --etch-glow: #c88f5a; }
+.app .stone-cut-card[data-card-class='assassin'], :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card[data-card-class='assassin'] { --card-accent: #a4b68f; --etch-light: #d2d7b8; --etch-dark: #3c5445; --etch-glow: #8cbd78; }
+.app .stone-cut-card[data-card-class='oracle'], :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card[data-card-class='oracle'] { --card-accent: #d9c181; --etch-light: #f1db9b; --etch-dark: #716748; --etch-glow: #e1bd55; }
+.app .stone-cut-card[data-card-class='necromancer'], :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card[data-card-class='necromancer'] { --card-accent: #b0afc7; --etch-light: #d7d4df; --etch-dark: #525570; --etch-glow: #9597ca; }
+.app .stone-cut-card[data-card-class='machinist'], :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card[data-card-class='machinist'] { --card-accent: #91b7bc; --etch-light: #c5e0db; --etch-dark: #41616a; --etch-glow: #81b9c5; }
+.app .stone-cut-card[data-card-class='colorless'], :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card[data-card-class='colorless'] { --card-accent: #c1bca7; --etch-light: #e0dac4; --etch-dark: #5c6255; --etch-glow: #bdb493; }
+.app .game-card.stone-cut-card::before, :is(.battle-card-inspector, .battle-card-ghost) .game-card.stone-cut-card::before {
   inset: 4px;
   border: 1px solid #43574266;
   border-radius: 0;
@@ -32,7 +31,7 @@
   pointer-events: none;
   opacity: .7;
 }
-.app .stone-cut-card .card-heading, .battle-card-inspector .stone-cut-card .card-heading {
+.app .stone-cut-card .card-heading, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-heading {
   position: relative;
   height: auto;
   min-height: 48px;
@@ -43,44 +42,44 @@
   color: #f1e8c6;
   box-shadow: inset 0 -1px #a1aa8366;
 }
-.app .stone-cut-card .card-heading h3, .battle-card-inspector .stone-cut-card .card-heading h3 { font-family: var(--sans); font-size: 16px; line-height: 1.45; font-weight: 700; letter-spacing: .01em; text-shadow: 0 1px #0008; overflow-wrap: anywhere; }
-.app .stone-cut-card .card-cost, .battle-card-inspector .stone-cut-card .card-cost {
+.app .stone-cut-card .card-heading h3, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-heading h3 { font-family: var(--sans); font-size: 16px; line-height: 1.45; font-weight: 700; letter-spacing: .01em; text-shadow: 0 1px #0008; overflow-wrap: anywhere; }
+.app .stone-cut-card .card-cost, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-cost {
   width: 33px; min-width: 33px; height: 34px; font: 700 23px/1 var(--sans);
   color: #fff1c6; border: 1px solid var(--card-accent); border-radius: 0;
   clip-path: polygon(25% 0, 79% 0, 100% 23%, 100% 77%, 75% 100%, 20% 100%, 0 75%, 0 23%);
   background: #637054; box-shadow: inset 0 0 0 3px #263d2d;
 }
-.app .stone-cut-card .card-type-symbol, .battle-card-inspector .stone-cut-card .card-type-symbol { color: var(--card-accent); opacity: .9; margin-left: auto; }
-.app .stone-cut-card .card-art, .battle-card-inspector .stone-cut-card .card-art {
+.app .stone-cut-card .card-type-symbol, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-type-symbol { color: var(--card-accent); opacity: .9; margin-left: auto; }
+.app .stone-cut-card .card-art, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-art {
   height: 106px; min-height: 44px; margin: 0 7px; flex: 0 0 auto; overflow: hidden;
   color: var(--card-accent); border: 0; border-bottom: 1px solid #52694c88;
   background: radial-gradient(ellipse at 50% 80%, #b8c2a12b, transparent 68%), linear-gradient(155deg, #263a32, #172e27 64%, #344337);
   clip-path: polygon(0 0, 100% 0, 100% 87%, 94% 100%, 4% 100%, 0 90%);
 }
-.app .stone-cut-card .stone-etching, .battle-card-inspector .stone-cut-card .stone-etching { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 1; transform: none; }
-.app .stone-cut-card.game-card--attack .card-art, .battle-card-inspector .stone-cut-card.game-card--attack .card-art { background: radial-gradient(ellipse at 60% 25%, #9873544d, transparent 70%), linear-gradient(145deg, #353b30, #172d25 65%, #4e4434); }
-.app .stone-cut-card.game-card--power .card-art, .battle-card-inspector .stone-cut-card.game-card--power .card-art { background: radial-gradient(ellipse at 50% 45%, #b7a9613d, transparent 70%), linear-gradient(145deg, #3e4933, #18372d 70%, #5a5635); }
-.app .stone-cut-card .card-description, .battle-card-inspector .stone-cut-card .card-description {
+.app .stone-cut-card .stone-etching, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .stone-etching { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 1; transform: none; }
+.app .stone-cut-card.game-card--attack .card-art, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card.game-card--attack .card-art { background: radial-gradient(ellipse at 60% 25%, #9873544d, transparent 70%), linear-gradient(145deg, #353b30, #172d25 65%, #4e4434); }
+.app .stone-cut-card.game-card--power .card-art, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card.game-card--power .card-art { background: radial-gradient(ellipse at 50% 45%, #b7a9613d, transparent 70%), linear-gradient(145deg, #3e4933, #18372d 70%, #5a5635); }
+.app .stone-cut-card .card-description, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-description {
   color: #25372d; font-family: var(--sans); font-size: 15px; line-height: 1.8; font-weight: 550;
   padding: 13px 14px; text-shadow: none; overflow-wrap: anywhere;
 }
-.app .stone-cut-card .card-runtime, .battle-card-inspector .stone-cut-card .card-runtime { background: #3f604b10; border: 0; border-left: 2px solid #6a7b58; border-radius: 0; color: #284735; margin: 0 12px 8px; padding: 7px 9px; }
-.app .stone-cut-card .card-runtime-label, .battle-card-inspector .stone-cut-card .card-runtime-label { color: #38543b; font-weight: 700; }
-.app .stone-cut-card .card-runtime-fact, .battle-card-inspector .stone-cut-card .card-runtime-fact { color: #20442d; font-size: 13px; line-height: 1.6; }
-.app .stone-cut-card .card-runtime-fact small, .battle-card-inspector .stone-cut-card .card-runtime-fact small, .app .stone-cut-card .card-runtime-note { color: #3f5342; font-size: 13px; }
-.app .stone-cut-card .card-runtime.has-risk, .battle-card-inspector .stone-cut-card .card-runtime.has-risk { border-color: #934d3f; background: #934d3f0d; }
-.app .stone-cut-card .card-runtime-fact.is-risk, .battle-card-inspector .stone-cut-card .card-runtime-fact.is-risk { color: #7d2e24; }
-.app .stone-cut-card .card-footer, .battle-card-inspector .stone-cut-card .card-footer { color: #42543d; border-top: 1px solid #536b4b66; margin-inline: 13px; font-size: 11px; }
-.app .stone-cut-card .card-metadata, .battle-card-inspector .stone-cut-card .card-metadata { color: #53624a; }
-.app .stone-cut-card .card-glyph, .battle-card-inspector .stone-cut-card .card-glyph { color: #5b684e; }
-.app .stone-cut-card .card-shortcut { color: #43553c; border-color: #63765399; background: #d6d8bb; }
-.app .stone-cut-card[data-card-rarity='rare'] { border-color: #d4b65e; box-shadow: inset 0 0 0 3px #66592d, inset 0 0 0 4px #e6d99d88, 0 8px 14px #0006; }
-.app .stone-cut-card.is-playable { filter: drop-shadow(0 0 3px #b5ca6955); }
-.app .stone-cut-card.is-unplayable { opacity: .75; filter: saturate(.6); }
-.app .stone-cut-card.is-unplayable .card-cost { color: #d6d2b7; background: #5d6255; }
-.app .stone-cut-card .card-upgrade-inline { color: #405036; background: #c6ceac8f; }
-.app .stone-cut-card .card-acquisition-badge { color: #6c5424; background: #e5d59c; border-color: #b49a57; }
-.app .stone-cut-card .card-temporary-upgrade { color: #405c37; }
+.app .stone-cut-card .card-runtime, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-runtime { background: #3f604b10; border: 0; border-left: 2px solid #6a7b58; border-radius: 0; color: #284735; margin: 0 12px 8px; padding: 7px 9px; }
+.app .stone-cut-card .card-runtime-label, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-runtime-label { color: #38543b; font-weight: 700; }
+.app .stone-cut-card .card-runtime-fact, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-runtime-fact { color: #20442d; font-size: 13px; line-height: 1.6; }
+.app .stone-cut-card .card-runtime-fact small, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-runtime-fact small, .app .stone-cut-card .card-runtime-note { color: #3f5342; font-size: 13px; }
+.app .stone-cut-card .card-runtime.has-risk, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-runtime.has-risk { border-color: #934d3f; background: #934d3f0d; }
+.app .stone-cut-card .card-runtime-fact.is-risk, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-runtime-fact.is-risk { color: #7d2e24; }
+.app .stone-cut-card .card-footer, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-footer { color: #42543d; border-top: 1px solid #536b4b66; margin-inline: 13px; font-size: 11px; }
+.app .stone-cut-card .card-metadata, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-metadata { color: #53624a; }
+.app .stone-cut-card .card-glyph, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-glyph { color: #5b684e; }
+.app .stone-cut-card .card-shortcut, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-shortcut { color: #43553c; border-color: #63765399; background: #d6d8bb; }
+.app .stone-cut-card[data-card-rarity='rare'], :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card[data-card-rarity='rare'] { border-color: #d4b65e; box-shadow: inset 0 0 0 3px #66592d, inset 0 0 0 4px #e6d99d88, 0 8px 14px #0006; }
+.app .stone-cut-card.is-playable, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card.is-playable { filter: drop-shadow(0 0 3px #b5ca6955); }
+.app .stone-cut-card.is-unplayable, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card.is-unplayable { opacity: .75; filter: saturate(.6); }
+.app .stone-cut-card.is-unplayable .card-cost, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card.is-unplayable .card-cost { color: #d6d2b7; background: #5d6255; }
+.app .stone-cut-card .card-upgrade-inline, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-upgrade-inline { color: #405036; background: #c6ceac8f; }
+.app .stone-cut-card .card-acquisition-badge, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-acquisition-badge { color: #6c5424; background: #e5d59c; border-color: #b49a57; }
+.app .stone-cut-card .card-temporary-upgrade, :is(.battle-card-inspector, .battle-card-ghost) .stone-cut-card .card-temporary-upgrade { color: #405c37; }
 
 /* The hand keeps the same input contract. Fan geometry is static even when
    animation is disabled; only transitions and hover movement are reduced. */
@@ -103,14 +102,14 @@
 .app .art-directed-battle.compact-battle .battle-hand .battle-hand-slot.is-card-dragging { transform: translateY(0) rotate(0); }
 .app .art-directed-battle.compact-battle .battle-hand .battle-hand-slot > .stone-cut-card:hover,
 .app .art-directed-battle.compact-battle .battle-hand .battle-hand-slot > .stone-cut-card:focus-visible { transform: none; }
-.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-heading { height: auto; min-height: 43px; padding: 5px 8px; gap: 6px; }
-.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-heading h3 { font-size: 14px; line-height: 1.4; }
-.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-cost { width: 29px; min-width: 29px; height: 31px; font-size: 21px; }
-.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-art { height: 39px; min-height: 39px; margin-inline: 7px; }
-.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-description { padding: 6px 10px 4px; font-size: 14px; line-height: 1.55; font-weight: 550; }
-.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-runtime { margin: 1px 9px 5px; padding: 2px 4px; border-left-width: 1px; max-height: 36px; }
-.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-runtime-fact { font-size: 12px; line-height: 1.4; }
-.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-footer { font-size: 10px; margin: 0 9px 5px; min-height: 20px; }
+.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-heading, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-heading { height: auto; min-height: 43px; padding: 5px 8px; gap: 6px; }
+.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-heading h3, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-heading h3 { font-size: 14px; line-height: 1.4; }
+.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-cost, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-cost { width: 29px; min-width: 29px; height: 31px; font-size: 21px; }
+.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-art, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-art { height: 39px; min-height: 39px; margin-inline: 7px; }
+.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-description, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-description { padding: 6px 10px 4px; font-size: 14px; line-height: 1.55; font-weight: 550; }
+.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-runtime, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-runtime { margin: 1px 9px 5px; padding: 2px 4px; border-left-width: 1px; max-height: 36px; }
+.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-runtime-fact, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-runtime-fact { font-size: 12px; line-height: 1.4; }
+.app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-footer, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-footer { font-size: 10px; margin: 0 9px 5px; min-height: 20px; }
 .app .art-directed-battle.compact-battle .battle-hand .battle-card-detail-button { min-height: 27px; min-width: 43px; color: #d9dfc3; background: #304c3df5; border-color: #879b6d; border-radius: 1px; }
 .app .art-directed-battle.compact-battle .battle-hand[data-hand-fan='true'] .battle-card-detail-button { left: 8px; right: auto; bottom: 6px; }
 .app .art-directed-battle.compact-battle .battle-hand[data-hand-fan='true'] .stone-cut-card .card-footer { padding-left: 57px; padding-right: 0; }
@@ -121,8 +120,8 @@
 
 @media (min-width: 1600px) and (min-height: 900px) {
   .app .art-directed-battle.compact-battle .battle-hand { --hand-card-width: 206px; --hand-card-height: 246px; }
-  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-art { height: 57px; min-height: 57px; }
-  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-description { padding-block: 8px 5px; font-size: 15px; line-height: 1.65; }
+  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-art, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-art { height: 57px; min-height: 57px; }
+  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-description, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-description { padding-block: 8px 5px; font-size: 15px; line-height: 1.65; }
   .app .art-directed-battle.compact-battle .battle-hand[data-hand-fan='true'] .battle-hand-slot + .battle-hand-slot { margin-left: -32px; }
   .app .art-directed-battle.compact-battle .battle-hand[data-hand-size='8'] .battle-hand-slot + .battle-hand-slot { margin-left: -48px; }
 }
@@ -137,19 +136,19 @@
   .app .art-directed-battle.compact-battle .battle-hand .battle-hand-slot,
   .app .art-directed-battle.compact-battle .battle-hand .battle-hand-slot:hover,
   .app .art-directed-battle.compact-battle .battle-hand .battle-hand-slot:focus-within { transform: none; }
-  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-heading { min-height: 38px; padding: 4px 7px; }
-  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-heading h3 { font-size: 13px; }
-  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-cost { width: 27px; min-width: 27px; height: 28px; font-size: 20px; }
-  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-art { height: 24px; min-height: 24px; }
-  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-description { font-size: 14px; line-height: 1.55; padding: 5px 9px 3px; }
-  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-runtime { max-height: 31px; margin-bottom: 3px; }
-  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-runtime-fact { font-size: 11px; }
-  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-footer { font-size: 10px; min-height: 19px; }
+  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-heading, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-heading { min-height: 38px; padding: 4px 7px; }
+  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-heading h3, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-heading h3 { font-size: 13px; }
+  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-cost, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-cost { width: 27px; min-width: 27px; height: 28px; font-size: 20px; }
+  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-art, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-art { height: 24px; min-height: 24px; }
+  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-description, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-description { font-size: 14px; line-height: 1.55; padding: 5px 9px 3px; }
+  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-runtime, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-runtime { max-height: 31px; margin-bottom: 3px; }
+  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-runtime-fact, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-runtime-fact { font-size: 11px; }
+  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-footer, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-footer { font-size: 10px; min-height: 19px; }
   .app .art-directed-battle.compact-battle .battle-hand .hand-scroll-controls > button { min-width: 32px; height: 26px; }
 }
 @media (max-width: 700px) and (max-height: 740px) {
   .app .art-directed-battle.compact-battle .battle-hand { --hand-card-height: 155px; }
-  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-art { height: 12px; min-height: 12px; }
+  .app .art-directed-battle.compact-battle .battle-hand .stone-cut-card .card-art, .battle-card-ghost.is-art-hand-card > .stone-cut-card .card-art { height: 12px; min-height: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .app .art-directed-battle.compact-battle .battle-hand .battle-hand-slot { transition: none; animation: none; }

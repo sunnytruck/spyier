@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { GameSettings } from '../types/game';
 import type { CombatCue } from '../presentation/types';
 import { generatedCardEffect, getClassEffectRoute, type BattleEffectMotif } from '../presentation/classEffects';
+import { getHitFeedbackProfile, impactRecoilFrames, sceneryShakeFrames, type HitFeedbackProfile } from '../presentation/hitFeedback';
 import '../styles/battle-effects.css';
 
 interface Point { x: number; y: number }
@@ -16,8 +17,9 @@ interface Burst {
   seed: number;
   color: string;
   count: number;
+  feedback?: HitFeedbackProfile;
 }
-interface FloatingLabel extends Point { id: number; text: string; detail: string; kind: string; compact: boolean }
+interface FloatingLabel extends Point { id: number; text: string; detail: string; kind: string; compact: boolean; scale: number }
 interface Props { cue: CombatCue | null; sequence: number; settings: GameSettings; busy: boolean; duration?: number }
 
 const palette: Record<Motif, string> = {
@@ -67,6 +69,7 @@ export function BattleEffects({ cue, sequence, settings, busy, duration }: Props
   const quality = (settings as GameSettings & { effectsQuality?: 'auto' | 'full' | 'low' }).effectsQuality ?? 'auto';
   const lowQuality = quality === 'low' || (quality === 'auto' && (navigator.hardwareConcurrency || 8) <= 4);
   const reduced = settings.reducedMotion || settings.speed === 'instant';
+  const feedback = cue ? getHitFeedbackProfile(cue, settings, duration, lowQuality) : null;
 
   function cancelEffects() {
     for (const animation of animations.current) animation.cancel();
@@ -134,14 +137,14 @@ export function BattleEffects({ cue, sequence, settings, busy, duration }: Props
     const motif = route.motif;
     const activeDuration = duration;
     const speed = settings.speed === 'fast' ? 0.55 : 1;
-    const animate = (element: Element | undefined, keyframes: Keyframe[], fallbackDuration: number, extraDuration = 1) => {
-      if (!element || !element.animate) return;
-      const animation = element.animate(keyframes, { duration: (activeDuration ?? fallbackDuration * speed) * extraDuration, easing: 'cubic-bezier(.2,.7,.25,1)', fill: 'none' });
+    const animate = (element: Element | undefined, keyframes: Keyframe[], fallbackDuration: number, extraDuration = 1, easing = 'cubic-bezier(.2,.7,.25,1)') => {
+      if (!element || !element.animate || !keyframes.length) return;
+      const animation = element.animate(keyframes, { duration: (activeDuration ?? fallbackDuration * speed) * extraDuration, easing, fill: 'none' });
       animations.current.add(animation);
       animation.finished.then(() => animations.current.delete(animation), () => animations.current.delete(animation));
     };
-    const addBurst = (kind: Motif, origin = to, destination = origin, duration = 420, orbType?: Burst['orbType']) => {
-      bursts.current.push({ motif: kind, orbType, from: origin, to: destination, started: performance.now(), duration: duration * speed, seed: sequence * 53, color: palette[kind], count: lowQuality ? 9 : 23 });
+    const addBurst = (kind: Motif, origin = to, destination = origin, duration = 420, orbType?: Burst['orbType'], hit?: HitFeedbackProfile) => {
+      bursts.current.push({ motif: kind, orbType, from: origin, to: destination, started: performance.now(), duration: hit?.durationMs ?? duration * speed, seed: sequence * 53, color: palette[kind], count: hit?.particleCount ?? (lowQuality ? 9 : 23), feedback: hit });
       bursts.current = bursts.current.slice(-12);
     };
     const innerMotion = (element?: HTMLElement) => element?.querySelector<HTMLElement>('.resource-motion') ?? element;
@@ -188,21 +191,48 @@ export function BattleEffects({ cue, sequence, settings, busy, duration }: Props
       const intent = sourceActor?.closest('.formation-enemy, .combatant')?.querySelector<HTMLElement>('.enemy-intent');
       animate(intent ?? undefined, [{ boxShadow: '0 0 0 transparent' }, { boxShadow: '0 0 20px #e6a56870', borderColor: '#e6b16f' }, { boxShadow: '0 0 0 transparent' }], 260);
     } else if (cue.kind === 'impact') {
-      const blocked = (cue.amount ?? 0) <= 0;
+      const hit = getHitFeedbackProfile(cue, settings, activeDuration, lowQuality);
+      const blocked = hit.surface === 'shield' || hit.surface === 'guard';
       const direction = from.x <= to.x ? 1 : -1;
-      animate(targetActor, route.hpCost ? [
-        { filter: 'brightness(1) saturate(1)' },
-        { filter: 'brightness(.65) sepia(.7) saturate(2.1)', offset: .24 },
-        { filter: 'brightness(1) saturate(1)' },
-      ] : blocked ? [
-        { transform: 'translateX(0)' }, { transform: `translateX(${direction * 4}px)` }, { transform: 'translateX(0)' },
-      ] : [
-        { transform: 'translateX(0) rotate(0deg)', filter: 'brightness(1)' },
-        { transform: `translate(${direction * 13}px,2px) rotate(${direction * 3}deg)`, filter: 'brightness(1.6)', offset: 0.16 },
-        { transform: `translate(${-direction * 4}px,0) rotate(${-direction}deg)`, filter: 'brightness(1.05)', offset: 0.5 },
-        { transform: 'translateX(0) rotate(0deg)', filter: 'brightness(1)' },
-      ], 210);
-      addBurst(blocked ? (cue.absorbed ? 'guard' : 'shield') : ['poison', 'lightning', 'ghost', 'sacrifice', 'rock', 'knife', 'sword', 'doom', 'stars'].includes(motif) ? motif : 'impact');
+      // Orb and summon actor anchors also contain labels: animate their art
+      // wrapper, keeping resource values and controls as steady as HP/intent.
+      const sourceMotion = innerMotion(sourceActor);
+      const targetMotion = innerMotion(targetActor);
+      const cancelActorMotion = (element?: HTMLElement) => {
+        if (!element) return;
+        for (const animation of animations.current) {
+          if ((animation.effect as KeyframeEffect | null)?.target === element) {
+            animation.cancel();
+            animations.current.delete(animation);
+          }
+        }
+      };
+      if (hit.holdMs > 0) {
+        // Capture the attacker's actual contact pose, then recover inside this
+        // impact cue. No timeline pause, game timer or extra input lock is added.
+        if (sourceMotion && sourceMotion !== targetMotion) {
+          const pose = getComputedStyle(sourceMotion).transform;
+          cancelActorMotion(sourceMotion);
+          animate(sourceMotion, [
+            { offset: 0, transform: pose, easing: 'linear' },
+            { offset: hit.holdMs / hit.durationMs, transform: pose, easing: 'cubic-bezier(.2,.7,.25,1)' },
+            { offset: 1, transform: 'translate(0,0) rotate(0deg)' },
+          ], hit.durationMs / speed, 1, 'linear');
+        }
+        cancelActorMotion(targetMotion);
+        animate(targetMotion, impactRecoilFrames(hit, direction), hit.durationMs / speed, 1, 'linear');
+        const scenery = host.querySelector<HTMLElement>(':scope > .world-scene') ?? host.querySelector<HTMLElement>(':scope > .arena-scenery');
+        animate(scenery ?? undefined, sceneryShakeFrames(hit, direction), hit.durationMs / speed, 1, 'linear');
+      } else if (route.hpCost) {
+        animate(targetActor, [
+          { filter: 'brightness(1) saturate(1)' },
+          { filter: 'brightness(.65) sepia(.7) saturate(2.1)', offset: .24 },
+          { filter: 'brightness(1) saturate(1)' },
+        ], 210);
+      }
+      if (hit.surface !== 'none') addBurst(blocked ? (cue.absorbed ? 'guard' : 'shield')
+        : ['poison', 'lightning', 'ghost', 'sacrifice', 'rock', 'knife', 'sword', 'doom', 'stars'].includes(motif) ? motif : 'impact',
+      to, to, 420, undefined, hit.holdMs > 0 ? hit : undefined);
     } else if (cue.kind === 'death') {
       if (targetActor) targetActor.dataset.fallen = 'true';
       animate(targetActor, [
@@ -284,7 +314,7 @@ export function BattleEffects({ cue, sequence, settings, busy, duration }: Props
       let detail = cue.label ?? 'パワー';
       let labelKind: string = motif;
       if (cue.kind === 'impact') {
-        text = amount > 0 ? `−${amount}` : cue.absorbed ? 'GUARD' : cue.blocked ? 'BLOCK' : '0';
+        text = amount > 0 ? `−${amount}` : cue.absorbed ? '護衛' : cue.blocked ? '防御' : '0';
         detail = [
           cue.blocked ? `盾 ${cue.blocked} 軽減` : '',
           cue.absorbed ? `岩霊 ${cue.absorbed} 肩代わり` : '',
@@ -302,7 +332,8 @@ export function BattleEffects({ cue, sequence, settings, busy, duration }: Props
         if (cue.resource === 'ostyHp' && cue.resourceAction === 'vanish') text = '消滅';
       }
       const id = sequence;
-      const label: FloatingLabel = { id, x: to.x + (sequence % 3 - 1) * 17, y: Math.max(44, to.y - 54), text, detail, kind: labelKind, compact: cue.kind !== 'impact' && cue.kind !== 'heal' };
+      const gutter = Math.min(detail ? 96 : 70, bounds.width * .25);
+      const label: FloatingLabel = { id, x: Math.max(gutter, Math.min(bounds.width - gutter, to.x + (sequence % 3 - 1) * 16)), y: Math.max(68, to.y - 54 - sequence % 3 * 8), text, detail, kind: labelKind, compact: cue.kind !== 'impact' && cue.kind !== 'heal', scale: cue.kind === 'impact' ? getHitFeedbackProfile(cue, settings, activeDuration, lowQuality).numberScale : 1 };
       setLabels((current) => [...current.slice(-9), label]);
       const timer = setTimeout(() => { setLabels((current) => current.filter((entry) => entry.id !== id)); timers.current.delete(timer); }, 1050 * speed);
       timers.current.add(timer);
@@ -316,24 +347,28 @@ export function BattleEffects({ cue, sequence, settings, busy, duration }: Props
         context.setTransform(ratio, 0, 0, ratio, 0, 0);
         context.clearRect(0, 0, width, height);
         bursts.current = bursts.current.filter((entry) => now - entry.started < entry.duration);
-        for (const burst of bursts.current) drawBurst(context, burst, clamp((now - burst.started) / burst.duration), lowQuality);
+        for (const burst of bursts.current) {
+          const hold = burst.feedback?.holdMs ?? 0;
+          const elapsed = Math.max(0, now - burst.started - hold);
+          drawBurst(context, burst, clamp(elapsed / Math.max(1, burst.duration - hold)), lowQuality);
+        }
         animationFrame.current = bursts.current.length ? requestAnimationFrame(render) : 0;
       };
       animationFrame.current = requestAnimationFrame(render);
     }
   }, [cue, sequence, busy, reduced, settings.speed, lowQuality, duration]);
 
-  return <div className={`battle-effects-layer ${reduced ? 'effects-reduced' : ''}`} aria-hidden="true" data-effects-quality={lowQuality ? 'low' : 'full'}>
+  return <div className={`battle-effects-layer ${reduced ? 'effects-reduced' : ''}`} aria-hidden="true" data-effects-quality={lowQuality ? 'low' : 'full'} data-hit-surface={feedback?.enabled ? feedback.surface : undefined} data-hit-hold-ms={feedback?.holdMs ?? 0} data-hit-shake-px={feedback?.shakePx ?? 0}>
     <canvas ref={canvasRef} className="battle-effects-canvas" />
-    {labels.map((label) => <span key={label.id} className={`battle-number number-${label.kind} ${label.compact ? 'number-compact' : ''}`} style={{ left: label.x, top: label.y, animationDuration: `${settings.speed === 'fast' ? 580 : 1050}ms` }}><b>{label.text}</b>{label.detail && <small>{label.detail}</small>}</span>)}
+    {labels.map((label) => <span key={label.id} className={`battle-number number-${label.kind} ${label.compact ? 'number-compact' : ''}`} style={{ left: label.x, top: label.y, animationDuration: `${settings.speed === 'fast' ? 580 : 1050}ms`, '--hit-number-scale': label.scale } as CSSProperties}><b>{label.text}</b>{label.detail && <small>{label.detail}</small>}</span>)}
   </div>;
 }
 
 function drawBurst(context: CanvasRenderingContext2D, burst: Burst, t: number, lowQuality: boolean) {
   const { from, to, motif, seed, color } = burst;
-  const appear = Math.min(1, t * 7);
+  const appear = burst.feedback ? Math.min(1, .8 + t * 7) : Math.min(1, t * 7);
   const fade = (1 - t) ** 1.4;
-  const radius = Math.min(112, Math.max(52, context.canvas.width / (window.devicePixelRatio || 1) * 0.06));
+  const radius = burst.feedback?.contactRadius ?? Math.min(112, Math.max(52, context.canvas.width / (window.devicePixelRatio || 1) * 0.06));
   const travel = easeOut(clamp(t * 1.45));
   const x = from.x + (to.x - from.x) * travel;
   const y = from.y + (to.y - from.y) * travel;
@@ -345,6 +380,40 @@ function drawBurst(context: CanvasRenderingContext2D, burst: Burst, t: number, l
   context.lineJoin = 'round';
   context.shadowColor = color;
   context.shadowBlur = lowQuality ? 0 : 9;
+
+  if (burst.feedback) {
+    // Ink-dark contact cut and offset stone ring give contact a silhouette,
+    // rather than illuminating the whole screen or washing out the UI.
+    const contactSize = radius * (.48 + easeOut(t) * .48);
+    context.save();
+    context.translate(to.x, to.y);
+    context.shadowBlur = 0;
+    context.fillStyle = '#07110c';
+    context.globalAlpha = fade * .72;
+    polygon(context, 0, 0, contactSize, 9, -.2 + t * .14);
+    context.fill();
+    context.globalAlpha = fade * appear * .83;
+    context.strokeStyle = color;
+    context.lineWidth = burst.feedback.surface === 'health' ? 2.5 : 1.5;
+    context.beginPath();
+    context.ellipse(0, 0, contactSize * 1.1, contactSize * .78, -.24, -.4, 2.35);
+    context.stroke();
+    context.beginPath();
+    context.ellipse(0, 0, contactSize * .9, contactSize * .67, -.24, 2.8, 5.35);
+    context.stroke();
+    if (burst.feedback.surface === 'health') {
+      for (let index = 0; index < (lowQuality ? 3 : 7); index++) {
+        const direction = noise(seed + index * 73) * TAU;
+        const reach = contactSize * (1.28 + noise(seed + index * 29) * .45);
+        context.lineWidth = 1 + (1 - t) * 1.6;
+        context.beginPath();
+        context.moveTo(Math.cos(direction) * contactSize * .86, Math.sin(direction) * contactSize * .7);
+        context.lineTo(Math.cos(direction) * reach, Math.sin(direction) * reach * .78);
+        context.stroke();
+      }
+    }
+    context.restore();
+  }
 
   if (burst.orbType) {
     context.translate(x, y);
@@ -482,6 +551,28 @@ function drawBurst(context: CanvasRenderingContext2D, burst: Burst, t: number, l
     context.beginPath(); context.moveTo(-11, 17); context.lineTo(11, 17); context.stroke();
   }
   context.restore();
+
+  if (burst.feedback?.surface === 'health') {
+    context.save();
+    context.shadowBlur = 0;
+    const pieces = lowQuality ? 3 : 7;
+    for (let index = 0; index < pieces; index++) {
+      const n = noise(seed + index * 43);
+      const angle = noise(seed + index * 19) * TAU;
+      const distance = radius * (.24 + easeOut(t) * (.65 + n));
+      const px = to.x + Math.cos(angle) * distance;
+      const py = to.y + Math.sin(angle) * distance * .7 + t * t * 35;
+      const size = 3 + n * 4;
+      context.save(); context.translate(px, py); context.rotate(n + t * 3);
+      context.globalAlpha = fade * appear * .85;
+      context.fillStyle = '#66735a';
+      polygon(context, 0, 0, size, 4, n); context.fill();
+      context.strokeStyle = color; context.lineWidth = .8;
+      context.beginPath(); context.moveTo(-size, -size * .25); context.lineTo(0, -size); context.lineTo(size * .6, -size * .15); context.stroke();
+      context.restore();
+    }
+    context.restore();
+  }
 
   // Sparks, dust, poison globules and healing motes continue after the main shape.
   if (motif === 'card' || motif === 'slash' || motif === 'knife') return;

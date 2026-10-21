@@ -55,6 +55,10 @@
 .app .battle-screen.art-directed-battle.compact-battle .enemy-intent .intent-extra-effects { color: #d5bc99; font-size: 12px; }
 .app .battle-screen.art-directed-battle.compact-battle .enemy-intent .intent-icon { background: none; border: 0; color: #d4b978; width: 31px; height: 31px; }
 .app .battle-screen.art-directed-battle.compact-battle .status-chip { color: #dedfc2; background: #0e251dce; border: 0; border-radius: 0; padding: 3px 5px; min-height: 23px; }
+.app .battle-screen.art-directed-battle.compact-battle .status-chip--named { gap: 4px; font-family: var(--sans); white-space: nowrap; }
+.app .battle-screen.art-directed-battle.compact-battle .status-chip-label { font: 600 12px/1.4 var(--sans); }
+.app .battle-screen.art-directed-battle.compact-battle .status-chip[data-combat-status='draw-blocked'] { color: #f0c1a3; box-shadow: inset 0 -1px #ad705b; }
+.app .battle-screen.art-directed-battle.compact-battle .status-chip[data-combat-status^='retain-block'] { color: #d7e4bd; box-shadow: inset 0 -1px #91a77f; }
 .app .battle-screen.art-directed-battle.compact-battle .actor-status { top: 2px; }
 .app .battle-screen.art-directed-battle.compact-battle .class-resource-shelf { background: none; border: 0; border-radius: 0; padding: 2px 3px 0; box-shadow: none; }
 .app .battle-screen.art-directed-battle.compact-battle .class-resource-profession { color: #b4c3a6; }

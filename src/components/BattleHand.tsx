@@ -109,6 +109,7 @@ export function BattleHand({ state, disabled, onPlay, settings }: BattleHandProp
     const ghost = document.createElement('div');
     ghost.className = 'battle-card-ghost';
     if (source.closest('.compact-battle')) ghost.classList.add('is-compact-hand-card');
+    if (source.closest('.art-directed-battle')) ghost.classList.add('is-art-hand-card');
     if (latest.current.settings?.effectsQuality === 'low') ghost.classList.add('is-lightweight');
     ghost.setAttribute('aria-hidden', 'true');
     ghost.inert = true;

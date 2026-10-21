@@ -22,7 +22,7 @@ import { ClassResourceHud, EnemyResourceForecast, OrbSlots, OstyCompanion, StarE
 
 type Pile = 'drawPile' | 'discardPile' | 'exhaustPile' | 'powers';
 const keepChoiceOpen = () => {};
-interface StatusView { value: number; symbol: string; label: string; detail: string; color: string }
+interface StatusView { value: number; symbol: string; label: string; detail: string; color: string; shortLabel?: string; hideValue?: boolean; kind?: string }
 
 /** A portal keeps status explanations visible beside screen-edge enemies. */
 function StatusChip({ status }: { status: StatusView }) {
@@ -31,6 +31,7 @@ function StatusChip({ status }: { status: StatusView }) {
   const anchor = useRef<HTMLSpanElement>(null);
   const tooltip = useRef<HTMLSpanElement>(null);
   const id = useId();
+  const heading = `${status.label}${status.hideValue ? '' : ` ${status.value}`}`;
   useLayoutEffect(() => {
     if (!open || !anchor.current || !tooltip.current) return;
     const source = anchor.current.getBoundingClientRect();
@@ -57,15 +58,15 @@ function StatusChip({ status }: { status: StatusView }) {
     };
   }, [open]);
   return <>
-    <span ref={anchor} className={`status-chip status-${status.color}`} tabIndex={0}
-      title={`${status.label} ${status.value}：${status.detail}`}
-      aria-label={`${status.label} ${status.value}：${status.detail}`} aria-describedby={open ? id : undefined}
+    <span ref={anchor} className={`status-chip status-${status.color}${status.shortLabel ? ' status-chip--named' : ''}`} tabIndex={0} data-combat-status={status.kind}
+      title={`${heading}：${status.detail}`}
+      aria-label={`${heading}：${status.detail}`} aria-describedby={open ? id : undefined}
       onPointerEnter={(event) => { if (event.pointerType !== 'touch') setOpen(true); }}
       onPointerLeave={() => { if (document.activeElement !== anchor.current) setOpen(false); }}
       onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => setOpen(true)}>
-      <span>{status.symbol}</span><b>{status.value}</b>
+      <span>{status.symbol}</span>{status.shortLabel && <span className="status-chip-label">{status.shortLabel}</span>}{!status.hideValue && <b>{status.value}</b>}
     </span>
-    {open && createPortal(<span className="battle-status-tooltip" id={id} ref={tooltip} role="tooltip" style={position}>{status.label} {status.value}<small>{status.detail}</small></span>, document.body)}
+    {open && createPortal(<span className="battle-status-tooltip" id={id} ref={tooltip} role="tooltip" style={position}>{heading}<small>{status.detail}</small></span>, document.body)}
   </>;
 }
 interface BattleProps {
@@ -106,8 +107,8 @@ function intentExtras(intent: EnemyIntent): string {
   ].filter(Boolean).join(' / ');
 }
 
-function StatusChips({ actor, stillness = 0, intangible = 0, dexterity = 0, vigor = 0, plate = 0, weakMultiplier = 0.75, vulnerableMultiplier = 1.5 }: { actor: Actor; weakMultiplier?: number; vulnerableMultiplier?: number; stillness?: number; intangible?: number; dexterity?: number; vigor?: number; plate?: number }) {
-  const statuses = [
+function StatusChips({ actor, stillness = 0, intangible = 0, dexterity = 0, vigor = 0, plate = 0, drawBlocked = false, retainBlock = 0, retainBlockNextTurn = 0, weakMultiplier = 0.75, vulnerableMultiplier = 1.5 }: { actor: Actor; weakMultiplier?: number; vulnerableMultiplier?: number; stillness?: number; intangible?: number; dexterity?: number; vigor?: number; plate?: number; drawBlocked?: boolean; retainBlock?: number; retainBlockNextTurn?: number }) {
+  const statuses: StatusView[] = [
     {
       value: actor.strength,
       symbol: actor.strength < 0 ? '↓' : '↑',
@@ -183,6 +184,36 @@ function StatusChips({ actor, stillness = 0, intangible = 0, dexterity = 0, vigo
       symbol: '甲',
       label: 'プレート',
       detail: `ターン終了時に${plate}ブロックを得ます。敵の攻撃でHPを失うたびに1減少します。`,
+      color: 'stillness',
+    },
+    {
+      value: drawBlocked ? 1 : 0,
+      symbol: '止',
+      label: 'このターンはドロー不可',
+      shortLabel: 'ドロー不可',
+      hideValue: true,
+      kind: 'draw-blocked',
+      detail: 'このターンはカードを引けません。次の自分のターン開始時に解除され、通常のドローが再開します。カードを山札や捨て札から直接手札に加える処理には影響しません。',
+      color: 'weak',
+    },
+    {
+      value: retainBlock > 0 ? 1 : 0,
+      symbol: '▰',
+      label: 'ブロック保持',
+      shortLabel: 'ブロック保持',
+      hideValue: true,
+      kind: 'retain-block',
+      detail: '自分のターン開始時にブロックを失いません。敵の攻撃などで消費するブロックは通常どおり減少します。',
+      color: 'stillness',
+    },
+    {
+      value: retainBlock <= 0 ? retainBlockNextTurn : 0,
+      symbol: '▰',
+      label: '次のターンへブロック保持',
+      shortLabel: '次ターン保持',
+      hideValue: retainBlockNextTurn === 1,
+      kind: 'retain-block-next-turn',
+      detail: `次の自分のターン開始時にブロックを失いません。残り${retainBlockNextTurn}回。敵の攻撃などで消費するブロックは通常どおり減少します。`,
       color: 'stillness',
     },
   ].filter((status) => status.value !== 0);
@@ -342,7 +373,7 @@ export function BattleScreen({
         </div>
         <div className="combatant combatant--player">
           <div className="actor-status">
-            <StatusChips actor={{ ...state.player, strength: effectivePlayerStrength(state) }} stillness={state.stillness} intangible={state.intangible ?? 0} dexterity={state.dexterity ?? 0} vigor={state.vigor ?? 0} plate={state.plate ?? 0} />
+            <StatusChips actor={{ ...state.player, strength: effectivePlayerStrength(state) }} stillness={state.stillness} intangible={state.intangible ?? 0} dexterity={state.dexterity ?? 0} vigor={state.vigor ?? 0} plate={state.plate ?? 0} drawBlocked={state.drawBlocked} retainBlock={state.powerStacks?.retainBlock ?? 0} retainBlockNextTurn={state.powerStacks?.retainBlockNextTurn ?? 0} />
             {divine && (
               <span className="divine-tag">
                 <Icon name="sun" size={13} />

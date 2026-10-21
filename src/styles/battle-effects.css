@@ -9,10 +9,10 @@
 .cinematic-battle .health-track > .health-fill { position: relative; height: 100%; transition: width var(--battle-hp-speed) cubic-bezier(.2,.65,.3,1); }
 .battle-effects-layer { position: absolute; inset: 0; z-index: 15; pointer-events: none; overflow: visible; contain: layout style; }
 .battle-effects-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.battle-number { position: absolute; display: flex; flex-direction: column; align-items: center; color: #ffe1b6; white-space: nowrap; font-family: var(--serif); text-align: center; line-height: 1; animation: battle-number-rise 1050ms cubic-bezier(.14,.6,.25,1) both; transform-origin: 50% 50%; text-shadow: 0 3px 1px #17150f, 1px 0 2px #17150f, -1px 0 2px #17150f, 0 0 12px #3a1b11; }
-.battle-number > b { font-size: clamp(28px, 3.2vw, 46px); font-weight: 800; }
-.battle-number > small { font-size: 10px; letter-spacing: 1px; margin-top: 7px; font-family: var(--sans); font-weight: 600; background: #171a13d9; border: 1px solid currentColor; padding: 3px 6px; border-radius: 2px; }
-.battle-number.number-compact > b { font-size: clamp(22px, 2.2vw, 31px); }
+.battle-number { position: absolute; display: flex; flex-direction: column; align-items: center; max-width: min(190px, 46vw); color: #fff0cf; font-family: var(--sans); font-variant-numeric: lining-nums tabular-nums; text-align: center; line-height: 1; animation: battle-number-rise 1050ms cubic-bezier(.14,.6,.25,1) both; transform-origin: 50% 50%; text-shadow: 0 3px 0 #07110c, 2px 0 1px #07110c, -2px 0 1px #07110c, 0 -1px 1px #07110c, 0 0 12px #321c12; }
+.battle-number > b { font-size: clamp(34px, 3.45vw, 52px); font-weight: 900; white-space: nowrap; letter-spacing: -.035em; }
+.battle-number > small { max-width: 180px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; margin-top: 5px; font-weight: 700; background: #0a1512ee; border-bottom: 1px solid currentColor; padding: 3px 6px; }
+.battle-number.number-compact > b { font-size: clamp(24px, 2.2vw, 34px); }
 .number-poison { color: #c8ec91; }
 .number-sacrifice { color: #ffaaa0; }
 .number-forge { color: #ffe2a1; }
@@ -24,17 +24,18 @@
 .number-power, .number-stars { color: #ffe098; }
 .number-ghost, .number-sword { color: #d5c2ff; }
 .number-lightning { color: #fff0b0; }
-.number-blocked > b { font-size: 22px; letter-spacing: 2px; }
+.number-damage { color: #fff0cf; text-shadow: 0 3px 0 #120e08, 2px 0 1px #120e08, -2px 0 1px #120e08, 0 -1px 1px #120e08, 0 0 17px #a04c20; }
+.number-blocked > b { font-size: clamp(20px, 2vw, 26px); letter-spacing: .06em; }
 .battle-skip-button { font-size: 10px; color: #d5c795; border: 1px solid #9e895555; background: #1d251bcc; border-radius: 3px; padding: 7px 10px; cursor: pointer; white-space: nowrap; transition: border-color .15s, background .15s; }
 .battle-skip-button:hover { border-color: #cbb376; background: #3b3e2ccc; }
 .battle-skip-button > span { color: #eee0ad; margin-left: 6px; font-size: 14px; }
 .cinematic-battle.is-presenting .end-turn-button { cursor: wait; }
 @keyframes battle-number-rise {
-  0% { transform: translate(-50%, 12px) scale(.5) rotate(-5deg); opacity: 0; }
-  12% { transform: translate(-50%, -5px) scale(1.16) rotate(2deg); opacity: 1; }
-  25% { transform: translate(-50%, -10px) scale(1) rotate(0deg); opacity: 1; }
+  0% { transform: translate(-50%, 12px) scale(calc(var(--hit-number-scale, 1) * .62)) rotate(-3deg); opacity: 0; }
+  12% { transform: translate(-50%, -5px) scale(calc(var(--hit-number-scale, 1) * 1.12)) rotate(1deg); opacity: 1; }
+  25% { transform: translate(-50%, -10px) scale(var(--hit-number-scale, 1)) rotate(0deg); opacity: 1; }
   68% { opacity: 1; }
-  100% { transform: translate(-50%, -74px) scale(.92); opacity: 0; }
+  100% { transform: translate(-50%, -74px) scale(calc(var(--hit-number-scale, 1) * .94)); opacity: 0; }
 }
 .cinematic-battle.motion-reduced .health-track > span { transition: none; }
 .cinematic-battle.motion-reduced .actor-motion { animation: none; }
@@ -45,7 +46,8 @@
 }
 @media (max-width: 650px) {
   .battle-skip-button { padding: 6px 7px; font-size: 9px; }
-  .battle-number > small { font-size: 8px; margin-top: 4px; padding: 3px 4px; letter-spacing: 0; }
-  .battle-number > b { font-size: 29px; }
-  .battle-number.number-compact > b { font-size: 23px; }
+  .battle-number > small { font-size: 11px; margin-top: 4px; padding: 3px 5px; }
+  .battle-number > b { font-size: 32px; }
+  .battle-number.number-compact > b { font-size: 24px; }
+  .battle-number.number-blocked > b { font-size: 21px; }
 }
