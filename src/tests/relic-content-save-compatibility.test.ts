@@ -104,29 +104,27 @@ describe('frozen acquisition validation keeps authored constraints', () => {
     added.cardId = common;
     expect(isValidRelicAcquisitionState(state)).toBe(false);
   });
-  it('new random results save plans, while new pending offers and transforms restore without a historical-pool assumption', () => {
-    for (const id of ['ref_glass_eye', 'ref_arcane_scroll', 'ref_lead_paperweight', 'ref_claw']) {
-      let state: RunState | undefined;
-      for (let index = 0; index < 5000; index++) {
-        const candidate = createBlessedRun(`new-content-acquisition-${id}-${index}`, 'machinist');
-        const option = candidate.blessing!.options.find((entry) => entry.rewards.some((reward) => reward.kind === 'relic' && reward.relicId === id));
-        if (!option) continue;
-        state = reduceRun(candidate, { type: 'chooseBlessing', optionId: option.id });
-        state = reduceRun(state, { type: 'confirmBlessing' });
-        state = reduceRun(state, { type: 'continueBlessing' });
-        break;
-      }
-      expect(state, `${id}: no matching new public blessing within 5000 seeds`).toBeDefined();
-      if (!state) throw new Error('Missing public blessing fixture');
-      expect(isValidRelicAcquisitionState(state)).toBe(true);
-      expect(deserializeRun(serializeRun(state))).toEqual(state);
-      if (id === 'ref_glass_eye' || id === 'ref_arcane_scroll') {
-        expect(state.relicAcquisition!.randomCardPlans).toBeDefined();
-        const forged = structuredClone(state);
-        const plan = Object.values(forged.relicAcquisition!.randomCardPlans!)[0];
-        plan.cardIds[0] = 'blessing_apotheosis';
-        expect(isValidRelicAcquisitionState(forged)).toBe(false);
-      }
+  it.each(['ref_glass_eye', 'ref_arcane_scroll', 'ref_lead_paperweight', 'ref_claw'])('%s freezes new acquisition choices without a historical-pool assumption', (id) => {
+    let state: RunState | undefined;
+    for (let index = 0; index < 5000; index++) {
+      const candidate = createBlessedRun(`new-content-acquisition-${id}-${index}`, 'machinist');
+      const option = candidate.blessing!.options.find((entry) => entry.rewards.some((reward) => reward.kind === 'relic' && reward.relicId === id));
+      if (!option) continue;
+      state = reduceRun(candidate, { type: 'chooseBlessing', optionId: option.id });
+      state = reduceRun(state, { type: 'confirmBlessing' });
+      state = reduceRun(state, { type: 'continueBlessing' });
+      break;
+    }
+    expect(state, `${id}: no matching new public blessing within 5000 seeds`).toBeDefined();
+    if (!state) throw new Error('Missing public blessing fixture');
+    expect(isValidRelicAcquisitionState(state)).toBe(true);
+    expect(deserializeRun(serializeRun(state))).toEqual(state);
+    if (id === 'ref_glass_eye' || id === 'ref_arcane_scroll') {
+      expect(state.relicAcquisition!.randomCardPlans).toBeDefined();
+      const forged = structuredClone(state);
+      const plan = Object.values(forged.relicAcquisition!.randomCardPlans!)[0];
+      plan.cardIds[0] = 'blessing_apotheosis';
+      expect(isValidRelicAcquisitionState(forged)).toBe(false);
     }
   });
 });

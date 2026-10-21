@@ -1,5 +1,7 @@
 import type { CombatState, CombatValue, EffectCondition, EffectScaling, EnemyState } from '../../types/game';
 import { findEnemy, getEnemies } from './targets';
+import { CARD_DEFINITIONS } from '../../data/cards';
+import { isStrikeCard } from './resources';
 
 /** Canonical read-only quantities: preview and resolution use the same source. */
 export function combatValue(state: CombatState, value: CombatValue, target?: EnemyState): number {
@@ -19,6 +21,15 @@ export function combatValue(state: CombatState, value: CombatValue, target?: Ene
     case 'orbCount': return state.classResources?.orbs.length ?? 0;
     case 'distinctOrbCount': return new Set(state.classResources?.orbs ?? []).size;
     case 'livingEnemyCount': return getEnemies(state).filter((actor) => actor.hp > 0).length;
+    case 'handSkillCount': return state.hand.filter((card) => CARD_DEFINITIONS[card.cardId]?.type === 'skill').length;
+    case 'skillsPlayedThisTurn': return state.turnMetrics?.skillsPlayed ?? 0;
+    case 'generatedCardCount': return state.generatedCards?.length ?? 0;
+    case 'exhaustSoulCount': return state.exhaustPile.filter((card) => card.cardId === 'token_soul').length;
+    case 'strikeCardCount': return [...state.deck, ...(state.generatedCards ?? [])].filter((card) => isStrikeCard(card.cardId)).length;
+    case 'discardedThisTurn': return state.turnMetrics?.discarded ?? 0;
+    case 'drawnThisTurn': return state.turnMetrics?.drawn ?? 0;
+    case 'energySpentThisTurn': return state.turnMetrics?.energySpent ?? 0;
+    case 'etherealPlayedBattle': return state.battleMetrics?.etherealPlayed ?? 0;
   }
 }
 
@@ -28,6 +39,9 @@ export function meetsEffectCondition(state: CombatState, condition: EffectCondit
     case 'targetStatus': return (enemy?.[condition.status] ?? 0) >= (condition.min ?? 1);
     case 'targetAttacking': return enemy?.intent.damage !== undefined && (enemy?.stun ?? 0) === 0;
     case 'cardsPlayedAtMost': return state.cardsPlayedThisTurn <= condition.amount;
+    case 'handSizeAtLeast': return state.hand.length >= condition.amount;
+    case 'drawPileEmpty': return state.drawPile.length === 0;
+    case 'doomAppliedThisTurn': return (state.turnMetrics?.doomApplied ?? 0) > 0;
   }
 }
 

@@ -9,6 +9,9 @@ import { resolveEndTurn } from './combat/turn';
 import { findEnemy, getEnemies, getEnemyKey, normalizeInto } from './combat/targets';
 import { beforeCardRelics, relicPassiveAmount, triggerRelics } from './combat/relics';
 import { getRelicCardPlayLimit, getRelicXBonus } from './combat/relicModifiers';
+import { recordCardPlay, recordDiscard } from './combat/cardMetrics';
+import { meetsEffectCondition } from './combat/values';
+import { triggerCardPowers } from './combat/cardPowers';
 import { resolveEffects } from './effects/resolve';
 import { createClassResources } from './combat/resources';
 import { reactToPlayerCard } from './combat/enemyAI';
@@ -140,6 +143,8 @@ export function canPlayCard(state: CombatState, cardUid: string, targetId?: stri
     return false;
   const card = state.hand.find((instance) => instance.uid === cardUid);
   if (!card || !Object.hasOwn(CARD_DEFINITIONS, card.cardId)) return false;
+  const condition = CARD_DEFINITIONS[card.cardId].playCondition;
+  if (condition && !meetsEffectCondition(state, condition, findEnemy(state, targetId))) return false;
   return state.energy >= getCardCost(card, state);
 }
 
@@ -147,8 +152,12 @@ function settlePlayedCard(state: CombatState, card: CardInstance): void {
   if (state.relicCounters) delete state.relicCounters[`attack-multiplier:${card.uid}`];
   const definition = CARD_DEFINITIONS[card.cardId];
   if (definition.type === 'attack' && state.vigor) { state.vigor = 0; emitCombatCue(state, { kind: 'status', targetId: 'player', status: 'vigor', amount: 0, label: '活力を消費' }); }
-  let toZone: 'powers' | 'exhaustPile' | 'discardPile';
-  if (definition.type === 'power') {
+  let toZone: 'powers' | 'exhaustPile' | 'discardPile' | 'drawPile';
+  if (state.cardReturnTargets?.[card.uid] === 'drawPile') {
+    state.drawPile.push(card); toZone = 'drawPile';
+    delete state.cardReturnTargets[card.uid];
+    if (!Object.keys(state.cardReturnTargets).length) delete state.cardReturnTargets;
+  } else if (definition.type === 'power') {
     state.powers.push(card);
     toZone = 'powers';
   } else if (card.upgraded ? definition.upgradedExhaust ?? definition.exhaust : definition.exhaust) {
@@ -229,6 +238,7 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
     delete next.pendingChoice;
     emitCombatCue(next, { kind: choice.mode === 'retrieve' ? 'draw' : choice.mode === 'exhaust' ? 'exhaust' : 'discard', sourceId: 'player', cards: chosenCards, fromZone: sourceZone, toZone });
     if (choice.mode === 'exhaust' || choice.mode === 'discard') for (const card of chosenCards) triggerRelics(next, choice.mode === 'exhaust' ? 'cardExhausted' : 'cardDiscarded', { card });
+    if (choice.mode === 'discard') recordDiscard(next, chosenCards.length);
     appendLog(
       next,
       `${action.cardIds.length}枚を${choice.mode === 'topdeck' ? '山札の一番上に置いた' : choice.mode === 'retrieve' ? '手札に戻した' : choice.mode === 'discard' ? '捨て札にした' : '廃棄した'}。`,
@@ -278,6 +288,7 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
   next.energy -= paidEnergy;
   next.cardsPlayedThisTurn += 1;
   next.stats.cardsPlayed += 1;
+  recordCardPlay(next, card, paidEnergy);
   beforeCardRelics(next, card);
   appendLog(next, `「${definition.name}${card.upgraded ? '+' : ''}」を使用。`);
   emitCombatCue(next, { kind: 'cardPlay', sourceId: 'player', targetId, card, fromZone: 'hand', toZone: 'played', label: definition.name });
@@ -285,6 +296,7 @@ export function reduceCombat(state: CombatState, action: CombatAction): CombatSt
     reactToPlayerCard(next, definition.type);
     if (definition.type === 'attack' && next.relicIds?.length) { next.relicCounters ??= {}; const key = `attacks-turn:${next.turn}`; next.relicCounters[key] = (next.relicCounters[key] ?? 0) + 1; }
     triggerRelics(next, 'cardPlayed', { card, amount: paidEnergy });
+    triggerCardPowers(next, card);
     if (definition.type === 'attack') {
       triggerRelics(next, 'firstAttack');
       if (next.powerStacks?.blockOnAttack) gainBlock(next, 'player', next.powerStacks.blockOnAttack);

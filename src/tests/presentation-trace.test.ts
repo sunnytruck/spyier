@@ -20,6 +20,10 @@ function fixture(cardId = 'stone_strike', upgraded = false, multi = false): Comb
   state.hand = deck.slice(0, 4);
   state.drawPile = deck.slice(4);
   state.discardPile = [];
+  if (definition.playCondition?.type === 'drawPileEmpty') {
+    state.discardPile.push(...state.drawPile);
+    state.drawPile = [];
+  }
   state.energy = 100;
   for (const enemy of getEnemies(state)) {
     enemy.hp = enemy.maxHp = 500;

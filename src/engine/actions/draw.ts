@@ -3,9 +3,11 @@ import { shuffle } from '../random';
 import { triggerRelics } from '../combat/relics';
 import { appendLog } from '../combat/state';
 import { emitCombatCue, inheritCombatTrace } from '../../presentation/trace';
+import { recordDraw } from '../combat/cardMetrics';
 
 /** Internal mutating helper: state must be a freshly created/reducer-owned copy. */
 export function drawInto(state: CombatState, amount: number): void {
+  if (state.drawBlocked) { appendLog(state, 'このターンは追加のドローができない。'); return; }
   let drawn: CardInstance[] = [];
   const flush = () => {
     if (drawn.length) emitCombatCue(state, { kind: 'draw', card: drawn[0], cards: drawn, fromZone: 'drawPile', toZone: 'hand', amount: drawn.length });
@@ -30,6 +32,7 @@ export function drawInto(state: CombatState, amount: number): void {
     const card = state.drawPile.pop();
     if (!card) break;
     state.hand.push(card);
+    recordDraw(state, 1);
     drawn.push(card);
   }
   flush();

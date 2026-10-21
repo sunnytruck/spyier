@@ -74,7 +74,9 @@ function enemy(value: unknown): boolean {
 
 const CLASS_IDS = ['berserker', 'assassin', 'oracle', 'necromancer', 'machinist'] as const;
 const POWER_KEYS = ['stillness', 'thorns', 'strengthOnTurn', 'poisonAura', 'drawOnTurn',
-  'blockOnAttack', 'knifeDamage', 'knivesOnTurn', 'focusOnTurn', 'energyOnTurn', 'blockPerOrbTypeOnTurn'];
+  'blockOnAttack', 'knifeDamage', 'knivesOnTurn', 'focusOnTurn', 'energyOnTurn', 'blockPerOrbTypeOnTurn',
+  'retainBlock', 'retainBlockNextTurn', 'doomRandomOnTurn', 'summonDamage', 'energyOnPower', 'lightningOnPower',
+  'orbPassiveOnTurn', 'colorlessOnTurn', 'strengthOnCardTemporary'];
 
 /** Only authored effect lists can be restored; saved JSON cannot inject new opcodes. */
 function authoredLists(effects: Effect[]): Effect[][] {
@@ -98,7 +100,7 @@ function temporaryMechanics(value: Record<string, unknown>, enemyKeys: string[])
   if (value.turnModifiers !== undefined) {
     if (!Array.isArray(value.turnModifiers) || value.turnModifiers.length > 1000) return false;
     if (!value.turnModifiers.every((entry) => record(entry) && integer(entry.amount, -1_000_000) && (
-      entry.kind === 'dexterity' || (entry.kind === 'power' ? oneOf(entry.power, POWER_KEYS)
+      entry.kind === 'dexterity' || (entry.kind === 'power' ? oneOf(entry.power, POWER_KEYS) && (entry.expireAt === undefined || entry.expireAt === 'playerEnd')
         : entry.kind === 'status' && oneOf(entry.status, ['strength', 'weak', 'vulnerable', 'poison']) &&
           (entry.expireAt === undefined || entry.expireAt === 'playerEnd') &&
           (entry.targetId === 'player' || enemyKeys.includes(String(entry.targetId))))
@@ -199,6 +201,10 @@ export function isValidCombatState(value: unknown): value is CombatState {
   if (!enemy(value.enemy) || !classState(value)) return false;
   if (value.player.maxHp === 0 && value.phase !== 'defeat') return false;
   if (value.intangible !== undefined && !integer(value.intangible)) return false;
+  if (value.drawBlocked !== undefined && typeof value.drawBlocked !== 'boolean') return false;
+  if (value.turnMetrics !== undefined && (!record(value.turnMetrics) ||
+    !['skillsPlayed', 'energySpent', 'drawn', 'discarded', 'doomApplied'].every((key) => integer((value.turnMetrics as Record<string, unknown>)[key])))) return false;
+  if (value.battleMetrics !== undefined && (!record(value.battleMetrics) || !integer(value.battleMetrics.etherealPlayed))) return false;
   if (value.encounterType !== undefined && !oneOf(value.encounterType, ['battle', 'elite', 'boss', 'event'])) return false;
   if (value.dexterity !== undefined && !integer(value.dexterity, -1_000_000)) return false;
   if (['plate', 'vigor', 'orbSlotBonus'].some((key) => value[key] !== undefined && !integer(value[key], 0, key === 'orbSlotBonus' ? 1000 : 1_000_000))) return false;
@@ -268,6 +274,12 @@ export function isValidCombatState(value: unknown): value is CombatState {
   const inventory = [...value.deck, ...generated];
   const knownCards = new Map(inventory.map((instance) => [instance.uid, instance]));
   if (knownCards.size !== inventory.length) return false;
+  if (value.instanceDamageBonuses !== undefined && (!record(value.instanceDamageBonuses) ||
+    !Object.entries(value.instanceDamageBonuses).every(([uid, amount]) => knownCards.has(uid) && integer(amount)))) return false;
+  if (value.cardReturnTargets !== undefined && (!record(value.cardReturnTargets) ||
+    !Object.entries(value.cardReturnTargets).every(([uid, destination]) => knownCards.has(uid) && destination === 'drawPile' &&
+      record(value.pendingChoice) && record(value.pendingChoice.resume) && record(value.pendingChoice.resume.sourceCard) &&
+      value.pendingChoice.resume.sourceCard.uid === uid))) return false;
   const temporaryUpgrades = value.temporaryUpgrades ?? [];
   if (!Array.isArray(temporaryUpgrades) || temporaryUpgrades.length > 1000 ||
     new Set(temporaryUpgrades).size !== temporaryUpgrades.length ||

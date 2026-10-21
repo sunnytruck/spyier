@@ -14,15 +14,29 @@ export type PowerKey =
   | 'knivesOnTurn'
   | 'focusOnTurn'
   | 'blockPerOrbTypeOnTurn'
+  | 'retainBlock'
+  | 'retainBlockNextTurn'
+  | 'doomRandomOnTurn'
+  | 'summonDamage'
+  | 'energyOnPower'
+  | 'lightningOnPower'
+  | 'orbPassiveOnTurn'
+  | 'colorlessOnTurn'
+  | 'strengthOnCardTemporary'
   | 'energyOnTurn';
 
 /** Read-only combat quantities shared by reusable effect handlers and their previews. */
 export type CombatValue = 'handSize' | 'drawPileSize' | 'discardPileSize' | 'exhaustPileSize'
   | 'enemyPoison' | 'enemyWeak' | 'enemyVulnerable' | 'enemyDoom' | 'enemyDebuffs' | 'totalEnemyPoison'
-  | 'orbCount' | 'distinctOrbCount' | 'livingEnemyCount';
+  | 'orbCount' | 'distinctOrbCount' | 'livingEnemyCount'
+  | 'handSkillCount' | 'skillsPlayedThisTurn' | 'generatedCardCount' | 'exhaustSoulCount'
+  | 'strikeCardCount' | 'discardedThisTurn' | 'drawnThisTurn' | 'etherealPlayedBattle' | 'energySpentThisTurn';
 export type EffectCondition =
   | { type: 'targetStatus'; status: 'poison' | 'weak' | 'vulnerable'; min?: number }
   | { type: 'targetAttacking' }
+  | { type: 'handSizeAtLeast'; amount: number }
+  | { type: 'drawPileEmpty' }
+  | { type: 'doomAppliedThisTurn' }
   | { type: 'cardsPlayedAtMost'; amount: number };
 export interface EffectScaling {
   value: CombatValue;
@@ -47,6 +61,8 @@ export type Effect =
       hitsPer?: CombatValue;
       bonusPer?: EffectScaling;
       hitsIf?: { condition: EffectCondition; extra: number };
+      /** Awarded once per actual enemy kill, including the final enemy. */
+      onKill?: { stars?: number; energy?: number };
     }
   | { type: 'block'; amount: number; bonusPer?: EffectScaling }
   | { type: 'gauge'; amount: number }
@@ -63,9 +79,12 @@ export type Effect =
       status: 'strength' | 'weak' | 'vulnerable' | 'poison';
       amount: number;
       allowNegative?: boolean;
+      bonusPer?: EffectScaling;
     }
   | { type: 'power'; power: PowerKey; amount: number }
   | { type: 'multiplyPoison'; amount: number }
+  | { type: 'multiplyStatus'; status: 'vulnerable' | 'weak' | 'poison'; amount: number }
+  | { type: 'randomStatus'; status: 'poison'; amount: number; hits: number }
   | { type: 'loseHp'; amount: number }
   | { type: 'discard'; amount: number }
   | { type: 'exhaustChoice'; amount: number; from?: 'hand' | 'drawPile' | 'discardPile' }
@@ -73,6 +92,10 @@ export type Effect =
   | { type: 'moveChoice'; from: 'hand' | 'discardPile' | 'drawPile'; to: 'drawPile' | 'hand'; amount: number }
   | { type: 'moveRandom'; from: 'discardPile' | 'drawPile'; to: 'hand'; amount: number }
   | { type: 'cardDamageBonus'; amount: number }
+  | { type: 'instanceDamageBonus'; amount: number }
+  | { type: 'preventDraw' }
+  | { type: 'returnSelf'; destination: 'drawPile' }
+  | { type: 'moveMatching'; from: 'discardPile'; to: 'hand'; cost: 0 }
   | { type: 'loseMaxHp'; amount: number }
   | { type: 'upgradeAll' }
   | { type: 'upgradeRandom'; from: 'hand' | 'drawPile' | 'discardPile'; amount: number }
@@ -86,7 +109,7 @@ export type Effect =
   | { type: 'conditional'; condition: EffectCondition; effects: Effect[] }
   | { type: 'nextTurn'; effects: Effect[] }
   | { type: 'temporaryStatus'; target: Target | 'allEnemies'; status: 'strength' | 'weak' | 'vulnerable' | 'poison'; amount: number; allowNegative?: boolean }
-  | { type: 'temporaryPower'; power: PowerKey; amount: number }
+  | { type: 'temporaryPower'; power: PowerKey; amount: number; expireAt?: 'playerEnd' }
   | { type: 'generate'; cardId: string; amount: number; destination: CardDestination; upgraded?: boolean }
   | { type: 'copySelf'; destination: CardDestination }
   | { type: 'fetchGenerated'; cardId: string }
@@ -139,6 +162,8 @@ export interface CardDefinition {
   unplayable?: boolean;
   unupgradable?: boolean;
   curse?: boolean;
+  /** Optional authored usage requirement, shared by inspection and the reducer. */
+  playCondition?: EffectCondition;
 }
 
 export interface CardInstance {
@@ -227,7 +252,7 @@ export interface PendingCardChoice {
 export type TurnModifier =
   | { kind: 'status'; targetId: string; status: 'strength' | 'weak' | 'vulnerable' | 'poison'; amount: number; expireAt?: 'playerEnd' }
   | { kind: 'dexterity'; amount: number }
-  | { kind: 'power'; power: PowerKey; amount: number };
+  | { kind: 'power'; power: PowerKey; amount: number; expireAt?: 'playerEnd' };
 
 export interface BattleLog {
   id: number;
@@ -276,6 +301,12 @@ export interface CombatState {
   vigor?: number;
   orbSlotBonus?: number;
   cardsPlayedThisTurn: number;
+  /** Optional on legacy saves; initialized only for the expanded card mechanics. */
+  turnMetrics?: { skillsPlayed: number; energySpent: number; drawn: number; discarded: number; doomApplied: number };
+  battleMetrics?: { etherealPlayed: number };
+  drawBlocked?: boolean;
+  instanceDamageBonuses?: Record<string, number>;
+  cardReturnTargets?: Record<string, 'drawPile'>;
   stats: { cardsPlayed: number; damageDealt: number };
   log: BattleLog[];
   events: CombatEvent[];

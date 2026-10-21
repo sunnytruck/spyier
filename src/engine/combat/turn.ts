@@ -12,6 +12,8 @@ import { emitCombatCue, withCombatTraceContext } from '../../presentation/trace'
 import { advanceEnemyIntent, enemySurvivesTurnStart, predictedEnemyAttackContext } from './enemyAI';
 import { resolveEffects } from '../effects/resolve';
 import { shouldRelicRetainHand } from './relicModifiers';
+import { triggerTurnPowers } from './cardPowers';
+import { resetTurnMetrics } from './cardMetrics';
 
 function expireStatuses(actor: Actor): void {
   actor.weak = Math.max(0, actor.weak - 1);
@@ -52,10 +54,11 @@ function startPlayerPowers(state: CombatState): void {
     state.energy += stacks.energyOnTurn;
     emitCombatCue(state, { kind: 'resource', targetId: 'player', resource: 'energy', amount: stacks.energyOnTurn, label: '不滅の火種' });
   }
+  triggerTurnPowers(state);
 }
 
 function expireTurnModifiers(state: CombatState, timing: 'playerEnd' | 'nextTurn' = 'nextTurn'): void {
-  const modifiers = state.turnModifiers?.filter((modifier) => (modifier.kind === 'status' && modifier.expireAt === 'playerEnd') === (timing === 'playerEnd'));
+  const modifiers = state.turnModifiers?.filter((modifier) => ('expireAt' in modifier && modifier.expireAt === 'playerEnd') === (timing === 'playerEnd'));
   if (!modifiers) return;
   state.turnModifiers = state.turnModifiers!.filter((modifier) => !modifiers.includes(modifier));
   if (!state.turnModifiers.length) delete state.turnModifiers;
@@ -209,7 +212,11 @@ export function resolveEndTurn(state: CombatState): void {
   }
   expireTurnModifiers(state);
   state.turn += 1;
-  state.player.block = Math.min(state.player.block, relicPassiveAmount(state, 'retainBlock'));
+  const retainAll = (state.powerStacks?.retainBlock ?? 0) > 0 || (state.powerStacks?.retainBlockNextTurn ?? 0) > 0;
+  if (!retainAll) state.player.block = Math.min(state.player.block, relicPassiveAmount(state, 'retainBlock'));
+  if (state.powerStacks?.retainBlockNextTurn) state.powerStacks.retainBlockNextTurn -= 1;
+  delete state.drawBlocked;
+  resetTurnMetrics(state);
   tickPoison(state, 'player');
   if (finishIfNeeded(state)) return;
   state.energy = state.maxEnergy + (state.classResources?.nextTurnEnergy ?? 0) + (hasRelicPassive(state, 'retainEnergy') ? state.energy : 0);
@@ -225,6 +232,7 @@ export function resolveEndTurn(state: CombatState): void {
   appendLog(state, `ターン${state.turn}。朝活しよ。エナジーを回復し、5枚引く。`);
   emitCombatCue(state, { kind: 'turn', sourceId: 'player', targetId: 'player', amount: state.turn, label: 'あなたのターン' });
   startPlayerPowers(state);
+  if (finishIfNeeded(state)) return;
   if (state.relicCounters?.nextTurnBlock) { const amount = state.relicCounters.nextTurnBlock; delete state.relicCounters.nextTurnBlock; gainBlock(state, 'player', amount); }
   triggerRelics(state, 'turnStart');
   const scheduled = state.scheduledEffects;

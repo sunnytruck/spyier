@@ -52,6 +52,7 @@ export function attackCardBase(
 ): number {
   return scaledEffectAmount(state, effect, target) +
     (sourceCard ? state.cardDamageBonuses?.[sourceCard.cardId] ?? 0 : 0) +
+    (sourceCard ? state.instanceDamageBonuses?.[sourceCard.uid] ?? 0 : 0) +
     (sourceCard && CARD_DEFINITIONS[sourceCard.cardId]?.type === 'attack' ? (state.vigor ?? 0) + (sourceCard.upgraded ? relicPassiveAmount(state, 'upgradedAttackBonus') : 0) + (isStrikeCard(sourceCard.cardId) ? relicPassiveAmount(state, 'strikeBonus') : 0) : 0) +
     (effect.fromBlock ? state.player.block : 0) +
     (effect.fromForge ? state.classResources?.forge ?? 0 : 0) +
@@ -197,9 +198,10 @@ export function channelOrbs(state: CombatState, orb: OrbType, amount: number): v
   appendLog(state, `${orb === 'lightning' ? '雷' : '氷'}オーブを${amount}個生成。`);
 }
 
-export function triggerPassiveOrbs(state: CombatState, options: { orb?: OrbType; targetId?: string } = {}): void {
+export function triggerPassiveOrbs(state: CombatState, options: { orb?: OrbType; targetId?: string; index?: number } = {}): void {
   for (const [index, orb] of (state.classResources?.orbs ?? []).entries()) {
     if (state.phase !== 'player') break;
+    if (options.index !== undefined && options.index !== index) continue;
     if (options.orb && orb !== options.orb) continue;
     triggerOrb(state, orb, false, index, options.targetId);
     if (index === (state.classResources?.orbs.length ?? 0) - 1) for (let count = 0; count < relicPassiveAmount(state, 'rightmostOrbExtraPassive') && state.phase === 'player'; count++) triggerOrb(state, orb, false, index, options.targetId);
@@ -219,6 +221,6 @@ export function summonAttack(
     appendLog(state, '召喚体がいないため、召喚攻撃は発動しない。');
     return;
   }
-  withCombatTraceContext(state, { sourceId: 'osty', effect: 'summonDamage' }, () => dealDamage(state, 'enemy', amount + (plusSummonHp ? current.ostyHp : 0), false, enemy));
+  withCombatTraceContext(state, { sourceId: 'osty', effect: 'summonDamage' }, () => dealDamage(state, 'enemy', amount + (state.powerStacks?.summonDamage ?? 0) + (plusSummonHp ? current.ostyHp : 0), false, enemy));
   triggerRelics(state, 'ostyAttack');
 }

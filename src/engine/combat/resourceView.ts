@@ -65,7 +65,7 @@ export function getSummonView(state: CombatState) {
         cardUid: card.uid,
         cardId: card.cardId,
         name: cardName(card),
-        amount: hp > 0 ? Math.max(0, Math.floor(effect.amount + (effect.plusSummonHp ? hp : 0))) : 0,
+        amount: hp > 0 ? Math.max(0, Math.floor(effect.amount + (state.powerStacks?.summonDamage ?? 0) + (effect.plusSummonHp ? hp : 0))) : 0,
         baseAmount: effect.amount,
         plusSummonHp: effect.plusSummonHp ?? false,
       }];

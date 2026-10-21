@@ -121,6 +121,12 @@ describe('implemented card provenance and effect execution', () => {
       state.enemy.poison = 2;
       state.enemy.vulnerable = 2;
       state.enemy.doom = 9;
+      state.turnMetrics = { skillsPlayed: 1, energySpent: 3, drawn: 5, discarded: 2, doomApplied: 9 };
+      state.battleMetrics = { etherealPlayed: 2 };
+      if (card.playCondition?.type === 'drawPileEmpty') {
+        state.discardPile.push(...state.drawPile);
+        state.drawPile = [];
+      }
       const before = structuredClone(state);
       expect(canPlayCard(state, played.uid)).toBe(true);
       const expectedEnergyAfterPayment = state.energy - getCardCost(played, state);
@@ -144,6 +150,8 @@ describe('implemented card provenance and effect execution', () => {
         temporary: combat.turnModifiers ?? [],
         intangible: combat.intangible ?? 0,
         cardDamageBonuses: combat.cardDamageBonuses ?? {},
+        instanceDamageBonuses: combat.instanceDamageBonuses ?? {},
+        drawBlocked: combat.drawBlocked ?? false,
         temporaryUpgrades: combat.temporaryUpgrades ?? [],
         dexterity: combat.dexterity ?? 0,
         plate: combat.plate ?? 0,
@@ -157,8 +165,11 @@ describe('implemented card provenance and effect execution', () => {
       expect(zones.map((instance) => instance.uid).sort()).toEqual(
         [...after.deck, ...(after.generatedCards ?? [])].map((instance) => instance.uid).sort(),
       );
+      const effects = upgraded ? card.upgradedEffects : card.effects;
+      const returnsToDrawPile = effects.some((effect) => effect.type === 'returnSelf' && effect.destination === 'drawPile');
       const destination = card.type === 'power' ? after.powers
-        : (upgraded ? card.upgradedExhaust ?? card.exhaust : card.exhaust) ? after.exhaustPile : after.discardPile;
+        : (upgraded ? card.upgradedExhaust ?? card.exhaust : card.exhaust) ? after.exhaustPile
+          : returnsToDrawPile ? after.drawPile : after.discardPile;
       expect(destination.map((instance) => instance.uid)).toContain(played.uid);
     });
   }
