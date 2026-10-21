@@ -21,7 +21,7 @@ import { ClassSelectionScreen } from './screens/ClassSelectionScreen';
 import { Icon } from './components/Icon';
 import { CardView } from './components/CardView';
 import { Modal } from './components/Modal';
-import { RockDeity } from './components/CharacterArt';
+import { TitleScreen } from './screens/TitleScreen';
 import { BattleScreen } from './screens/BattleScreen';
 import { captureCombatTransition } from './presentation/trace';
 import { useBattlePresentation } from './presentation/useBattlePresentation';
@@ -36,6 +36,7 @@ import './styles/battle-compact.css';
 import './styles/world-art.css';
 import './styles/art-cards.css';
 import './styles/art-battle.css';
+import './styles/art-scenes.css';
 
 const CardLibrary = lazy(() => import('./components/CardLibrary').then((module) => ({ default: module.CardLibrary })));
 
@@ -282,89 +283,10 @@ export default function App() {
       </header>
 
       {screen === 'title' ? (
-        <main className="title-screen">
-          <div className="title-copy">
-            <p className="eyebrow">
-              <span className="gold-line" /> じっとしているだけじゃ、終われない。
-            </p>
-            <h1>
-              IWASON
-              <br />
-              <span>SPIRE</span>
-            </h1>
-            <p className="title-japanese">— じっと教の塔 —</p>
-            <p className="title-description">
-              岩の意志。手のひらの戦略。
-              <br />
-              教祖・岩尊けいとと、三層の塔へ。
-            </p>
-            <div className="title-actions">
-              <button className="primary-button title-start" onClick={() => setScreen('classes')}>
-                第1階層へ進む
-                <Icon name="arrow" size={21} />
-              </button>
-              {run && (
-                <button className="secondary-button" onClick={() => setScreen('run')}>
-                  <Icon name="repeat" size={17} />
-                  探索を再開 · {run.act ? `Act ${run.act} · ` : ''}{run.floor}F / 12F
-                </button>
-              )}
-              <button className="practice-start text-button" onClick={() => startGame()}>
-                単体戦闘で練習 <Icon name="arrow" size={15} />
-              </button>
-              {practice && (
-                <button className="text-button practice-resume" onClick={() => setScreen('battle')}>
-                  前回の練習を再開 · {practice.turn}ターン目
-                </button>
-              )}
-            </div>
-            <label className="seed-field">
-              <span>シード</span>
-              <input
-                value={seed}
-                onChange={(event) => setSeed(event.target.value)}
-                maxLength={64}
-                placeholder="空欄なら、運命にまかせる"
-                aria-label="新しい探索のシード"
-              />
-            </label>
-            <div className="title-facts">
-              <span>
-                <b>5</b>つの職業
-              </span>
-              <span>
-                <b>12</b>フロアの試練
-              </span>
-              <span>
-                <Icon name="sun" size={22} />
-                <b>100</b>で神格化
-              </span>
-            </div>
-          </div>
-          <div className="title-art">
-            <div className="title-halo" />
-            <span className="title-orbit title-orbit-one" />
-            <span className="title-orbit title-orbit-two" />
-            <p className="title-vertical">動かざること、岩のごとし。</p>
-            <RockDeity />
-            <div className="title-ground" />
-            <div className="character-signature">
-              <span>じっと教 教祖</span>
-              <b>岩尊けいと</b>
-              <small>「ほいっと〜」</small>
-            </div>
-          </div>
-          <div className="title-footer">
-            <span>
-              <i /> ACTS I–III — じっと教の塔
-            </span>
-            <span>デッキを育て、分岐を選び、塔のボスを打ち砕こう。</span>
-            <button onClick={() => setModal('help')}>
-              最初の教え
-              <Icon name="arrow" size={16} />
-            </button>
-          </div>
-        </main>
+        <TitleScreen run={run} practice={practice} seed={seed} onSeed={setSeed}
+          onStart={() => setScreen('classes')} onResume={() => setScreen('run')}
+          onPractice={() => startGame()} onResumePractice={() => setScreen('battle')}
+          onHelp={() => setModal('help')} />
       ) : screen === 'classes' ? (
         <ClassSelectionScreen selected={selectedClassId} onSelect={setSelectedClassId}
           onStart={() => startRun(undefined, selectedClassId)} onBack={() => setScreen('title')} />

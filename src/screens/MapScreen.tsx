@@ -4,6 +4,7 @@ import { getAvailableNodes } from '../engine/run';
 import { getActDefinition } from '../data/acts';
 import { Icon } from '../components/Icon';
 import { MapNodeIcon } from '../components/MapNodeIcon';
+import { WorldScene } from '../components/world/WorldScene';
 import '../styles/map-expansion.css';
 
 const nodeLabels: Record<NodeType, { name: string; description: string }> = {
@@ -83,22 +84,21 @@ export function MapScreen({ state, onAction }: { state: RunState; onAction: (act
     if (availableIds.has(nodeId)) onAction({ type: 'chooseNode', nodeId });
   };
 
-  return <div className="run-map-screen">
+  return <div className="run-map-screen atlas-map">
+    <WorldScene variant="map" act={state.act ?? 1} />
     <header className="run-screen-heading">
-      <div><p className="eyebrow"><span className="gold-line" />{state.act ? `ACT ${act.id} · ${act.subtitle}` : 'ACT I · 岩の目覚め'}</p><h1>じっと教の塔</h1><p className="run-heading-description">分かれ道と合流を見渡して、次の一歩を選びましょう。光る地点だけに進めます。</p></div>
+      <div><p className="eyebrow"><span className="gold-line" />{state.act ? `ACT ${act.id} · ${act.subtitle}` : 'ACT I · 岩の目覚め'}</p><h1>{state.act ? act.name : 'じっと教の塔'}</h1></div>
       <span className="run-seed"><Icon name="mountain" size={14} /> SEED <b>{state.seed}</b></span>
     </header>
     <div className="run-map-layout">
       <aside className="run-map-sidebar">
-        <div className="run-map-chapter"><span>{state.act ? `第${act.id}層 / 全${state.maxActs}層` : '第一層'}</span><h2>{state.act ? act.name : '不動の回廊'}</h2><p>{state.act ? act.description : <>上へ、上へ。<br />道を選ぶたび、教えは変わる。</>}</p><div className="run-floor-progress"><span style={{ width: `${Math.min(100, state.visited.length / state.map.floors * 100)}%` }} /></div><small>{state.visited.length} / {state.map.floors} フロア踏破</small></div>
+        <div className="run-map-chapter"><span>{state.act ? `第${act.id}層 / 全${state.maxActs}層` : '第一層'}</span><h2>{state.act ? act.name : '不動の回廊'}</h2><details className="atlas-chapter-description"><summary>この階層のこと</summary><p>{state.act ? act.description : '上へ、上へ。道を選ぶたび、教えは変わる。'}</p></details><div className="run-floor-progress"><span style={{ width: `${Math.min(100, state.visited.length / state.map.floors * 100)}%` }} /></div><small>{state.visited.length} / {state.map.floors} フロア踏破</small></div>
         <div className="run-map-next"><p className="section-kicker">NEXT DESTINATION</p><h3>次の目的地</h3><p>第 {nextFloor} フロア · {available.length}つの道</p><div>
           {available.map((node) => <button key={node.id} data-next-node-id={node.id} className="run-next-choice" onMouseEnter={() => setHoveredId(node.id)} onMouseLeave={() => setHoveredId(null)} onFocus={() => setHoveredId(node.id)} onBlur={() => setHoveredId(null)} onClick={() => chooseNode(node.id)}>
             <MapNodeIcon type={node.type} size={20} /><span>{nodeLabels[node.type].name}<small>{laneName(node, state.map)} · {node.connections.length > 1 ? `${node.connections.length}方向へ分岐` : node.connections.length ? '次の道へ続く' : '最後の試練'}</small></span><Icon name="chevron" size={14} />
           </button>)}
         </div></div>
-        <div className="run-map-legend" aria-label="地点の種類">{(Object.keys(nodeLabels) as NodeType[]).map((type) => <div key={type} title={nodeLabels[type].description}><MapNodeIcon type={type} size={17} /><span>{nodeLabels[type].name}</span></div>)}</div>
-        <p className="run-map-blessing-note"><MapNodeIcon type="blessing" size={21} /><span>Actのはじまりには、岩の祝福が道を照らします。</span></p>
-        <p className="run-map-note"><Icon name="help" size={14} />明るい線は次の道、金の実線は歩いた道。<br />地点に重ねると、その先のつながりが光ります。</p>
+        <details className="atlas-map-legend"><summary><Icon name="help" size={17} />地図を読む</summary><div className="run-map-legend" aria-label="地点の種類">{(Object.keys(nodeLabels) as NodeType[]).map((type) => <div key={type} title={nodeLabels[type].description}><MapNodeIcon type={type} size={19} /><span>{nodeLabels[type].name}</span></div>)}</div><p className="run-map-blessing-note"><MapNodeIcon type="blessing" size={21} /><span>Actのはじまりには、岩の祝福が道を照らします。</span></p><p className="run-map-note">光る地点だけに進めます。明るい線は次の道、金の実線は歩いた道です。</p></details>
       </aside>
       <div className="run-map-panel">
         <div className="run-map-toolbar"><span><b>分岐マップ</b><small>上が頂 · 全{state.map.floors}フロア</small></span><div className="run-map-zoom" role="group" aria-label="マップの表示倍率">{ZOOMS.map((option) => <button key={option.value} type="button" onClick={() => setZoom(option.value)} aria-pressed={zoom === option.value}>{option.name}</button>)}</div><button type="button" className="run-map-center" onClick={centerMap}><span aria-hidden="true">⌾</span> 現在地へ</button></div>
